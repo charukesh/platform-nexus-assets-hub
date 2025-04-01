@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -6,7 +5,7 @@ import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ChevronRight, Edit, FileImage, Users, PieChart, Smartphone, MapPin, Tag, CheckCircle, Clock, Info, Trash2 } from "lucide-react";
+import { ChevronRight, Edit, FileImage, Users, PieChart, Smartphone, MapPin, Tag, CheckCircle, Clock, Info, Trash2, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -129,6 +128,15 @@ const PlatformDetail: React.FC = () => {
     );
   }
   
+  const addAssetButton = (
+    <Link to={`/assets/new?platform_id=${id}`}>
+      <NeuButton className="flex items-center">
+        <PlusCircle size={16} className="mr-2" />
+        Add Asset
+      </NeuButton>
+    </Link>
+  );
+
   return (
     <Layout>
       <div className="animate-fade-in">
@@ -143,12 +151,7 @@ const PlatformDetail: React.FC = () => {
             <p className="text-muted-foreground mt-1">Detailed platform information and assets</p>
           </div>
           <div className="flex gap-2">
-            <Link to="/assets/new">
-              <NeuButton variant="secondary" className="flex items-center gap-1">
-                <FileImage size={16} />
-                Add Asset
-              </NeuButton>
-            </Link>
+            {addAssetButton}
             <Link to={`/platforms/${id}/edit`}>
               <NeuButton className="flex items-center gap-1">
                 <Edit size={16} />

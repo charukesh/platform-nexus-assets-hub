@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
@@ -58,8 +59,13 @@ const tagSuggestions = [
 const AssetForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { toast } = useToast();
   const isEditMode = Boolean(id);
+  
+  // Get platform_id from URL search params if it exists
+  const queryParams = new URLSearchParams(location.search);
+  const platformIdFromQuery = queryParams.get('platform_id');
   
   const [platforms, setPlatforms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -77,7 +83,7 @@ const AssetForm: React.FC = () => {
     name: "",
     category: "",
     type: "",
-    platform_id: "",
+    platform_id: platformIdFromQuery || "",
     description: "",
     file_url: "",
     file_size: ""
@@ -342,7 +348,12 @@ const AssetForm: React.FC = () => {
           : "Asset has been successfully created.",
       });
       
-      navigate("/assets");
+      // Navigate back to platform detail if we came from there
+      if (platformIdFromQuery) {
+        navigate(`/platforms/${platformIdFromQuery}`);
+      } else {
+        navigate("/assets");
+      }
     } catch (error: any) {
       toast({
         title: "Error saving asset",

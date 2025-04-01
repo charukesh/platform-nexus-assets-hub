@@ -10,6 +10,8 @@ import PlatformForm from "./pages/PlatformForm";
 import PlatformDetail from "./pages/PlatformDetail";
 import AssetsManagement from "./pages/AssetsManagement";
 import AssetForm from "./pages/AssetForm";
+import AssetDetail from "./pages/AssetDetail";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,9 @@ const App = () => (
           <Route path="/platforms/:id/edit" element={<PlatformForm />} />
           <Route path="/assets" element={<AssetsManagement />} />
           <Route path="/assets/new" element={<AssetForm />} />
+          <Route path="/assets/:id" element={<AssetDetail />} />
+          <Route path="/assets/:id/edit" element={<AssetForm />} />
+          <Route path="/analytics" element={<Analytics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
