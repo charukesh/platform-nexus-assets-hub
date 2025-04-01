@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -247,15 +246,18 @@ const AssetForm: React.FC = () => {
     if (!uploadedFile) return null;
     
     try {
-      // Create a unique file path
+      // Create a unique file path with proper directory structure
       const fileExt = uploadedFile.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `assets/${fileName}`;
+      const filePath = `asset-files/${fileName}`; // Use a dedicated folder for uploads
       
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(filePath, uploadedFile);
+        .from('assets') // Make sure this bucket exists in Supabase
+        .upload(filePath, uploadedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
       if (uploadError) throw uploadError;
       
