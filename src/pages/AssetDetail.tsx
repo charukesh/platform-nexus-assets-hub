@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { File, Image, Download, ArrowLeft, Pencil, Trash2, FileText, AlertCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 
 const AssetDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -156,10 +157,10 @@ const AssetDetail: React.FC = () => {
             
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <NeuButton variant="destructive">
+                <Button variant="destructive">
                   <Trash2 size={16} className="mr-2" />
                   Delete
-                </NeuButton>
+                </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>

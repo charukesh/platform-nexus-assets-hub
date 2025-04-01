@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
-import { PieChart, Pie, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { PieChart, Pie, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -123,9 +123,7 @@ const Analytics: React.FC = () => {
                     dataKey="value"
                   >
                     {assetsByCategory.map((entry, index) => (
-                      <React.Fragment key={`cell-${index}`}>
-                        <cell fill={COLORS[index % COLORS.length]} />
-                      </React.Fragment>
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
