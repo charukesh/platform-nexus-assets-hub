@@ -12,7 +12,44 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
+// Type definitions for structured JSON data
+interface DeviceSplit {
+  ios: number;
+  android: number;
+}
+
+interface DemographicData {
+  ageGroups: string[];
+  gender: string[];
+  interests: string[];
+}
+
+interface GeographicData {
+  cities: string[];
+  states: string[];
+  regions: string[];
+}
+
+interface AudienceData {
+  demographic: DemographicData;
+  geographic: GeographicData;
+}
+
+interface CampaignData {
+  funneling: string;
+  buyTypes: string[];
+  innovations: string;
+}
+
+interface Restrictions {
+  blockedCategories: string[];
+  minimumSpend: number;
+  didYouKnow: string;
+}
+
+// Constants
 const industryOptions = [
   "Social Media",
   "Entertainment",
@@ -64,6 +101,14 @@ const blockedCategories = [
   "Controversial Topics",
 ];
 
+// Default values for structured data
+const defaultDeviceSplit: DeviceSplit = { ios: 50, android: 50 };
+const defaultDemographic: DemographicData = { ageGroups: [], gender: [], interests: [] };
+const defaultGeographic: GeographicData = { cities: [], states: [], regions: [] };
+const defaultAudienceData: AudienceData = { demographic: defaultDemographic, geographic: defaultGeographic };
+const defaultCampaignData: CampaignData = { funneling: "", buyTypes: [], innovations: "" };
+const defaultRestrictions: Restrictions = { blockedCategories: [], minimumSpend: 0, didYouKnow: "" };
+
 const PlatformForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -79,28 +124,9 @@ const PlatformForm: React.FC = () => {
     dau: "",
     ios_percentage: 50,
     android_percentage: 50,
-    audience_data: {
-      demographic: {
-        ageGroups: [] as string[],
-        gender: [] as string[],
-        interests: [] as string[]
-      },
-      geographic: {
-        cities: [] as string[],
-        states: [] as string[],
-        regions: [] as string[]
-      }
-    },
-    campaign_data: {
-      funneling: "",
-      buyTypes: [] as string[],
-      innovations: ""
-    },
-    restrictions: {
-      blockedCategories: [] as string[],
-      minimumSpend: 0,
-      didYouKnow: ""
-    }
+    audience_data: defaultAudienceData,
+    campaign_data: defaultCampaignData,
+    restrictions: defaultRestrictions
   });
   
   const [loading, setLoading] = useState(false);
@@ -126,33 +152,11 @@ const PlatformForm: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        // Map the database data to our form structure with proper type checking
-        const deviceSplit = typeof data.device_split === 'object' && data.device_split !== null 
-          ? data.device_split 
-          : { ios: 50, android: 50 };
-        
-        const audienceData = typeof data.audience_data === 'object' && data.audience_data !== null
-          ? data.audience_data
-          : {
-              demographic: { ageGroups: [], gender: [], interests: [] },
-              geographic: { cities: [], states: [], regions: [] }
-            };
-            
-        const campaignData = typeof data.campaign_data === 'object' && data.campaign_data !== null
-          ? data.campaign_data
-          : {
-              funneling: "",
-              buyTypes: [],
-              innovations: ""
-            };
-            
-        const restrictionsData = typeof data.restrictions === 'object' && data.restrictions !== null
-          ? data.restrictions
-          : {
-              blockedCategories: [],
-              minimumSpend: 0,
-              didYouKnow: ""
-            };
+        // Parse and safely handle JSON data from database
+        const deviceSplit = parseJsonField<DeviceSplit>(data.device_split, defaultDeviceSplit);
+        const audienceData = parseJsonField<AudienceData>(data.audience_data, defaultAudienceData);
+        const campaignData = parseJsonField<CampaignData>(data.campaign_data, defaultCampaignData);
+        const restrictionsData = parseJsonField<Restrictions>(data.restrictions, defaultRestrictions);
         
         setFormData({
           name: data.name || "",
@@ -160,30 +164,11 @@ const PlatformForm: React.FC = () => {
           premium_users: data.premium_users || 0,
           mau: data.mau || "",
           dau: data.dau || "",
-          ios_percentage: deviceSplit.ios || 50,
-          android_percentage: deviceSplit.android || 50,
-          audience_data: {
-            demographic: {
-              ageGroups: Array.isArray(audienceData.demographic?.ageGroups) ? audienceData.demographic.ageGroups : [],
-              gender: Array.isArray(audienceData.demographic?.gender) ? audienceData.demographic.gender : [],
-              interests: Array.isArray(audienceData.demographic?.interests) ? audienceData.demographic.interests : []
-            },
-            geographic: {
-              cities: Array.isArray(audienceData.geographic?.cities) ? audienceData.geographic.cities : [],
-              states: Array.isArray(audienceData.geographic?.states) ? audienceData.geographic.states : [],
-              regions: Array.isArray(audienceData.geographic?.regions) ? audienceData.geographic.regions : []
-            }
-          },
-          campaign_data: {
-            funneling: typeof campaignData.funneling === 'string' ? campaignData.funneling : "",
-            buyTypes: Array.isArray(campaignData.buyTypes) ? campaignData.buyTypes : [],
-            innovations: typeof campaignData.innovations === 'string' ? campaignData.innovations : ""
-          },
-          restrictions: {
-            blockedCategories: Array.isArray(restrictionsData.blockedCategories) ? restrictionsData.blockedCategories : [],
-            minimumSpend: typeof restrictionsData.minimumSpend === 'number' ? restrictionsData.minimumSpend : 0,
-            didYouKnow: typeof restrictionsData.didYouKnow === 'string' ? restrictionsData.didYouKnow : ""
-          }
+          ios_percentage: deviceSplit.ios,
+          android_percentage: deviceSplit.android,
+          audience_data: audienceData,
+          campaign_data: campaignData,
+          restrictions: restrictionsData
         });
       }
     } catch (error: any) {
@@ -196,6 +181,21 @@ const PlatformForm: React.FC = () => {
       setFetchLoading(false);
     }
   };
+
+  // Helper function to safely parse JSON fields with type checking
+  function parseJsonField<T>(jsonField: Json | null, defaultValue: T): T {
+    if (!jsonField) return defaultValue;
+    
+    try {
+      if (typeof jsonField === 'object') {
+        // Return the object as T, ensuring it has the necessary properties
+        return { ...defaultValue, ...jsonField as T };
+      }
+      return defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -230,7 +230,9 @@ const PlatformForm: React.FC = () => {
   // Fix checkbox handling to use boolean properly 
   const handleMultiSelectChange = (group: string, subgroup: string, field: string, value: string, checked: boolean) => {
     setFormData(prev => {
-      const currentValues = ((prev[group as keyof typeof prev] as any)[subgroup][field]) as string[];
+      const prevGroup = prev[group as keyof typeof prev] as Record<string, any>;
+      const prevSubgroup = prevGroup[subgroup] as Record<string, any>;
+      const currentValues = prevSubgroup[field] as string[];
       
       let newValues;
       if (checked) {
@@ -242,9 +244,9 @@ const PlatformForm: React.FC = () => {
       return {
         ...prev,
         [group]: {
-          ...(prev[group as keyof typeof prev] as any),
+          ...prevGroup,
           [subgroup]: {
-            ...((prev[group as keyof typeof prev] as any)[subgroup]),
+            ...prevSubgroup,
             [field]: newValues
           }
         }
@@ -255,7 +257,8 @@ const PlatformForm: React.FC = () => {
   // Fix checkbox handling for top-level arrays
   const handleArrayChange = (group: string, field: string, value: string, checked: boolean) => {
     setFormData(prev => {
-      const currentValues = ((prev[group as keyof typeof prev] as any)[field]) as string[];
+      const prevGroup = prev[group as keyof typeof prev] as Record<string, any>;
+      const currentValues = prevGroup[field] as string[];
       
       let newValues;
       if (checked) {
@@ -267,7 +270,7 @@ const PlatformForm: React.FC = () => {
       return {
         ...prev,
         [group]: {
-          ...(prev[group as keyof typeof prev] as any),
+          ...prevGroup,
           [field]: newValues
         }
       };
