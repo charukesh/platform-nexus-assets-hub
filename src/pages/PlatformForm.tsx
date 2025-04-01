@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -125,28 +126,63 @@ const PlatformForm: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        // Map the database data to our form structure
+        // Map the database data to our form structure with proper type checking
+        const deviceSplit = typeof data.device_split === 'object' && data.device_split !== null 
+          ? data.device_split 
+          : { ios: 50, android: 50 };
+        
+        const audienceData = typeof data.audience_data === 'object' && data.audience_data !== null
+          ? data.audience_data
+          : {
+              demographic: { ageGroups: [], gender: [], interests: [] },
+              geographic: { cities: [], states: [], regions: [] }
+            };
+            
+        const campaignData = typeof data.campaign_data === 'object' && data.campaign_data !== null
+          ? data.campaign_data
+          : {
+              funneling: "",
+              buyTypes: [],
+              innovations: ""
+            };
+            
+        const restrictionsData = typeof data.restrictions === 'object' && data.restrictions !== null
+          ? data.restrictions
+          : {
+              blockedCategories: [],
+              minimumSpend: 0,
+              didYouKnow: ""
+            };
+        
         setFormData({
           name: data.name || "",
           industry: data.industry || "",
           premium_users: data.premium_users || 0,
           mau: data.mau || "",
           dau: data.dau || "",
-          ios_percentage: data.device_split?.ios || 50,
-          android_percentage: data.device_split?.android || 50,
-          audience_data: data.audience_data || {
-            demographic: { ageGroups: [], gender: [], interests: [] },
-            geographic: { cities: [], states: [], regions: [] }
+          ios_percentage: deviceSplit.ios || 50,
+          android_percentage: deviceSplit.android || 50,
+          audience_data: {
+            demographic: {
+              ageGroups: Array.isArray(audienceData.demographic?.ageGroups) ? audienceData.demographic.ageGroups : [],
+              gender: Array.isArray(audienceData.demographic?.gender) ? audienceData.demographic.gender : [],
+              interests: Array.isArray(audienceData.demographic?.interests) ? audienceData.demographic.interests : []
+            },
+            geographic: {
+              cities: Array.isArray(audienceData.geographic?.cities) ? audienceData.geographic.cities : [],
+              states: Array.isArray(audienceData.geographic?.states) ? audienceData.geographic.states : [],
+              regions: Array.isArray(audienceData.geographic?.regions) ? audienceData.geographic.regions : []
+            }
           },
-          campaign_data: data.campaign_data || {
-            funneling: "",
-            buyTypes: [],
-            innovations: ""
+          campaign_data: {
+            funneling: typeof campaignData.funneling === 'string' ? campaignData.funneling : "",
+            buyTypes: Array.isArray(campaignData.buyTypes) ? campaignData.buyTypes : [],
+            innovations: typeof campaignData.innovations === 'string' ? campaignData.innovations : ""
           },
-          restrictions: data.restrictions || {
-            blockedCategories: [],
-            minimumSpend: 0,
-            didYouKnow: ""
+          restrictions: {
+            blockedCategories: Array.isArray(restrictionsData.blockedCategories) ? restrictionsData.blockedCategories : [],
+            minimumSpend: typeof restrictionsData.minimumSpend === 'number' ? restrictionsData.minimumSpend : 0,
+            didYouKnow: typeof restrictionsData.didYouKnow === 'string' ? restrictionsData.didYouKnow : ""
           }
         });
       }
@@ -172,7 +208,7 @@ const PlatformForm: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       [group]: {
-        ...prev[group as keyof typeof prev],
+        ...(prev[group as keyof typeof prev] as any),
         [field]: value
       }
     }));
@@ -182,7 +218,7 @@ const PlatformForm: React.FC = () => {
     setFormData(prev => ({
       ...prev,
       [group]: {
-        ...prev[group as keyof typeof prev],
+        ...(prev[group as keyof typeof prev] as any),
         [subgroup]: {
           ...((prev[group as keyof typeof prev] as any)[subgroup]),
           [field]: value
@@ -191,25 +227,48 @@ const PlatformForm: React.FC = () => {
     }));
   };
 
-  const handleCheckboxChange = (group: string, subgroup: string, field: string, checked: boolean) => {
+  // Fix checkbox handling to use boolean properly 
+  const handleMultiSelectChange = (group: string, subgroup: string, field: string, value: string, checked: boolean) => {
     setFormData(prev => {
       const currentValues = ((prev[group as keyof typeof prev] as any)[subgroup][field]) as string[];
       
       let newValues;
       if (checked) {
-        newValues = [...currentValues, field];
+        newValues = [...currentValues, value];
       } else {
-        newValues = currentValues.filter(item => item !== field);
+        newValues = currentValues.filter(item => item !== value);
       }
       
       return {
         ...prev,
         [group]: {
-          ...prev[group as keyof typeof prev],
+          ...(prev[group as keyof typeof prev] as any),
           [subgroup]: {
             ...((prev[group as keyof typeof prev] as any)[subgroup]),
             [field]: newValues
           }
+        }
+      };
+    });
+  };
+
+  // Fix checkbox handling for top-level arrays
+  const handleArrayChange = (group: string, field: string, value: string, checked: boolean) => {
+    setFormData(prev => {
+      const currentValues = ((prev[group as keyof typeof prev] as any)[field]) as string[];
+      
+      let newValues;
+      if (checked) {
+        newValues = [...currentValues, value];
+      } else {
+        newValues = currentValues.filter(item => item !== value);
+      }
+      
+      return {
+        ...prev,
+        [group]: {
+          ...(prev[group as keyof typeof prev] as any),
+          [field]: newValues
         }
       };
     });
@@ -443,7 +502,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`age-${age}`} 
                             checked={formData.audience_data.demographic.ageGroups.includes(age)}
-                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'demographic', 'ageGroups', checked ? age : "")}
+                            onCheckedChange={(checked) => 
+                              handleMultiSelectChange('audience_data', 'demographic', 'ageGroups', age, checked === true)}
                           />
                           <Label htmlFor={`age-${age}`} className="cursor-pointer text-sm">
                             {age}
@@ -461,7 +521,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`gender-${gender}`}
                             checked={formData.audience_data.demographic.gender.includes(gender)}
-                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'demographic', 'gender', checked ? gender : "")}
+                            onCheckedChange={(checked) => 
+                              handleMultiSelectChange('audience_data', 'demographic', 'gender', gender, checked === true)}
                           />
                           <Label htmlFor={`gender-${gender}`} className="cursor-pointer text-sm">
                             {gender}
@@ -479,7 +540,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`interest-${interest}`}
                             checked={formData.audience_data.demographic.interests.includes(interest)}
-                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'demographic', 'interests', checked ? interest : "")}
+                            onCheckedChange={(checked) => 
+                              handleMultiSelectChange('audience_data', 'demographic', 'interests', interest, checked === true)}
                           />
                           <Label htmlFor={`interest-${interest}`} className="cursor-pointer text-sm">
                             {interest}
@@ -503,7 +565,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`city-${city}`}
                             checked={formData.audience_data.geographic.cities.includes(city)}
-                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'geographic', 'cities', checked ? city : "")}
+                            onCheckedChange={(checked) => 
+                              handleMultiSelectChange('audience_data', 'geographic', 'cities', city, checked === true)}
                           />
                           <Label htmlFor={`city-${city}`} className="cursor-pointer text-sm">
                             {city}
@@ -521,7 +584,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`state-${state}`}
                             checked={formData.audience_data.geographic.states.includes(state)}
-                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'geographic', 'states', checked ? state : "")}
+                            onCheckedChange={(checked) => 
+                              handleMultiSelectChange('audience_data', 'geographic', 'states', state, checked === true)}
                           />
                           <Label htmlFor={`state-${state}`} className="cursor-pointer text-sm">
                             {state}
@@ -539,7 +603,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`region-${region}`}
                             checked={formData.audience_data.geographic.regions.includes(region)}
-                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'geographic', 'regions', checked ? region : "")}
+                            onCheckedChange={(checked) => 
+                              handleMultiSelectChange('audience_data', 'geographic', 'regions', region, checked === true)}
                           />
                           <Label htmlFor={`region-${region}`} className="cursor-pointer text-sm">
                             {region}
@@ -577,7 +642,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`buy-type-${type}`}
                             checked={formData.campaign_data.buyTypes.includes(type)}
-                            onCheckedChange={(checked) => handleCheckboxChange('campaign_data', '', 'buyTypes', checked ? type : "")}
+                            onCheckedChange={(checked) => 
+                              handleArrayChange('campaign_data', 'buyTypes', type, checked === true)}
                           />
                           <Label htmlFor={`buy-type-${type}`} className="cursor-pointer text-sm">
                             {type}
@@ -615,7 +681,8 @@ const PlatformForm: React.FC = () => {
                           <Checkbox 
                             id={`category-${category}`}
                             checked={formData.restrictions.blockedCategories.includes(category)}
-                            onCheckedChange={(checked) => handleCheckboxChange('restrictions', '', 'blockedCategories', checked ? category : "")}
+                            onCheckedChange={(checked) => 
+                              handleArrayChange('restrictions', 'blockedCategories', category, checked === true)}
                           />
                           <Label htmlFor={`category-${category}`} className="cursor-pointer text-sm">
                             {category}

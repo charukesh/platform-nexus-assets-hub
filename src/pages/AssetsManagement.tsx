@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
@@ -7,7 +6,7 @@ import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Plus, Upload, Download, Grid, List, Calendar, Info, Tag, ExternalLink } from "lucide-react";
+import { Search, Filter, Plus, Upload, Download, Grid, List, Calendar, Info, Tag, ExternalLink, FileIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -64,7 +63,6 @@ const AssetsManagement: React.FC = () => {
       }
 
       if (data) {
-        // Add "All" option to platforms array
         setPlatforms([{ id: 'All', name: 'All' }, ...data]);
       }
     } catch (error: any) {
@@ -111,7 +109,6 @@ const AssetsManagement: React.FC = () => {
           </div>
         </header>
 
-        {/* Search and filter section */}
         <NeuCard className="mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
@@ -188,7 +185,6 @@ const AssetsManagement: React.FC = () => {
           </div>
         </NeuCard>
 
-        {/* Display stats */}
         <div className="mb-6 flex gap-4 flex-wrap">
           <NeuCard className="flex-1 min-w-[120px]">
             <p className="text-sm text-muted-foreground">Total Assets</p>
@@ -214,7 +210,6 @@ const AssetsManagement: React.FC = () => {
           </NeuCard>
         </div>
         
-        {/* Assets display */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -233,7 +228,7 @@ const AssetsManagement: React.FC = () => {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-neugray-200">
-                        <File size={48} className="text-neugray-400" />
+                        <FileIcon size={48} className="text-neugray-400" />
                       </div>
                     )}
                   </div>
@@ -310,7 +305,7 @@ const AssetsManagement: React.FC = () => {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <File size={24} className="text-neugray-400" />
+                          <FileIcon size={24} className="text-neugray-400" />
                         </div>
                       )}
                     </div>
