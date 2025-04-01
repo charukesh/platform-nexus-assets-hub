@@ -1,6 +1,5 @@
-
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const industryOptions = [
   "Social Media",
@@ -65,23 +65,232 @@ const blockedCategories = [
 
 const PlatformForm: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const isEditMode = Boolean(id);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    industry: "",
+    premium_users: 0,
+    mau: "",
+    dau: "",
+    ios_percentage: 50,
+    android_percentage: 50,
+    audience_data: {
+      demographic: {
+        ageGroups: [] as string[],
+        gender: [] as string[],
+        interests: [] as string[]
+      },
+      geographic: {
+        cities: [] as string[],
+        states: [] as string[],
+        regions: [] as string[]
+      }
+    },
+    campaign_data: {
+      funneling: "",
+      buyTypes: [] as string[],
+      innovations: ""
+    },
+    restrictions: {
+      blockedCategories: [] as string[],
+      minimumSpend: 0,
+      didYouKnow: ""
+    }
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Platform saved",
-      description: "Platform data has been successfully saved.",
-    });
-    navigate("/");
+  useEffect(() => {
+    if (isEditMode) {
+      fetchPlatform();
+    }
+  }, [id]);
+
+  const fetchPlatform = async () => {
+    if (!id) return;
+    
+    try {
+      setFetchLoading(true);
+      const { data, error } = await supabase
+        .from('platforms')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        // Map the database data to our form structure
+        setFormData({
+          name: data.name || "",
+          industry: data.industry || "",
+          premium_users: data.premium_users || 0,
+          mau: data.mau || "",
+          dau: data.dau || "",
+          ios_percentage: data.device_split?.ios || 50,
+          android_percentage: data.device_split?.android || 50,
+          audience_data: data.audience_data || {
+            demographic: { ageGroups: [], gender: [], interests: [] },
+            geographic: { cities: [], states: [], regions: [] }
+          },
+          campaign_data: data.campaign_data || {
+            funneling: "",
+            buyTypes: [],
+            innovations: ""
+          },
+          restrictions: data.restrictions || {
+            blockedCategories: [],
+            minimumSpend: 0,
+            didYouKnow: ""
+          }
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error fetching platform",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setFetchLoading(false);
+    }
   };
+
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleNestedChange = (group: string, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [group]: {
+        ...prev[group as keyof typeof prev],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleDeeplyNestedChange = (group: string, subgroup: string, field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [group]: {
+        ...prev[group as keyof typeof prev],
+        [subgroup]: {
+          ...((prev[group as keyof typeof prev] as any)[subgroup]),
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleCheckboxChange = (group: string, subgroup: string, field: string, checked: boolean) => {
+    setFormData(prev => {
+      const currentValues = ((prev[group as keyof typeof prev] as any)[subgroup][field]) as string[];
+      
+      let newValues;
+      if (checked) {
+        newValues = [...currentValues, field];
+      } else {
+        newValues = currentValues.filter(item => item !== field);
+      }
+      
+      return {
+        ...prev,
+        [group]: {
+          ...prev[group as keyof typeof prev],
+          [subgroup]: {
+            ...((prev[group as keyof typeof prev] as any)[subgroup]),
+            [field]: newValues
+          }
+        }
+      };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      
+      // Prepare data for database
+      const platformData = {
+        name: formData.name,
+        industry: formData.industry,
+        premium_users: formData.premium_users,
+        mau: formData.mau,
+        dau: formData.dau,
+        device_split: {
+          ios: formData.ios_percentage,
+          android: formData.android_percentage
+        },
+        audience_data: formData.audience_data,
+        campaign_data: formData.campaign_data,
+        restrictions: formData.restrictions
+      };
+      
+      let result;
+      
+      if (isEditMode) {
+        // Update existing platform
+        result = await supabase
+          .from('platforms')
+          .update(platformData)
+          .eq('id', id);
+      } else {
+        // Insert new platform
+        result = await supabase
+          .from('platforms')
+          .insert(platformData);
+      }
+      
+      const { error } = result;
+      
+      if (error) throw error;
+      
+      toast({
+        title: isEditMode ? "Platform updated" : "Platform created",
+        description: isEditMode 
+          ? "Platform has been successfully updated." 
+          : "Platform has been successfully created.",
+      });
+      
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Error saving platform",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (fetchLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="animate-fade-in">
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Add New Platform</h1>
+            <h1 className="text-3xl font-bold">{isEditMode ? "Edit Platform" : "Add New Platform"}</h1>
             <p className="text-muted-foreground mt-1">Enter detailed information about the platform</p>
           </div>
         </header>
@@ -114,19 +323,25 @@ const PlatformForm: React.FC = () => {
                       id="platform-name"
                       placeholder="Enter platform name"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="industry">Industry*</Label>
-                    <Select required>
+                    <Select 
+                      required
+                      value={formData.industry}
+                      onValueChange={(value) => handleChange('industry', value)}
+                    >
                       <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
                         <SelectValue placeholder="Select industry" />
                       </SelectTrigger>
                       <SelectContent>
                         {industryOptions.map((industry) => (
-                          <SelectItem key={industry} value={industry.toLowerCase().replace(/\s+/g, "-")}>
+                          <SelectItem key={industry} value={industry}>
                             {industry}
                           </SelectItem>
                         ))}
@@ -143,6 +358,8 @@ const PlatformForm: React.FC = () => {
                       max="100"
                       placeholder="Enter percentage"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.premium_users}
+                      onChange={(e) => handleChange('premium_users', parseInt(e.target.value) || 0)}
                     />
                   </div>
 
@@ -152,6 +369,8 @@ const PlatformForm: React.FC = () => {
                       id="monthly-active-users"
                       placeholder="e.g., 1.2M"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.mau}
+                      onChange={(e) => handleChange('mau', e.target.value)}
                     />
                   </div>
 
@@ -161,6 +380,8 @@ const PlatformForm: React.FC = () => {
                       id="daily-active-users"
                       placeholder="e.g., 500K"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.dau}
+                      onChange={(e) => handleChange('dau', e.target.value)}
                     />
                   </div>
                 </div>
@@ -178,6 +399,12 @@ const PlatformForm: React.FC = () => {
                       max="100"
                       placeholder="Enter percentage"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.ios_percentage}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        handleChange('ios_percentage', value);
+                        handleChange('android_percentage', 100 - value);
+                      }}
                     />
                   </div>
 
@@ -190,6 +417,12 @@ const PlatformForm: React.FC = () => {
                       max="100"
                       placeholder="Enter percentage"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.android_percentage}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        handleChange('android_percentage', value);
+                        handleChange('ios_percentage', 100 - value);
+                      }}
                     />
                   </div>
                 </div>
@@ -207,7 +440,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
                       {ageGroups.map((age) => (
                         <div key={age} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`age-${age}`} />
+                          <Checkbox 
+                            id={`age-${age}`} 
+                            checked={formData.audience_data.demographic.ageGroups.includes(age)}
+                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'demographic', 'ageGroups', checked ? age : "")}
+                          />
                           <Label htmlFor={`age-${age}`} className="cursor-pointer text-sm">
                             {age}
                           </Label>
@@ -221,7 +458,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {genderOptions.map((gender) => (
                         <div key={gender} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`gender-${gender}`} />
+                          <Checkbox 
+                            id={`gender-${gender}`}
+                            checked={formData.audience_data.demographic.gender.includes(gender)}
+                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'demographic', 'gender', checked ? gender : "")}
+                          />
                           <Label htmlFor={`gender-${gender}`} className="cursor-pointer text-sm">
                             {gender}
                           </Label>
@@ -235,7 +476,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                       {interestOptions.map((interest) => (
                         <div key={interest} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`interest-${interest}`} />
+                          <Checkbox 
+                            id={`interest-${interest}`}
+                            checked={formData.audience_data.demographic.interests.includes(interest)}
+                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'demographic', 'interests', checked ? interest : "")}
+                          />
                           <Label htmlFor={`interest-${interest}`} className="cursor-pointer text-sm">
                             {interest}
                           </Label>
@@ -255,7 +500,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                       {locationOptions.cities.map((city) => (
                         <div key={city} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`city-${city}`} />
+                          <Checkbox 
+                            id={`city-${city}`}
+                            checked={formData.audience_data.geographic.cities.includes(city)}
+                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'geographic', 'cities', checked ? city : "")}
+                          />
                           <Label htmlFor={`city-${city}`} className="cursor-pointer text-sm">
                             {city}
                           </Label>
@@ -269,7 +518,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {locationOptions.states.map((state) => (
                         <div key={state} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`state-${state}`} />
+                          <Checkbox 
+                            id={`state-${state}`}
+                            checked={formData.audience_data.geographic.states.includes(state)}
+                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'geographic', 'states', checked ? state : "")}
+                          />
                           <Label htmlFor={`state-${state}`} className="cursor-pointer text-sm">
                             {state}
                           </Label>
@@ -283,7 +536,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {locationOptions.regions.map((region) => (
                         <div key={region} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`region-${region}`} />
+                          <Checkbox 
+                            id={`region-${region}`}
+                            checked={formData.audience_data.geographic.regions.includes(region)}
+                            onCheckedChange={(checked) => handleCheckboxChange('audience_data', 'geographic', 'regions', checked ? region : "")}
+                          />
                           <Label htmlFor={`region-${region}`} className="cursor-pointer text-sm">
                             {region}
                           </Label>
@@ -307,6 +564,8 @@ const PlatformForm: React.FC = () => {
                       id="campaign-funneling"
                       placeholder="Describe the campaign funneling process..."
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+                      value={formData.campaign_data.funneling}
+                      onChange={(e) => handleNestedChange('campaign_data', 'funneling', e.target.value)}
                     />
                   </div>
 
@@ -315,7 +574,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {buyTypes.map((type) => (
                         <div key={type} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`buy-type-${type}`} />
+                          <Checkbox 
+                            id={`buy-type-${type}`}
+                            checked={formData.campaign_data.buyTypes.includes(type)}
+                            onCheckedChange={(checked) => handleCheckboxChange('campaign_data', '', 'buyTypes', checked ? type : "")}
+                          />
                           <Label htmlFor={`buy-type-${type}`} className="cursor-pointer text-sm">
                             {type}
                           </Label>
@@ -330,6 +593,8 @@ const PlatformForm: React.FC = () => {
                       id="innovations"
                       placeholder="Describe innovations and gamification features..."
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+                      value={formData.campaign_data.innovations}
+                      onChange={(e) => handleNestedChange('campaign_data', 'innovations', e.target.value)}
                     />
                   </div>
                 </div>
@@ -347,7 +612,11 @@ const PlatformForm: React.FC = () => {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                       {blockedCategories.map((category) => (
                         <div key={category} className="flex items-center gap-2 neu-flat p-2">
-                          <Checkbox id={`category-${category}`} />
+                          <Checkbox 
+                            id={`category-${category}`}
+                            checked={formData.restrictions.blockedCategories.includes(category)}
+                            onCheckedChange={(checked) => handleCheckboxChange('restrictions', '', 'blockedCategories', checked ? category : "")}
+                          />
                           <Label htmlFor={`category-${category}`} className="cursor-pointer text-sm">
                             {category}
                           </Label>
@@ -364,6 +633,8 @@ const PlatformForm: React.FC = () => {
                       min="0"
                       placeholder="Enter amount"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.restrictions.minimumSpend}
+                      onChange={(e) => handleNestedChange('restrictions', 'minimumSpend', parseInt(e.target.value) || 0)}
                     />
                   </div>
 
@@ -373,6 +644,8 @@ const PlatformForm: React.FC = () => {
                       id="did-you-know"
                       placeholder="Add special insights and notes..."
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+                      value={formData.restrictions.didYouKnow}
+                      onChange={(e) => handleNestedChange('restrictions', 'didYouKnow', e.target.value)}
                     />
                   </div>
                 </div>
@@ -381,10 +654,18 @@ const PlatformForm: React.FC = () => {
           </Tabs>
 
           <div className="mt-8 flex justify-end gap-3">
-            <NeuButton type="button" variant="outline" onClick={() => navigate("/")}>
+            <NeuButton type="button" variant="outline" onClick={() => navigate("/")} disabled={loading}>
               Cancel
             </NeuButton>
-            <NeuButton type="submit">Save Platform</NeuButton>
+            <NeuButton type="submit" disabled={loading}>
+              {loading ? 
+                <span className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Saving...
+                </span> : 
+                `Save Platform`
+              }
+            </NeuButton>
           </div>
         </form>
       </div>

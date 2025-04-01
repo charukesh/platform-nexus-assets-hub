@@ -1,6 +1,6 @@
 
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Upload, X, File, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock options
-const platforms = ["Instagram", "Spotify", "YouTube", "TikTok", "Uber", "Amazon", "Google"];
+// Categories and types definitions
 const categories = ["Digital", "Physical", "Phygital"];
 
 const assetTypes = {
@@ -58,36 +58,119 @@ const tagSuggestions = [
 
 const AssetForm: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const isEditMode = Boolean(id);
   
+  const [platforms, setPlatforms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>("");
   const [fileUploaded, setFileUploaded] = useState(false);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    category: "",
+    type: "",
+    platform_id: "",
+    description: "",
+    file_url: "",
+    file_size: ""
+  });
+
+  useEffect(() => {
+    // Fetch platforms for dropdown
+    fetchPlatforms();
+    
+    if (isEditMode) {
+      fetchAsset();
+    }
+  }, [id]);
+
+  const fetchPlatforms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('platforms')
+        .select('id, name');
+
+      if (error) throw error;
+      
+      if (data) {
+        setPlatforms(data);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error fetching platforms",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchAsset = async () => {
+    if (!id) return;
+    
+    try {
+      setFetchLoading(true);
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      if (data) {
+        setFormData({
+          name: data.name || "",
+          category: data.category || "",
+          type: data.type || "",
+          platform_id: data.platform_id || "",
+          description: data.description || "",
+          file_url: data.file_url || "",
+          file_size: data.file_size || ""
+        });
+        
+        setSelectedCategory(data.category || "");
+        setTags(data.tags || []);
+        
+        if (data.file_url) {
+          setFileUploaded(true);
+          // If it's an image, set preview
+          if (data.file_url.match(/\.(jpeg|jpg|gif|png)$/)) {
+            setFilePreview(data.file_url);
+          }
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error fetching asset",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setFetchLoading(false);
+    }
+  };
+
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const handleCategoryChange = (value: string) => {
     setSelectedCategory(value);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!fileUploaded) {
-      toast({
-        title: "File required",
-        description: "Please upload a file for this asset.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    toast({
-      title: "Asset saved",
-      description: "Asset has been successfully saved.",
-    });
-    navigate("/assets");
+    handleChange('category', value);
+    // Reset type when category changes
+    handleChange('type', '');
   };
 
   const handleAddTag = () => {
@@ -129,6 +212,11 @@ const AssetForm: React.FC = () => {
 
   const handleFile = (file: File) => {
     setFileUploaded(true);
+    setUploadedFile(file);
+    
+    // Update file size
+    const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2);
+    handleChange('file_size', `${fileSizeInMB}MB`);
     
     // Create preview for images
     if (file.type.startsWith("image/")) {
@@ -142,22 +230,144 @@ const AssetForm: React.FC = () => {
     }
 
     toast({
-      title: "File uploaded",
-      description: `${file.name} has been uploaded.`,
+      title: "File selected",
+      description: `${file.name} has been selected for upload.`,
     });
   };
 
   const handleRemoveFile = () => {
     setFileUploaded(false);
     setFilePreview(null);
+    setUploadedFile(null);
+    handleChange('file_size', '');
+    handleChange('file_url', '');
   };
+
+  const uploadFile = async () => {
+    if (!uploadedFile) return null;
+    
+    try {
+      // Create a unique file path
+      const fileExt = uploadedFile.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      const filePath = `assets/${fileName}`;
+      
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('assets')
+        .upload(filePath, uploadedFile);
+      
+      if (uploadError) throw uploadError;
+      
+      // Get public URL
+      const { data } = supabase.storage
+        .from('assets')
+        .getPublicUrl(filePath);
+      
+      return data.publicUrl;
+    } catch (error: any) {
+      toast({
+        title: "Error uploading file",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!formData.name || !formData.category || !formData.type) {
+        toast({
+          title: "Missing required fields",
+          description: "Please fill in all required fields.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Upload file if selected and get URL
+      let fileUrl = formData.file_url; // Keep existing URL if in edit mode
+      if (uploadedFile) {
+        fileUrl = await uploadFile();
+        if (!fileUrl) return; // Stop if upload failed
+      }
+      
+      // Create thumbnail URL (just use the same URL for now)
+      const thumbnailUrl = fileUrl;
+      
+      // Prepare data for database
+      const assetData = {
+        name: formData.name,
+        category: formData.category,
+        type: formData.type,
+        platform_id: formData.platform_id || null, // Allow null if no platform selected
+        description: formData.description,
+        tags,
+        file_url: fileUrl,
+        file_size: formData.file_size,
+        thumbnail_url: thumbnailUrl
+      };
+      
+      let result;
+      
+      if (isEditMode) {
+        // Update existing asset
+        result = await supabase
+          .from('assets')
+          .update(assetData)
+          .eq('id', id);
+      } else {
+        // Insert new asset
+        result = await supabase
+          .from('assets')
+          .insert(assetData);
+      }
+      
+      const { error } = result;
+      
+      if (error) throw error;
+      
+      toast({
+        title: isEditMode ? "Asset updated" : "Asset created",
+        description: isEditMode 
+          ? "Asset has been successfully updated." 
+          : "Asset has been successfully created.",
+      });
+      
+      navigate("/assets");
+    } catch (error: any) {
+      toast({
+        title: "Error saving asset",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (fetchLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="animate-fade-in">
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Add New Asset</h1>
+            <h1 className="text-3xl font-bold">{isEditMode ? "Edit Asset" : "Add New Asset"}</h1>
             <p className="text-muted-foreground mt-1">Upload and categorize a new asset</p>
           </div>
         </header>
@@ -175,6 +385,8 @@ const AssetForm: React.FC = () => {
                       id="asset-name"
                       placeholder="Enter asset name"
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                      value={formData.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
                       required
                     />
                   </div>
@@ -184,6 +396,7 @@ const AssetForm: React.FC = () => {
                       <Label htmlFor="category">Category*</Label>
                       <Select 
                         required
+                        value={formData.category}
                         onValueChange={handleCategoryChange}
                       >
                         <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
@@ -204,6 +417,8 @@ const AssetForm: React.FC = () => {
                       <Select
                         required
                         disabled={!selectedCategory}
+                        value={formData.type}
+                        onValueChange={(value) => handleChange('type', value)}
                       >
                         <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
                           <SelectValue placeholder={selectedCategory ? "Select type" : "Select category first"} />
@@ -221,15 +436,18 @@ const AssetForm: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="platform">Platform Association*</Label>
-                      <Select required>
+                      <Label htmlFor="platform">Platform Association</Label>
+                      <Select
+                        value={formData.platform_id}
+                        onValueChange={(value) => handleChange('platform_id', value)}
+                      >
                         <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
                           <SelectValue placeholder="Select platform" />
                         </SelectTrigger>
                         <SelectContent>
                           {platforms.map((platform) => (
-                            <SelectItem key={platform} value={platform}>
-                              {platform}
+                            <SelectItem key={platform.id} value={platform.id}>
+                              {platform.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -243,6 +461,8 @@ const AssetForm: React.FC = () => {
                       id="description"
                       placeholder="Enter description or notes about this asset..."
                       className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+                      value={formData.description}
+                      onChange={(e) => handleChange('description', e.target.value)}
                     />
                   </div>
 
@@ -305,10 +525,18 @@ const AssetForm: React.FC = () => {
               </NeuCard>
               
               <div className="flex justify-end gap-3">
-                <NeuButton type="button" variant="outline" onClick={() => navigate("/assets")}>
+                <NeuButton type="button" variant="outline" onClick={() => navigate("/assets")} disabled={loading}>
                   Cancel
                 </NeuButton>
-                <NeuButton type="submit">Save Asset</NeuButton>
+                <NeuButton type="submit" disabled={loading}>
+                  {loading ? 
+                    <span className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Saving...
+                    </span> : 
+                    `Save Asset`
+                  }
+                </NeuButton>
               </div>
             </div>
 
@@ -374,7 +602,7 @@ const AssetForm: React.FC = () => {
                           <File size={24} />
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-medium">File uploaded successfully</p>
+                          <p className="text-sm font-medium">File selected for upload</p>
                           <p className="text-xs text-muted-foreground">
                             File ready for submission
                           </p>
@@ -402,7 +630,7 @@ const AssetForm: React.FC = () => {
                   
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">File Size:</span>
-                    <span className="text-sm">{fileUploaded ? "2.4 MB" : "-"}</span>
+                    <span className="text-sm">{formData.file_size || "-"}</span>
                   </div>
                   
                   <div className="flex justify-between">

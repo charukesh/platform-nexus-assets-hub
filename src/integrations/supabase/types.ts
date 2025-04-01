@@ -9,7 +9,107 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string | null
+          file_size: string | null
+          file_url: string | null
+          id: string
+          name: string
+          platform_id: string | null
+          tags: string[] | null
+          thumbnail_url: string | null
+          type: string
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description?: string | null
+          file_size?: string | null
+          file_url?: string | null
+          id?: string
+          name: string
+          platform_id?: string | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          type: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          file_size?: string | null
+          file_url?: string | null
+          id?: string
+          name?: string
+          platform_id?: string | null
+          tags?: string[] | null
+          thumbnail_url?: string | null
+          type?: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platforms: {
+        Row: {
+          audience_data: Json | null
+          campaign_data: Json | null
+          created_at: string | null
+          dau: string | null
+          device_split: Json | null
+          id: string
+          industry: string
+          mau: string | null
+          name: string
+          premium_users: number | null
+          restrictions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          audience_data?: Json | null
+          campaign_data?: Json | null
+          created_at?: string | null
+          dau?: string | null
+          device_split?: Json | null
+          id?: string
+          industry: string
+          mau?: string | null
+          name: string
+          premium_users?: number | null
+          restrictions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          audience_data?: Json | null
+          campaign_data?: Json | null
+          created_at?: string | null
+          dau?: string | null
+          device_split?: Json | null
+          id?: string
+          industry?: string
+          mau?: string | null
+          name?: string
+          premium_users?: number | null
+          restrictions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
