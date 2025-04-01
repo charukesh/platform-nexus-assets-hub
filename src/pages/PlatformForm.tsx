@@ -283,20 +283,21 @@ const PlatformForm: React.FC = () => {
     try {
       setLoading(true);
       
-      // Prepare data for database
+      // Prepare data for database - convert to Json compatible format
       const platformData = {
         name: formData.name,
         industry: formData.industry,
         premium_users: formData.premium_users,
         mau: formData.mau,
         dau: formData.dau,
+        // Convert complex objects to Json-compatible format
         device_split: {
           ios: formData.ios_percentage,
           android: formData.android_percentage
-        },
-        audience_data: formData.audience_data,
-        campaign_data: formData.campaign_data,
-        restrictions: formData.restrictions
+        } as Json,
+        audience_data: formData.audience_data as unknown as Json,
+        campaign_data: formData.campaign_data as unknown as Json,
+        restrictions: formData.restrictions as unknown as Json
       };
       
       let result;
@@ -325,7 +326,7 @@ const PlatformForm: React.FC = () => {
           : "Platform has been successfully created.",
       });
       
-      navigate("/");
+      navigate("/platforms");
     } catch (error: any) {
       toast({
         title: "Error saving platform",
