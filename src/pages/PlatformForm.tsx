@@ -3,62 +3,43 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
+import NeuButton from "@/components/NeuButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PlusCircle, MinusCircle, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MultiStepForm from "@/components/MultiStepForm";
-import { Plus, X, MapPin, Users, Globe } from "lucide-react";
 
-// Available industries
+// Industry options
 const industries = [
-  "Food & Beverage",
-  "Retail",
-  "Travel",
-  "Finance",
-  "Healthcare",
-  "Technology",
-  "Entertainment",
-  "Education",
-  "Transportation",
-  "Real Estate"
+  "Video Streaming", "Food Delivery", "E-commerce", "Social Media", 
+  "Ride Sharing", "Travel", "Fintech", "Health & Fitness", "Gaming",
+  "News & Media", "Music & Audio", "Retail"
 ];
 
-// Common interests for audience targeting
-const commonInterests = [
-  "Social Media", "Shopping", "Entertainment", "Sports", "Travel", 
-  "Food", "Music", "Technology", "Fashion", "Gaming", "Fitness", 
-  "Education", "Finance", "Health", "Books", "Movies", "Photography"
+// Device platforms
+const devicePlatforms = ["iOS", "Android", "Web", "Connected TV"];
+
+// Demographics
+const ageGroups = ["13-17", "18-24", "25-34", "35-44", "45-54", "55+"];
+const genderOptions = ["Male", "Female", "Non-binary", "Prefer not to say"];
+const interestCategories = [
+  "Technology", "Fashion", "Sports", "Music", "Food", "Travel", "Gaming", 
+  "Fitness", "Beauty", "Home", "Books", "Movies", "Business", "Photography",
+  "Arts & Culture", "Outdoors", "Politics", "Science", "Health", "Pets",
+  "Family", "Education", "Automotive", "Finance", "Shopping"
 ];
 
-// Buy types for campaign management
-const buyTypes = [
-  "CPC (Cost Per Click)",
-  "CPM (Cost Per Mille)",
-  "CPA (Cost Per Action)",
-  "CPL (Cost Per Lead)",
-  "CPI (Cost Per Install)",
-  "CPV (Cost Per View)",
-  "CPCV (Cost Per Completed View)",
-  "Flat Fee"
-];
-
-// Innovations and gamification options
-const innovationOptions = [
-  "Playable Ads",
-  "AR Experiences",
-  "Interactive Polls",
-  "Mini-Games",
-  "Quizzes",
-  "3D Experiences",
-  "Swipe Interactions",
-  "Augmented Reality",
-  "Reward Mechanics",
-  "Referral Programs"
+// Campaign types
+const buyTypes = ["CPC", "CPM", "CPA", "CPL", "CPV", "Flat Fee", "Sponsorship"];
+const blockedCategories = [
+  "Alcohol", "Tobacco", "Gambling", "Weapons", "Adult Content", 
+  "Political", "Religious", "Pharmaceuticals", "Controversial Topics"
 ];
 
 const PlatformForm: React.FC = () => {
@@ -74,64 +55,42 @@ const PlatformForm: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
     industry: "",
-    premium_users: 0,
     mau: "",
     dau: "",
+    premium_users: 0,
     device_split: {
       ios: 50,
       android: 50
+    },
+    audience_data: {
+      demographic: {
+        ageGroups: [] as string[],
+        gender: [] as string[],
+        interests: [] as string[]
+      },
+      geographic: {
+        cities: [] as string[],
+        states: [] as string[],
+        regions: [] as string[]
+      }
+    },
+    campaign_data: {
+      buyTypes: [] as string[],
+      funneling: "",
+      innovations: ""
+    },
+    restrictions: {
+      blockedCategories: [] as string[],
+      minimumSpend: 0,
+      didYouKnow: ""
     }
   });
   
-  // Audience data
-  const [audienceData, setAudienceData] = useState({
-    age_groups: {
-      "18-24": 20,
-      "25-34": 30,
-      "35-44": 25,
-      "45-54": 15,
-      "55+": 10
-    },
-    gender_split: {
-      male: 50,
-      female: 50
-    },
-    income_brackets: {
-      low: 20,
-      medium: 50,
-      high: 30
-    },
-    interests: ["Social Media", "Shopping", "Entertainment"]
-  });
+  // Local state for form inputs
+  const [newCity, setNewCity] = useState("");
+  const [newState, setNewState] = useState("");
+  const [newRegion, setNewRegion] = useState("");
   
-  // Geographic data
-  const [geographicData, setGeographicData] = useState({
-    cities: [] as string[],
-    states: [] as string[],
-    regions: [] as string[],
-    countries: [] as string[]
-  });
-  
-  // Campaign data
-  const [campaignData, setCampaignData] = useState({
-    min_budget: 1000,
-    avg_cpm: 5.5,
-    avg_ctr: 1.2,
-    accepted_formats: ["Image", "Video", "Carousel"],
-    tracking_available: true,
-    funneling: [] as string[],
-    buy_types: ["CPM (Cost Per Mille)"],
-    innovations: [] as string[]
-  });
-  
-  // Restrictions
-  const [restrictions, setRestrictions] = useState({
-    restricted_categories: ["Gambling", "Alcohol", "Tobacco"],
-    min_age: 13,
-    geo_targeting: true,
-    requires_approval: true
-  });
-
   useEffect(() => {
     if (isEditMode) {
       fetchPlatform();
@@ -152,81 +111,37 @@ const PlatformForm: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        // Set basic form data
+        // Initialize with defaults for nested objects if they don't exist
+        const audience_data = data.audience_data || {
+          demographic: { ageGroups: [], gender: [], interests: [] },
+          geographic: { cities: [], states: [], regions: [] }
+        };
+        
+        const campaign_data = data.campaign_data || {
+          buyTypes: [],
+          funneling: "",
+          innovations: ""
+        };
+        
+        const restrictions = data.restrictions || {
+          blockedCategories: [],
+          minimumSpend: 0,
+          didYouKnow: ""
+        };
+        
+        const device_split = data.device_split || { ios: 50, android: 50 };
+        
         setFormData({
           name: data.name || "",
           industry: data.industry || "",
-          premium_users: data.premium_users || 0,
           mau: data.mau || "",
           dau: data.dau || "",
-          device_split: data.device_split && typeof data.device_split === 'object' ? 
-            {
-              ios: (data.device_split as any).ios || 50,
-              android: (data.device_split as any).android || 50
-            } : 
-            { ios: 50, android: 50 }
+          premium_users: data.premium_users || 0,
+          device_split,
+          audience_data,
+          campaign_data,
+          restrictions
         });
-        
-        // Set audience data
-        if (data.audience_data && typeof data.audience_data === 'object') {
-          const audience = data.audience_data as any;
-          setAudienceData({
-            age_groups: audience.age_groups || {
-              "18-24": 20,
-              "25-34": 30,
-              "35-44": 25,
-              "45-54": 15,
-              "55+": 10
-            },
-            gender_split: audience.gender_split || {
-              male: 50,
-              female: 50
-            },
-            income_brackets: audience.income_brackets || {
-              low: 20,
-              medium: 50,
-              high: 30
-            },
-            interests: audience.interests || ["Social Media", "Shopping", "Entertainment"]
-          });
-        }
-        
-        // Set geographic data
-        if (data.geographic_data && typeof data.geographic_data === 'object') {
-          const geo = data.geographic_data as any;
-          setGeographicData({
-            cities: geo.cities || [],
-            states: geo.states || [],
-            regions: geo.regions || [],
-            countries: geo.countries || []
-          });
-        }
-        
-        // Set campaign data
-        if (data.campaign_data && typeof data.campaign_data === 'object') {
-          const campaign = data.campaign_data as any;
-          setCampaignData({
-            min_budget: campaign.min_budget || 1000,
-            avg_cpm: campaign.avg_cpm || 5.5,
-            avg_ctr: campaign.avg_ctr || 1.2,
-            accepted_formats: campaign.accepted_formats || ["Image", "Video", "Carousel"],
-            tracking_available: campaign.tracking_available ?? true,
-            funneling: campaign.funneling || [],
-            buy_types: campaign.buy_types || ["CPM (Cost Per Mille)"],
-            innovations: campaign.innovations || []
-          });
-        }
-        
-        // Set restrictions
-        if (data.restrictions && typeof data.restrictions === 'object') {
-          const restrict = data.restrictions as any;
-          setRestrictions({
-            restricted_categories: restrict.restricted_categories || ["Gambling", "Alcohol", "Tobacco"],
-            min_age: restrict.min_age || 13,
-            geo_targeting: restrict.geo_targeting ?? true,
-            requires_approval: restrict.requires_approval ?? true
-          });
-        }
       }
     } catch (error: any) {
       toast({
@@ -239,190 +154,150 @@ const PlatformForm: React.FC = () => {
     }
   };
 
-  const handleBasicInfoChange = (field: string, value: any) => {
+  const handleChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-  
-  const handleDeviceSplitChange = (iosValue: number) => {
+
+  const handleNestedChange = (parent: string, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      device_split: {
-        ios: iosValue,
-        android: 100 - iosValue
-      }
-    }));
-  };
-  
-  const handleAudienceChange = (section: string, field: string, value: any) => {
-    setAudienceData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section as keyof typeof prev],
+      [parent]: {
+        ...prev[parent as keyof typeof prev],
         [field]: value
       }
     }));
   };
-  
-  const handleAudienceInterestAdd = (interest: string) => {
-    if (!audienceData.interests.includes(interest) && interest.trim() !== '') {
-      setAudienceData(prev => ({
-        ...prev,
-        interests: [...prev.interests, interest]
-      }));
-    }
-  };
-  
-  const handleAudienceInterestRemove = (interest: string) => {
-    setAudienceData(prev => ({
+
+  const handleDemographicChange = (field: string, value: any) => {
+    setFormData(prev => ({
       ...prev,
-      interests: prev.interests.filter(i => i !== interest)
+      audience_data: {
+        ...prev.audience_data,
+        demographic: {
+          ...prev.audience_data.demographic,
+          [field]: value
+        }
+      }
     }));
   };
-  
-  // Geographic handlers
-  const handleGeoItemAdd = (section: keyof typeof geographicData, item: string) => {
-    if (!geographicData[section].includes(item) && item.trim() !== '') {
-      setGeographicData(prev => ({
-        ...prev,
-        [section]: [...prev[section], item]
-      }));
-    }
-  };
-  
-  const handleGeoItemRemove = (section: keyof typeof geographicData, item: string) => {
-    setGeographicData(prev => ({
+
+  const handleGeographicChange = (field: string, value: any) => {
+    setFormData(prev => ({
       ...prev,
-      [section]: prev[section].filter(i => i !== item)
+      audience_data: {
+        ...prev.audience_data,
+        geographic: {
+          ...prev.audience_data.geographic,
+          [field]: value
+        }
+      }
     }));
   };
-  
-  // Campaign handlers
+
   const handleCampaignChange = (field: string, value: any) => {
-    setCampaignData(prev => ({
+    setFormData(prev => ({
       ...prev,
-      [field]: value
+      campaign_data: {
+        ...prev.campaign_data,
+        [field]: value
+      }
     }));
   };
-  
-  const handleCampaignFormatToggle = (format: string) => {
-    setCampaignData(prev => {
-      const formats = prev.accepted_formats;
-      if (formats.includes(format)) {
-        return {
-          ...prev,
-          accepted_formats: formats.filter(f => f !== format)
-        };
-      } else {
-        return {
-          ...prev,
-          accepted_formats: [...formats, format]
-        };
+
+  const handleRestrictionsChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      restrictions: {
+        ...prev.restrictions,
+        [field]: value
       }
-    });
+    }));
   };
-  
-  const handleCampaignItemAdd = (section: 'funneling' | 'buy_types' | 'innovations', item: string) => {
-    if (!campaignData[section].includes(item) && item.trim() !== '') {
-      setCampaignData(prev => ({
-        ...prev,
-        [section]: [...prev[section], item]
-      }));
+
+  const handleArrayItemAdd = (category: string, subcategory: string, value: string) => {
+    if (!value.trim()) return;
+    
+    if (category === 'audience_data') {
+      if (subcategory === 'geographic') {
+        const field = value === newCity ? 'cities' : value === newState ? 'states' : 'regions';
+        const currentArray = formData.audience_data.geographic[field as keyof typeof formData.audience_data.geographic] as string[];
+        
+        if (!currentArray.includes(value)) {
+          handleGeographicChange(field, [...currentArray, value]);
+        }
+        
+        if (field === 'cities') setNewCity('');
+        else if (field === 'states') setNewState('');
+        else setNewRegion('');
+      }
     }
   };
-  
-  const handleCampaignItemRemove = (section: 'funneling' | 'buy_types' | 'innovations', item: string) => {
-    setCampaignData(prev => ({
-      ...prev,
-      [section]: prev[section].filter(i => i !== item)
-    }));
-  };
-  
-  const handleBuyTypeToggle = (buyType: string) => {
-    setCampaignData(prev => {
-      const types = prev.buy_types;
-      if (types.includes(buyType)) {
-        return {
-          ...prev,
-          buy_types: types.filter(t => t !== buyType)
-        };
-      } else {
-        return {
-          ...prev,
-          buy_types: [...types, buyType]
-        };
+
+  const handleArrayItemRemove = (category: string, subcategory: string, field: string, index: number) => {
+    if (category === 'audience_data') {
+      if (subcategory === 'demographic') {
+        const newArray = [...formData.audience_data.demographic[field as keyof typeof formData.audience_data.demographic] as string[]];
+        newArray.splice(index, 1);
+        handleDemographicChange(field, newArray);
+      } else if (subcategory === 'geographic') {
+        const newArray = [...formData.audience_data.geographic[field as keyof typeof formData.audience_data.geographic] as string[]];
+        newArray.splice(index, 1);
+        handleGeographicChange(field, newArray);
       }
-    });
-  };
-  
-  const handleInnovationToggle = (innovation: string) => {
-    setCampaignData(prev => {
-      const innovations = prev.innovations;
-      if (innovations.includes(innovation)) {
-        return {
-          ...prev,
-          innovations: innovations.filter(i => i !== innovation)
-        };
-      } else {
-        return {
-          ...prev,
-          innovations: [...innovations, innovation]
-        };
-      }
-    });
-  };
-  
-  const handleRestrictionChange = (field: string, value: any) => {
-    setRestrictions(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-  
-  const handleRestrictionCategoryAdd = (category: string) => {
-    if (!restrictions.restricted_categories.includes(category) && category.trim() !== '') {
-      setRestrictions(prev => ({
-        ...prev,
-        restricted_categories: [...prev.restricted_categories, category]
-      }));
+    } else if (category === 'campaign_data') {
+      const newArray = [...formData.campaign_data[field as keyof typeof formData.campaign_data] as string[]];
+      newArray.splice(index, 1);
+      handleCampaignChange(field, newArray);
+    } else if (category === 'restrictions') {
+      const newArray = [...formData.restrictions[field as keyof typeof formData.restrictions] as string[]];
+      newArray.splice(index, 1);
+      handleRestrictionsChange(field, newArray);
     }
   };
-  
-  const handleRestrictionCategoryRemove = (category: string) => {
-    setRestrictions(prev => ({
-      ...prev,
-      restricted_categories: prev.restricted_categories.filter(c => c !== category)
-    }));
+
+  const handleCheckboxToggle = (category: string, field: string, value: string) => {
+    if (category === 'audience_data.demographic') {
+      const currentArray = formData.audience_data.demographic[field as keyof typeof formData.audience_data.demographic] as string[];
+      const newArray = currentArray.includes(value)
+        ? currentArray.filter(item => item !== value)
+        : [...currentArray, value];
+      
+      handleDemographicChange(field, newArray);
+    } else if (category === 'campaign_data') {
+      const currentArray = formData.campaign_data[field as keyof typeof formData.campaign_data] as string[];
+      const newArray = currentArray.includes(value)
+        ? currentArray.filter(item => item !== value)
+        : [...currentArray, value];
+      
+      handleCampaignChange(field, newArray);
+    } else if (category === 'restrictions') {
+      const currentArray = formData.restrictions[field as keyof typeof formData.restrictions] as string[];
+      const newArray = currentArray.includes(value)
+        ? currentArray.filter(item => item !== value)
+        : [...currentArray, value];
+      
+      handleRestrictionsChange(field, newArray);
+    }
   };
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
       
-      // Prepare combined data for submission
+      // Prepare data for database
       const platformData = {
         name: formData.name,
         industry: formData.industry,
-        premium_users: formData.premium_users,
         mau: formData.mau,
         dau: formData.dau,
+        premium_users: formData.premium_users,
         device_split: formData.device_split,
-        audience_data: audienceData,
-        geographic_data: geographicData,
-        campaign_data: campaignData,
-        restrictions: restrictions
-      };
-      
-      // Convert objects to JSON format that Supabase expects
-      const supabaseData = {
-        ...platformData,
-        audience_data: platformData.audience_data as any,
-        geographic_data: platformData.geographic_data as any,
-        campaign_data: platformData.campaign_data as any,
-        device_split: platformData.device_split as any,
-        restrictions: platformData.restrictions as any
+        audience_data: formData.audience_data,
+        campaign_data: formData.campaign_data,
+        restrictions: formData.restrictions
       };
       
       let result;
@@ -431,13 +306,13 @@ const PlatformForm: React.FC = () => {
         // Update existing platform
         result = await supabase
           .from('platforms')
-          .update(supabaseData)
+          .update(platformData)
           .eq('id', id);
       } else {
         // Insert new platform
         result = await supabase
           .from('platforms')
-          .insert(supabaseData);
+          .insert(platformData);
       }
       
       const { error } = result;
@@ -463,12 +338,12 @@ const PlatformForm: React.FC = () => {
     }
   };
 
-  // Validators for each step
+  // Validate the basic info step
   const validateBasicInfo = () => {
     if (!formData.name || !formData.industry) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in the platform name and industry.",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       });
       return false;
@@ -476,791 +351,462 @@ const PlatformForm: React.FC = () => {
     return true;
   };
 
-  // Step 1: Basic platform information
-  const BasicInfoStep = (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="platform-name">Platform Name*</Label>
-        <Input
-          id="platform-name"
-          placeholder="Enter platform name"
-          className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-          value={formData.name}
-          onChange={(e) => handleBasicInfoChange('name', e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="industry">Industry*</Label>
-        <Select 
-          required
-          value={formData.industry}
-          onValueChange={(value) => handleBasicInfoChange('industry', value)}
-        >
-          <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-            <SelectValue placeholder="Select industry" />
-          </SelectTrigger>
-          <SelectContent>
-            {industries.map((industry) => (
-              <SelectItem key={industry} value={industry}>
-                {industry}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="premium-users">Premium Users</Label>
-        <Input
-          id="premium-users"
-          type="number"
-          min="0"
-          placeholder="Number of premium users"
-          className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-          value={formData.premium_users}
-          onChange={(e) => handleBasicInfoChange('premium_users', parseInt(e.target.value) || 0)}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="mau">Monthly Active Users (MAU)</Label>
-          <Input
-            id="mau"
-            placeholder="e.g., 1.2M"
-            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-            value={formData.mau}
-            onChange={(e) => handleBasicInfoChange('mau', e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="dau">Daily Active Users (DAU)</Label>
-          <Input
-            id="dau"
-            placeholder="e.g., 250K"
-            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-            value={formData.dau}
-            onChange={(e) => handleBasicInfoChange('dau', e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Device Split (iOS vs Android)</Label>
-        <div className="space-y-4">
-          <Slider
-            defaultValue={[formData.device_split.ios]}
-            max={100}
-            step={1}
-            value={[formData.device_split.ios]}
-            onValueChange={(values) => handleDeviceSplitChange(values[0])}
-          />
-          <div className="flex justify-between text-sm">
-            <div>
-              <span className="font-medium">iOS:</span> {formData.device_split.ios}%
-            </div>
-            <div>
-              <span className="font-medium">Android:</span> {formData.device_split.android}%
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Step 2: Audience data
-  const AudienceDataStep = (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium">Demographic Targeting</h3>
-        <Label>Age Group Distribution</Label>
-        <div className="space-y-2">
-          {Object.entries(audienceData.age_groups).map(([age, value]) => (
-            <div key={age} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span>{age}</span>
-                <span>{value}%</span>
-              </div>
-              <Slider
-                defaultValue={[value]}
-                max={100}
-                step={1}
-                value={[value]}
-                onValueChange={(values) => handleAudienceChange('age_groups', age, values[0])}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Gender Distribution</Label>
-        <div className="space-y-2">
-          <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span>Male</span>
-              <span>{audienceData.gender_split.male}%</span>
-            </div>
-            <Slider
-              defaultValue={[audienceData.gender_split.male]}
-              max={100}
-              step={1}
-              value={[audienceData.gender_split.male]}
-              onValueChange={(values) => {
-                const maleValue = values[0];
-                handleAudienceChange('gender_split', 'male', maleValue);
-                handleAudienceChange('gender_split', 'female', 100 - maleValue);
-              }}
-            />
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Female</span>
-            <span>{audienceData.gender_split.female}%</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Income Distribution</Label>
-        <div className="space-y-2">
-          {Object.entries(audienceData.income_brackets).map(([bracket, value]) => (
-            <div key={bracket} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span className="capitalize">{bracket}</span>
-                <span>{value}%</span>
-              </div>
-              <Slider
-                defaultValue={[value]}
-                max={100}
-                step={1}
-                value={[value]}
-                onValueChange={(values) => handleAudienceChange('income_brackets', bracket, values[0])}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label>User Interests</Label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {audienceData.interests.map((interest) => (
-            <div key={interest} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-              <span>{interest}</span>
-              <button 
-                type="button"
-                onClick={() => handleAudienceInterestRemove(interest)}
-                className="ml-1 text-muted-foreground hover:text-foreground"
-              >
-                <span>×</span>
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="flex flex-col gap-2">
-          <Select 
-            onValueChange={(value) => {
-              if (value) {
-                handleAudienceInterestAdd(value);
-              }
-            }}
-          >
-            <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-              <SelectValue placeholder="Select common interest" />
-            </SelectTrigger>
-            <SelectContent>
-              {commonInterests
-                .filter(interest => !audienceData.interests.includes(interest))
-                .map((interest) => (
-                  <SelectItem key={interest} value={interest}>
-                    {interest}
-                  </SelectItem>
-                ))
-              }
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Input
-              id="new-interest"
-              placeholder="Add custom interest"
-              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const input = e.currentTarget;
-                  if (input.value) {
-                    handleAudienceInterestAdd(input.value);
-                    input.value = '';
-                  }
-                }
-              }}
-            />
-            <button
-              type="button"
-              className="px-3 py-2 neu-btn rounded-md"
-              onClick={() => {
-                const input = document.getElementById('new-interest') as HTMLInputElement;
-                if (input && input.value) {
-                  handleAudienceInterestAdd(input.value);
-                  input.value = '';
-                }
-              }}
-            >
-              Add
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Step 3: Geographic targeting
-  const GeographicTargetingStep = (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium flex items-center gap-2">
-          <Globe size={20} />
-          Geographic Targeting
-        </h3>
-        
-        <div className="space-y-4">
-          {/* Cities */}
-          <div className="space-y-2">
-            <Label>Cities</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {geographicData.cities.length === 0 ? (
-                <div className="text-muted-foreground text-sm">No cities specified</div>
-              ) : (
-                geographicData.cities.map((city) => (
-                  <div key={city} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-                    <span>{city}</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleGeoItemRemove('cities', city)}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                id="new-city"
-                placeholder="Add city"
-                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const input = e.currentTarget;
-                    if (input.value) {
-                      handleGeoItemAdd('cities', input.value);
-                      input.value = '';
-                    }
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="px-3 py-2 neu-btn rounded-md"
-                onClick={() => {
-                  const input = document.getElementById('new-city') as HTMLInputElement;
-                  if (input && input.value) {
-                    handleGeoItemAdd('cities', input.value);
-                    input.value = '';
-                  }
-                }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-          
-          {/* States */}
-          <div className="space-y-2">
-            <Label>States</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {geographicData.states.length === 0 ? (
-                <div className="text-muted-foreground text-sm">No states specified</div>
-              ) : (
-                geographicData.states.map((state) => (
-                  <div key={state} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-                    <span>{state}</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleGeoItemRemove('states', state)}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                id="new-state"
-                placeholder="Add state"
-                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const input = e.currentTarget;
-                    if (input.value) {
-                      handleGeoItemAdd('states', input.value);
-                      input.value = '';
-                    }
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="px-3 py-2 neu-btn rounded-md"
-                onClick={() => {
-                  const input = document.getElementById('new-state') as HTMLInputElement;
-                  if (input && input.value) {
-                    handleGeoItemAdd('states', input.value);
-                    input.value = '';
-                  }
-                }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-          
-          {/* Regions */}
-          <div className="space-y-2">
-            <Label>Regions</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {geographicData.regions.length === 0 ? (
-                <div className="text-muted-foreground text-sm">No regions specified</div>
-              ) : (
-                geographicData.regions.map((region) => (
-                  <div key={region} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-                    <span>{region}</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleGeoItemRemove('regions', region)}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                id="new-region"
-                placeholder="Add region"
-                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const input = e.currentTarget;
-                    if (input.value) {
-                      handleGeoItemAdd('regions', input.value);
-                      input.value = '';
-                    }
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="px-3 py-2 neu-btn rounded-md"
-                onClick={() => {
-                  const input = document.getElementById('new-region') as HTMLInputElement;
-                  if (input && input.value) {
-                    handleGeoItemAdd('regions', input.value);
-                    input.value = '';
-                  }
-                }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-          
-          {/* Countries */}
-          <div className="space-y-2">
-            <Label>Countries</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {geographicData.countries.length === 0 ? (
-                <div className="text-muted-foreground text-sm">No countries specified</div>
-              ) : (
-                geographicData.countries.map((country) => (
-                  <div key={country} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-                    <span>{country}</span>
-                    <button 
-                      type="button"
-                      onClick={() => handleGeoItemRemove('countries', country)}
-                      className="ml-1 text-muted-foreground hover:text-foreground"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                id="new-country"
-                placeholder="Add country"
-                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const input = e.currentTarget;
-                    if (input.value) {
-                      handleGeoItemAdd('countries', input.value);
-                      input.value = '';
-                    }
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="px-3 py-2 neu-btn rounded-md"
-                onClick={() => {
-                  const input = document.getElementById('new-country') as HTMLInputElement;
-                  if (input && input.value) {
-                    handleGeoItemAdd('countries', input.value);
-                    input.value = '';
-                  }
-                }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Step 4: Campaign management
-  const CampaignManagementStep = (
-    <div className="space-y-6">
-      <h3 className="text-lg font-medium">Campaign Management</h3>
-      
-      {/* Campaign Funneling */}
-      <div className="space-y-2 border-b pb-4">
-        <Label className="flex items-center gap-2">
-          Campaign Funneling
-        </Label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {campaignData.funneling.length === 0 ? (
-            <div className="text-muted-foreground text-sm">No campaign funneling options specified</div>
-          ) : (
-            campaignData.funneling.map((item) => (
-              <div key={item} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-                <span>{item}</span>
-                <button 
-                  type="button"
-                  onClick={() => handleCampaignItemRemove('funneling', item)}
-                  className="ml-1 text-muted-foreground hover:text-foreground"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Input
-            id="new-funnel"
-            placeholder="Add funnel stage (e.g., Awareness, Consideration)"
-            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const input = e.currentTarget;
-                if (input.value) {
-                  handleCampaignItemAdd('funneling', input.value);
-                  input.value = '';
-                }
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="px-3 py-2 neu-btn rounded-md"
-            onClick={() => {
-              const input = document.getElementById('new-funnel') as HTMLInputElement;
-              if (input && input.value) {
-                handleCampaignItemAdd('funneling', input.value);
-                input.value = '';
-              }
-            }}
-          >
-            <Plus size={16} />
-          </button>
-        </div>
-      </div>
-      
-      {/* Buy Types */}
-      <div className="space-y-2 border-b pb-4">
-        <Label className="flex items-center gap-2">
-          Buy Types
-        </Label>
-        <div className="flex flex-wrap gap-2">
-          {buyTypes.map((buyType) => (
-            <button
-              key={buyType}
-              type="button"
-              className={`px-3 py-2 rounded-md text-sm ${
-                campaignData.buy_types.includes(buyType)
-                  ? 'neu-pressed bg-primary/10 text-primary'
-                  : 'neu-flat'
-              }`}
-              onClick={() => handleBuyTypeToggle(buyType)}
-            >
-              {buyType}
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      {/* Innovations and Gamification */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-2">
-          Innovations and Gamification
-        </Label>
-        <div className="flex flex-wrap gap-2">
-          {innovationOptions.map((innovation) => (
-            <button
-              key={innovation}
-              type="button"
-              className={`px-3 py-2 rounded-md text-sm ${
-                campaignData.innovations.includes(innovation)
-                  ? 'neu-pressed bg-primary/10 text-primary'
-                  : 'neu-flat'
-              }`}
-              onClick={() => handleInnovationToggle(innovation)}
-            >
-              {innovation}
-            </button>
-          ))}
-        </div>
-        <div className="flex gap-2 mt-2">
-          <Input
-            id="new-innovation"
-            placeholder="Add custom innovation"
-            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const input = e.currentTarget;
-                if (input.value) {
-                  handleCampaignItemAdd('innovations', input.value);
-                  input.value = '';
-                }
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="px-3 py-2 neu-btn rounded-md"
-            onClick={() => {
-              const input = document.getElementById('new-innovation') as HTMLInputElement;
-              if (input && input.value) {
-                handleCampaignItemAdd('innovations', input.value);
-                input.value = '';
-              }
-            }}
-          >
-            <Plus size={16} />
-          </button>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-        <div className="space-y-2">
-          <Label htmlFor="min-budget">Minimum Campaign Budget ($)</Label>
-          <Input
-            id="min-budget"
-            type="number"
-            min="0"
-            placeholder="Enter minimum budget"
-            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-            value={campaignData.min_budget}
-            onChange={(e) => handleCampaignChange('min_budget', parseFloat(e.target.value) || 0)}
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="avg-cpm">Average CPM ($)</Label>
-          <Input
-            id="avg-cpm"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Enter average CPM"
-            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-            value={campaignData.avg_cpm}
-            onChange={(e) => handleCampaignChange('avg_cpm', parseFloat(e.target.value) || 0)}
-          />
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="avg-ctr">Average CTR (%)</Label>
-        <Input
-          id="avg-ctr"
-          type="number"
-          step="0.01"
-          min="0"
-          max="100"
-          placeholder="Enter average CTR"
-          className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-          value={campaignData.avg_ctr}
-          onChange={(e) => handleCampaignChange('avg_ctr', parseFloat(e.target.value) || 0)}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label>Accepted Ad Formats</Label>
-        <div className="flex flex-wrap gap-2">
-          {['Image', 'Video', 'Carousel', 'Playable', 'Native', 'Banner', 'Interstitial'].map((format) => (
-            <button
-              key={format}
-              type="button"
-              className={`px-3 py-2 rounded-md ${
-                campaignData.accepted_formats.includes(format)
-                  ? 'neu-pressed bg-primary/10 text-primary'
-                  : 'neu-flat'
-              }`}
-              onClick={() => handleCampaignFormatToggle(format)}
-            >
-              {format}
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="tracking"
-          checked={campaignData.tracking_available}
-          onCheckedChange={(checked) => handleCampaignChange('tracking_available', checked)}
-        />
-        <Label htmlFor="tracking">Advanced tracking available</Label>
-      </div>
-    </div>
-  );
-
-  // Step 5: Restrictions
-  const RestrictionsStep = (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Restricted Categories</Label>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {restrictions.restricted_categories.map((category) => (
-            <div key={category} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-              <span>{category}</span>
-              <button 
-                type="button"
-                onClick={() => handleRestrictionCategoryRemove(category)}
-                className="ml-1 text-muted-foreground hover:text-foreground"
-              >
-                <span>×</span>
-              </button>
-            </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Input
-            id="new-category"
-            placeholder="Add restricted category"
-            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const input = e.currentTarget;
-                if (input.value) {
-                  handleRestrictionCategoryAdd(input.value);
-                  input.value = '';
-                }
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="px-3 py-2 neu-btn rounded-md"
-            onClick={() => {
-              const input = document.getElementById('new-category') as HTMLInputElement;
-              if (input && input.value) {
-                handleRestrictionCategoryAdd(input.value);
-                input.value = '';
-              }
-            }}
-          >
-            Add
-          </button>
-        </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="min-age">Minimum User Age</Label>
-        <Input
-          id="min-age"
-          type="number"
-          min="0"
-          max="21"
-          placeholder="Enter minimum age"
-          className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-          value={restrictions.min_age}
-          onChange={(e) => handleRestrictionChange('min_age', parseInt(e.target.value) || 0)}
-        />
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="geo-targeting"
-          checked={restrictions.geo_targeting}
-          onCheckedChange={(checked) => handleRestrictionChange('geo_targeting', checked)}
-        />
-        <Label htmlFor="geo-targeting">Geo-targeting available</Label>
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="approval"
-          checked={restrictions.requires_approval}
-          onCheckedChange={(checked) => handleRestrictionChange('requires_approval', checked)}
-        />
-        <Label htmlFor="approval">Requires approval before publishing</Label>
-      </div>
-    </div>
-  );
-
   // Create the steps for our multistep form
   const formSteps = [
     {
       title: "Basic Information",
-      content: BasicInfoStep,
-      validator: validateBasicInfo
+      validator: validateBasicInfo,
+      content: (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="platform-name">Platform Name*</Label>
+            <Input
+              id="platform-name"
+              placeholder="Enter platform name"
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="industry">Industry*</Label>
+            <Select 
+              required
+              value={formData.industry}
+              onValueChange={(value) => handleChange('industry', value)}
+            >
+              <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
+                <SelectValue placeholder="Select industry" />
+              </SelectTrigger>
+              <SelectContent>
+                {industries.map((industry) => (
+                  <SelectItem key={industry} value={industry}>
+                    {industry}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="mau">Monthly Active Users (MAU)</Label>
+              <Input
+                id="mau"
+                placeholder="e.g., 1.2M"
+                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                value={formData.mau}
+                onChange={(e) => handleChange('mau', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dau">Daily Active Users (DAU)</Label>
+              <Input
+                id="dau"
+                placeholder="e.g., 500K"
+                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                value={formData.dau}
+                onChange={(e) => handleChange('dau', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="premium-users">Premium Users (%)</Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[formData.premium_users]}
+                  onValueChange={(value) => handleChange('premium_users', value[0])}
+                  className="flex-1"
+                />
+                <span className="w-10 text-center">{formData.premium_users}%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Device Split (iOS/Android)</Label>
+            <div className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span>iOS: {formData.device_split.ios}%</span>
+                <span>Android: {formData.device_split.android}%</span>
+              </div>
+              <Slider
+                min={0}
+                max={100}
+                step={1}
+                value={[formData.device_split.ios]}
+                onValueChange={(value) => {
+                  const ios = value[0];
+                  handleNestedChange('device_split', 'ios', ios);
+                  handleNestedChange('device_split', 'android', 100 - ios);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )
     },
     {
-      title: "Audience Data",
-      content: AudienceDataStep
-    },
-    {
-      title: "Geographic Targeting",
-      content: GeographicTargetingStep
+      title: "Audience Targeting",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium mb-3">Demographic Targeting</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block">Age Groups</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {ageGroups.map((age) => (
+                    <div key={age} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`age-${age}`}
+                        checked={formData.audience_data.demographic.ageGroups.includes(age)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleDemographicChange('ageGroups', [...formData.audience_data.demographic.ageGroups, age]);
+                          } else {
+                            handleDemographicChange(
+                              'ageGroups', 
+                              formData.audience_data.demographic.ageGroups.filter(a => a !== age)
+                            );
+                          }
+                        }}
+                      />
+                      <label 
+                        htmlFor={`age-${age}`}
+                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {age}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label className="mb-2 block">Gender</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {genderOptions.map((gender) => (
+                    <div key={gender} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`gender-${gender}`}
+                        checked={formData.audience_data.demographic.gender.includes(gender)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            handleDemographicChange('gender', [...formData.audience_data.demographic.gender, gender]);
+                          } else {
+                            handleDemographicChange(
+                              'gender', 
+                              formData.audience_data.demographic.gender.filter(g => g !== gender)
+                            );
+                          }
+                        }}
+                      />
+                      <label 
+                        htmlFor={`gender-${gender}`}
+                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {gender}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label className="mb-2 block">Interests</Label>
+                <div className="border p-3 rounded neu-pressed max-h-60 overflow-y-auto">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {interestCategories.map((interest) => (
+                      <div key={interest} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`interest-${interest}`}
+                          checked={formData.audience_data.demographic.interests.includes(interest)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              handleDemographicChange('interests', [...formData.audience_data.demographic.interests, interest]);
+                            } else {
+                              handleDemographicChange(
+                                'interests', 
+                                formData.audience_data.demographic.interests.filter(i => i !== interest)
+                              );
+                            }
+                          }}
+                        />
+                        <label 
+                          htmlFor={`interest-${interest}`}
+                          className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {interest}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-3">Geographic Targeting</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="cities" className="mb-2 block">Cities</Label>
+                <div className="flex mb-2">
+                  <Input
+                    id="cities"
+                    placeholder="Add city name"
+                    className="bg-white border-none neu-pressed focus-visible:ring-offset-0 mr-2"
+                    value={newCity}
+                    onChange={(e) => setNewCity(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleArrayItemAdd('audience_data', 'geographic', newCity);
+                      }
+                    }}
+                  />
+                  <NeuButton 
+                    type="button" 
+                    onClick={() => handleArrayItemAdd('audience_data', 'geographic', newCity)}
+                  >
+                    Add
+                  </NeuButton>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.audience_data.geographic.cities.map((city, index) => (
+                    <div 
+                      key={`city-${index}`} 
+                      className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm"
+                    >
+                      <span>{city}</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleArrayItemRemove('audience_data', 'geographic', 'cities', index)}
+                        className="ml-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <MinusCircle size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="states" className="mb-2 block">States</Label>
+                <div className="flex mb-2">
+                  <Input
+                    id="states"
+                    placeholder="Add state name"
+                    className="bg-white border-none neu-pressed focus-visible:ring-offset-0 mr-2"
+                    value={newState}
+                    onChange={(e) => setNewState(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleArrayItemAdd('audience_data', 'geographic', newState);
+                      }
+                    }}
+                  />
+                  <NeuButton 
+                    type="button" 
+                    onClick={() => handleArrayItemAdd('audience_data', 'geographic', newState)}
+                  >
+                    Add
+                  </NeuButton>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.audience_data.geographic.states.map((state, index) => (
+                    <div 
+                      key={`state-${index}`} 
+                      className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm"
+                    >
+                      <span>{state}</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleArrayItemRemove('audience_data', 'geographic', 'states', index)}
+                        className="ml-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <MinusCircle size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="regions" className="mb-2 block">Regions</Label>
+                <div className="flex mb-2">
+                  <Input
+                    id="regions"
+                    placeholder="Add region name"
+                    className="bg-white border-none neu-pressed focus-visible:ring-offset-0 mr-2"
+                    value={newRegion}
+                    onChange={(e) => setNewRegion(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleArrayItemAdd('audience_data', 'geographic', newRegion);
+                      }
+                    }}
+                  />
+                  <NeuButton 
+                    type="button" 
+                    onClick={() => handleArrayItemAdd('audience_data', 'geographic', newRegion)}
+                  >
+                    Add
+                  </NeuButton>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.audience_data.geographic.regions.map((region, index) => (
+                    <div 
+                      key={`region-${index}`} 
+                      className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm"
+                    >
+                      <span>{region}</span>
+                      <button 
+                        type="button"
+                        onClick={() => handleArrayItemRemove('audience_data', 'geographic', 'regions', index)}
+                        className="ml-1 text-muted-foreground hover:text-foreground"
+                      >
+                        <MinusCircle size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )
     },
     {
       title: "Campaign Management",
-      content: CampaignManagementStep
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium mb-3">Buy Types</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+              {buyTypes.map((type) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`buy-${type}`}
+                    checked={formData.campaign_data.buyTypes.includes(type)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        handleCampaignChange('buyTypes', [...formData.campaign_data.buyTypes, type]);
+                      } else {
+                        handleCampaignChange(
+                          'buyTypes', 
+                          formData.campaign_data.buyTypes.filter(t => t !== type)
+                        );
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor={`buy-${type}`}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {type}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="funneling">Campaign Funneling Information</Label>
+            <Textarea
+              id="funneling"
+              placeholder="Enter information about campaign funneling..."
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+              value={formData.campaign_data.funneling}
+              onChange={(e) => handleCampaignChange('funneling', e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="innovations">Innovations & Gamification</Label>
+            <Textarea
+              id="innovations"
+              placeholder="Enter information about innovations and gamification opportunities..."
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+              value={formData.campaign_data.innovations}
+              onChange={(e) => handleCampaignChange('innovations', e.target.value)}
+            />
+          </div>
+        </div>
+      )
     },
     {
       title: "Restrictions",
-      content: RestrictionsStep
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium mb-3">Blocked Categories</h3>
+            <div className="border p-3 rounded neu-pressed max-h-60 overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {blockedCategories.map((category) => (
+                  <div key={category} className="flex items-center space-x-2">
+                    <Checkbox 
+                      id={`block-${category}`}
+                      checked={formData.restrictions.blockedCategories.includes(category)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          handleRestrictionsChange('blockedCategories', [...formData.restrictions.blockedCategories, category]);
+                        } else {
+                          handleRestrictionsChange(
+                            'blockedCategories', 
+                            formData.restrictions.blockedCategories.filter(c => c !== category)
+                          );
+                        }
+                      }}
+                    />
+                    <label 
+                      htmlFor={`block-${category}`}
+                      className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {category}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="minimumSpend">Minimum Spend ($)</Label>
+            <Input
+              id="minimumSpend"
+              type="number"
+              min="0"
+              placeholder="Minimum campaign spend"
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+              value={formData.restrictions.minimumSpend}
+              onChange={(e) => handleRestrictionsChange('minimumSpend', parseInt(e.target.value) || 0)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="didYouKnow">Did You Know</Label>
+            <Textarea
+              id="didYouKnow"
+              placeholder="Enter interesting facts or important restrictions note..."
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+              value={formData.restrictions.didYouKnow}
+              onChange={(e) => handleRestrictionsChange('didYouKnow', e.target.value)}
+            />
+          </div>
+        </div>
+      )
     }
   ];
 
@@ -1280,11 +826,7 @@ const PlatformForm: React.FC = () => {
         <header className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">{isEditMode ? "Edit Platform" : "Add New Platform"}</h1>
-            <p className="text-muted-foreground mt-1">
-              {isEditMode 
-                ? "Update your platform details below" 
-                : "Create a new advertising platform in the MobistackIO network"}
-            </p>
+            <p className="text-muted-foreground mt-1">Configure platform details and targeting capabilities</p>
           </div>
         </header>
 

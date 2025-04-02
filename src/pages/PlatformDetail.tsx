@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -8,6 +9,39 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ChevronRight, Edit, FileImage, Users, PieChart, Smartphone, MapPin, Tag, CheckCircle, Clock, Info, Trash2, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import EditHistory, { EditHistoryItem } from "@/components/EditHistory";
+
+// Sample history data - in a real app, this would come from your backend
+const sampleHistoryItems: EditHistoryItem[] = [
+  {
+    id: "1",
+    user: "John Smith",
+    timestamp: "Today, 2:30 PM",
+    changes: [
+      "Updated platform name",
+      "Added new demographic targeting options",
+      "Updated device split ratio"
+    ]
+  },
+  {
+    id: "2",
+    user: "Jane Doe",
+    timestamp: "Yesterday, 11:45 AM",
+    changes: [
+      "Added new audience interests",
+      "Updated minimum spend amount"
+    ]
+  },
+  {
+    id: "3",
+    user: "Admin User",
+    timestamp: "Mar 28, 2025, 09:15 AM",
+    changes: [
+      "Created platform",
+      "Set up initial configuration"
+    ]
+  }
+];
 
 const PlatformDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -172,7 +206,7 @@ const PlatformDetail: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="mb-8 neu-flat p-1 w-full grid grid-cols-4 gap-1">
+              <TabsList className="mb-8 neu-flat p-1 w-full grid grid-cols-5 gap-1">
                 <TabsTrigger value="overview" className="data-[state=active]:neu-pressed">
                   Overview
                 </TabsTrigger>
@@ -184,6 +218,9 @@ const PlatformDetail: React.FC = () => {
                 </TabsTrigger>
                 <TabsTrigger value="restrictions" className="data-[state=active]:neu-pressed">
                   Restrictions
+                </TabsTrigger>
+                <TabsTrigger value="history" className="data-[state=active]:neu-pressed">
+                  History
                 </TabsTrigger>
               </TabsList>
 
@@ -492,10 +529,17 @@ const PlatformDetail: React.FC = () => {
                   </div>
                 </NeuCard>
               </TabsContent>
+
+              {/* History Tab */}
+              <TabsContent value="history" className="space-y-6">
+                <NeuCard>
+                  <EditHistory historyItems={sampleHistoryItems} />
+                </NeuCard>
+              </TabsContent>
             </Tabs>
           </div>
           
-          <div>
+          <div className="space-y-6">
             <NeuCard className="mb-6">
               <h2 className="text-xl font-semibold mb-4">Platform Insights</h2>
               <div className="space-y-4">

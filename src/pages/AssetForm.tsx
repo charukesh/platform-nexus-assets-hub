@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
@@ -210,11 +210,11 @@ const AssetForm: React.FC = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
     }
-  };
+  }, []);
 
   const handleFile = (file: File) => {
     setFileUploaded(true);
@@ -542,16 +542,19 @@ const AssetForm: React.FC = () => {
                 or click to browse files
               </p>
               
-              <Input
+              <input
                 type="file"
                 className="hidden"
                 id="file-upload"
-                onChange={handleFileChange}
+                onChange={handleFileInputChange}
+                onClick={(e) => e.stopPropagation()}
               />
               <label htmlFor="file-upload">
-                <NeuButton type="button" variant="outline" className="cursor-pointer">
-                  Browse Files
-                </NeuButton>
+                <div className="cursor-pointer inline-block">
+                  <NeuButton type="button" variant="outline" className="cursor-pointer">
+                    Browse Files
+                  </NeuButton>
+                </div>
               </label>
               
               <p className="text-xs text-muted-foreground mt-4">
