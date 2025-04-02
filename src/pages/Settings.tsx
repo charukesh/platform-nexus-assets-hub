@@ -10,10 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Bell, Shield, RefreshCw, Monitor, Database, Save, Mail, Palette } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState("account");
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   
   // Account settings
   const [accountSettings, setAccountSettings] = useState({
@@ -32,7 +34,7 @@ const Settings: React.FC = () => {
 
   // Theme settings
   const [themeSettings, setThemeSettings] = useState({
-    theme: "light",
+    theme: theme,
     sidebarCollapsed: false,
     compactMode: false,
     highContrastMode: false,
@@ -47,6 +49,10 @@ const Settings: React.FC = () => {
   });
 
   const handleSaveSettings = (settingType: string) => {
+    if (settingType === 'appearance') {
+      setTheme(themeSettings.theme as "light" | "dark" | "system");
+    }
+    
     toast({
       title: "Settings saved",
       description: `Your ${settingType} settings have been updated`,
@@ -62,20 +68,20 @@ const Settings: React.FC = () => {
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="neu-flat bg-white p-1">
-            <TabsTrigger value="account" className="data-[state=active]:neu-pressed flex gap-2 items-center">
+          <TabsList className="neu-flat bg-white dark:bg-gray-800 p-1">
+            <TabsTrigger value="account" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700 flex gap-2 items-center">
               <User size={16} />
               <span>Account</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:neu-pressed flex gap-2 items-center">
+            <TabsTrigger value="notifications" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700 flex gap-2 items-center">
               <Bell size={16} />
               <span>Notifications</span>
             </TabsTrigger>
-            <TabsTrigger value="appearance" className="data-[state=active]:neu-pressed flex gap-2 items-center">
+            <TabsTrigger value="appearance" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700 flex gap-2 items-center">
               <Palette size={16} />
               <span>Appearance</span>
             </TabsTrigger>
-            <TabsTrigger value="data" className="data-[state=active]:neu-pressed flex gap-2 items-center">
+            <TabsTrigger value="data" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700 flex gap-2 items-center">
               <Database size={16} />
               <span>Data Management</span>
             </TabsTrigger>
@@ -83,9 +89,9 @@ const Settings: React.FC = () => {
           
           {/* Account Tab */}
           <TabsContent value="account" className="space-y-6">
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <User className="text-primary" size={20} />
+                <User className="text-primary dark:text-blue-400" size={20} />
                 Account Information
               </h2>
               
@@ -94,7 +100,7 @@ const Settings: React.FC = () => {
                   <Label htmlFor="name">Name</Label>
                   <Input 
                     id="name" 
-                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-gray-700"
                     value={accountSettings.name}
                     onChange={(e) => setAccountSettings({...accountSettings, name: e.target.value})}
                   />
@@ -104,7 +110,7 @@ const Settings: React.FC = () => {
                   <Label htmlFor="email">Email</Label>
                   <Input 
                     id="email" 
-                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-gray-700"
                     value={accountSettings.email}
                     onChange={(e) => setAccountSettings({...accountSettings, email: e.target.value})}
                   />
@@ -116,7 +122,7 @@ const Settings: React.FC = () => {
                     value={accountSettings.role}
                     onValueChange={(value) => setAccountSettings({...accountSettings, role: value})}
                   >
-                    <SelectTrigger className="bg-white border-none neu-flat hover:shadow-neu-pressed">
+                    <SelectTrigger className="bg-white border-none neu-flat hover:shadow-neu-pressed dark:bg-gray-700">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -139,9 +145,9 @@ const Settings: React.FC = () => {
               </div>
             </NeuCard>
             
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Shield className="text-primary" size={20} />
+                <Shield className="text-primary dark:text-blue-400" size={20} />
                 Security
               </h2>
               
@@ -154,9 +160,9 @@ const Settings: React.FC = () => {
           
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6">
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Bell className="text-primary" size={20} />
+                <Bell className="text-primary dark:text-blue-400" size={20} />
                 Notification Preferences
               </h2>
               
@@ -221,9 +227,9 @@ const Settings: React.FC = () => {
               </div>
             </NeuCard>
             
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Mail className="text-primary" size={20} />
+                <Mail className="text-primary dark:text-blue-400" size={20} />
                 Email Templates
               </h2>
               
@@ -236,9 +242,9 @@ const Settings: React.FC = () => {
           
           {/* Appearance Tab */}
           <TabsContent value="appearance" className="space-y-6">
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Palette className="text-primary" size={20} />
+                <Palette className="text-primary dark:text-blue-400" size={20} />
                 Theme Settings
               </h2>
               
@@ -247,9 +253,9 @@ const Settings: React.FC = () => {
                   <Label htmlFor="theme">Theme</Label>
                   <Select 
                     value={themeSettings.theme}
-                    onValueChange={(value) => setThemeSettings({...themeSettings, theme: value})}
+                    onValueChange={(value) => setThemeSettings({...themeSettings, theme: value as "light" | "dark" | "system"})}
                   >
-                    <SelectTrigger className="bg-white border-none neu-flat hover:shadow-neu-pressed">
+                    <SelectTrigger className="bg-white border-none neu-flat hover:shadow-neu-pressed dark:bg-gray-700">
                       <SelectValue placeholder="Select theme" />
                     </SelectTrigger>
                     <SelectContent>
@@ -308,9 +314,9 @@ const Settings: React.FC = () => {
               </div>
             </NeuCard>
             
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Monitor className="text-primary" size={20} />
+                <Monitor className="text-primary dark:text-blue-400" size={20} />
                 Layout Preferences
               </h2>
               
@@ -326,9 +332,9 @@ const Settings: React.FC = () => {
           
           {/* Data Management Tab */}
           <TabsContent value="data" className="space-y-6">
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Database className="text-primary" size={20} />
+                <Database className="text-primary dark:text-blue-400" size={20} />
                 Data Settings
               </h2>
               
@@ -338,7 +344,7 @@ const Settings: React.FC = () => {
                   <Input 
                     id="data-refresh" 
                     type="number"
-                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-gray-700"
                     value={dataSettings.dataRefreshRate}
                     onChange={(e) => setDataSettings({...dataSettings, dataRefreshRate: e.target.value})}
                   />
@@ -349,7 +355,7 @@ const Settings: React.FC = () => {
                   <Input 
                     id="data-retention" 
                     type="number"
-                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0 dark:bg-gray-700"
                     value={dataSettings.dataRetention}
                     onChange={(e) => setDataSettings({...dataSettings, dataRetention: e.target.value})}
                   />
@@ -391,9 +397,9 @@ const Settings: React.FC = () => {
               </div>
             </NeuCard>
             
-            <NeuCard>
+            <NeuCard className="dark:bg-gray-800">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <RefreshCw className="text-primary" size={20} />
+                <RefreshCw className="text-primary dark:text-blue-400" size={20} />
                 Data Operations
               </h2>
               
