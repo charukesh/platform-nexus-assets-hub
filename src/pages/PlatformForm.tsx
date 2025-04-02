@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -10,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PlusCircle, MinusCircle, Check } from "lucide-react";
+import { PlusCircle, MinusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MultiStepForm from "@/components/MultiStepForm";
+import { Json } from "@/integrations/supabase/types";
 
 // Industry options
 const industries = [
@@ -42,6 +42,87 @@ const blockedCategories = [
   "Political", "Religious", "Pharmaceuticals", "Controversial Topics"
 ];
 
+// Interface for form data structure
+interface FormDataType {
+  name: string;
+  industry: string;
+  mau: string;
+  dau: string;
+  premium_users: number;
+  device_split: {
+    ios: number;
+    android: number;
+  };
+  audience_data: {
+    demographic: {
+      ageGroups: string[];
+      gender: string[];
+      interests: string[];
+    };
+    geographic: {
+      cities: string[];
+      states: string[];
+      regions: string[];
+    };
+  };
+  campaign_data: {
+    buyTypes: string[];
+    funneling: string;
+    innovations: string;
+  };
+  restrictions: {
+    blockedCategories: string[];
+    minimumSpend: number;
+    didYouKnow: string;
+  };
+}
+
+// Default form data state
+const defaultFormData: FormDataType = {
+  name: "",
+  industry: "",
+  mau: "",
+  dau: "",
+  premium_users: 0,
+  device_split: {
+    ios: 50,
+    android: 50
+  },
+  audience_data: {
+    demographic: {
+      ageGroups: [],
+      gender: [],
+      interests: []
+    },
+    geographic: {
+      cities: [],
+      states: [],
+      regions: []
+    }
+  },
+  campaign_data: {
+    buyTypes: [],
+    funneling: "",
+    innovations: ""
+  },
+  restrictions: {
+    blockedCategories: [],
+    minimumSpend: 0,
+    didYouKnow: ""
+  }
+};
+
+// Helper function to safely parse JSON data from Supabase
+const parseJsonField = <T extends object>(jsonData: Json | null, defaultValue: T): T => {
+  if (!jsonData) return defaultValue;
+  
+  if (typeof jsonData === 'object' && jsonData !== null && !Array.isArray(jsonData)) {
+    return { ...defaultValue, ...jsonData as object } as T;
+  }
+  
+  return defaultValue;
+};
+
 const PlatformForm: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -52,39 +133,7 @@ const PlatformForm: React.FC = () => {
   const [fetchLoading, setFetchLoading] = useState(false);
   
   // Form state
-  const [formData, setFormData] = useState({
-    name: "",
-    industry: "",
-    mau: "",
-    dau: "",
-    premium_users: 0,
-    device_split: {
-      ios: 50,
-      android: 50
-    },
-    audience_data: {
-      demographic: {
-        ageGroups: [] as string[],
-        gender: [] as string[],
-        interests: [] as string[]
-      },
-      geographic: {
-        cities: [] as string[],
-        states: [] as string[],
-        regions: [] as string[]
-      }
-    },
-    campaign_data: {
-      buyTypes: [] as string[],
-      funneling: "",
-      innovations: ""
-    },
-    restrictions: {
-      blockedCategories: [] as string[],
-      minimumSpend: 0,
-      didYouKnow: ""
-    }
-  });
+  const [formData, setFormData] = useState<FormDataType>(defaultFormData);
   
   // Local state for form inputs
   const [newCity, setNewCity] = useState("");
@@ -111,36 +160,16 @@ const PlatformForm: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        // Initialize with defaults for nested objects if they don't exist
-        const audience_data = data.audience_data || {
-          demographic: { ageGroups: [], gender: [], interests: [] },
-          geographic: { cities: [], states: [], regions: [] }
-        };
-        
-        const campaign_data = data.campaign_data || {
-          buyTypes: [],
-          funneling: "",
-          innovations: ""
-        };
-        
-        const restrictions = data.restrictions || {
-          blockedCategories: [],
-          minimumSpend: 0,
-          didYouKnow: ""
-        };
-        
-        const device_split = data.device_split || { ios: 50, android: 50 };
-        
         setFormData({
           name: data.name || "",
           industry: data.industry || "",
           mau: data.mau || "",
           dau: data.dau || "",
           premium_users: data.premium_users || 0,
-          device_split,
-          audience_data,
-          campaign_data,
-          restrictions
+          device_split: parseJsonField(data.device_split, defaultFormData.device_split),
+          audience_data: parseJsonField(data.audience_data, defaultFormData.audience_data),
+          campaign_data: parseJsonField(data.campaign_data, defaultFormData.campaign_data),
+          restrictions: parseJsonField(data.restrictions, defaultFormData.restrictions)
         });
       }
     } catch (error: any) {
@@ -161,17 +190,17 @@ const PlatformForm: React.FC = () => {
     }));
   };
 
-  const handleNestedChange = (parent: string, field: string, value: any) => {
+  const handleNestedChange = (parent: keyof FormDataType, field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [parent]: {
-        ...prev[parent as keyof typeof prev],
+        ...prev[parent] as object,
         [field]: value
       }
     }));
   };
 
-  const handleDemographicChange = (field: string, value: any) => {
+  const handleDemographicChange = (field: keyof FormDataType['audience_data']['demographic'], value: any) => {
     setFormData(prev => ({
       ...prev,
       audience_data: {
@@ -184,7 +213,7 @@ const PlatformForm: React.FC = () => {
     }));
   };
 
-  const handleGeographicChange = (field: string, value: any) => {
+  const handleGeographicChange = (field: keyof FormDataType['audience_data']['geographic'], value: any) => {
     setFormData(prev => ({
       ...prev,
       audience_data: {
@@ -197,7 +226,7 @@ const PlatformForm: React.FC = () => {
     }));
   };
 
-  const handleCampaignChange = (field: string, value: any) => {
+  const handleCampaignChange = (field: keyof FormDataType['campaign_data'], value: any) => {
     setFormData(prev => ({
       ...prev,
       campaign_data: {
@@ -207,7 +236,7 @@ const PlatformForm: React.FC = () => {
     }));
   };
 
-  const handleRestrictionsChange = (field: string, value: any) => {
+  const handleRestrictionsChange = (field: keyof FormDataType['restrictions'], value: any) => {
     setFormData(prev => ({
       ...prev,
       restrictions: {
@@ -226,7 +255,7 @@ const PlatformForm: React.FC = () => {
         const currentArray = formData.audience_data.geographic[field as keyof typeof formData.audience_data.geographic] as string[];
         
         if (!currentArray.includes(value)) {
-          handleGeographicChange(field, [...currentArray, value]);
+          handleGeographicChange(field as keyof FormDataType['audience_data']['geographic'], [...currentArray, value]);
         }
         
         if (field === 'cities') setNewCity('');
@@ -241,20 +270,20 @@ const PlatformForm: React.FC = () => {
       if (subcategory === 'demographic') {
         const newArray = [...formData.audience_data.demographic[field as keyof typeof formData.audience_data.demographic] as string[]];
         newArray.splice(index, 1);
-        handleDemographicChange(field, newArray);
+        handleDemographicChange(field as keyof FormDataType['audience_data']['demographic'], newArray);
       } else if (subcategory === 'geographic') {
         const newArray = [...formData.audience_data.geographic[field as keyof typeof formData.audience_data.geographic] as string[]];
         newArray.splice(index, 1);
-        handleGeographicChange(field, newArray);
+        handleGeographicChange(field as keyof FormDataType['audience_data']['geographic'], newArray);
       }
     } else if (category === 'campaign_data') {
       const newArray = [...formData.campaign_data[field as keyof typeof formData.campaign_data] as string[]];
       newArray.splice(index, 1);
-      handleCampaignChange(field, newArray);
+      handleCampaignChange(field as keyof FormDataType['campaign_data'], newArray);
     } else if (category === 'restrictions') {
       const newArray = [...formData.restrictions[field as keyof typeof formData.restrictions] as string[]];
       newArray.splice(index, 1);
-      handleRestrictionsChange(field, newArray);
+      handleRestrictionsChange(field as keyof FormDataType['restrictions'], newArray);
     }
   };
 
@@ -265,21 +294,21 @@ const PlatformForm: React.FC = () => {
         ? currentArray.filter(item => item !== value)
         : [...currentArray, value];
       
-      handleDemographicChange(field, newArray);
+      handleDemographicChange(field as keyof FormDataType['audience_data']['demographic'], newArray);
     } else if (category === 'campaign_data') {
       const currentArray = formData.campaign_data[field as keyof typeof formData.campaign_data] as string[];
       const newArray = currentArray.includes(value)
         ? currentArray.filter(item => item !== value)
         : [...currentArray, value];
       
-      handleCampaignChange(field, newArray);
+      handleCampaignChange(field as keyof FormDataType['campaign_data'], newArray);
     } else if (category === 'restrictions') {
       const currentArray = formData.restrictions[field as keyof typeof formData.restrictions] as string[];
       const newArray = currentArray.includes(value)
         ? currentArray.filter(item => item !== value)
         : [...currentArray, value];
       
-      handleRestrictionsChange(field, newArray);
+      handleRestrictionsChange(field as keyof FormDataType['restrictions'], newArray);
     }
   };
 
