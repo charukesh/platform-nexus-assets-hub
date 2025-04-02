@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { CampaignData } from "@/pages/CampaignQuotation";
 import NeuCard from "@/components/NeuCard";
@@ -25,6 +24,16 @@ interface Asset {
   name: string;
   category: string;
   platform_id: string;
+  type: string;
+  file_url: string;
+  thumbnail_url: string;
+  description: string;
+  tags: string[];
+  file_size: string;
+  uploaded_by: string;
+  created_at: string;
+  updated_at: string;
+  
   cost_per_day?: number;
   estimated_impressions?: number;
 }
@@ -60,7 +69,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
         return;
       }
 
-      // Fetch selected platforms
       const { data: platformsData, error: platformsError } = await supabase
         .from("platforms")
         .select("*")
@@ -68,7 +76,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
       if (platformsError) throw platformsError;
 
-      // Fetch assets for selected platforms
       const { data: assetsData, error: assetsError } = await supabase
         .from("assets")
         .select("*")
@@ -77,7 +84,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
       if (assetsError) throw assetsError;
 
-      // Calculate costs
       let calculatedTotalCost = 0;
       let calculatedTotalImpressions = 0;
 
@@ -87,13 +93,11 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
         );
 
         const platformTotalCost = platformAssets.reduce((sum, asset) => {
-          // Base cost per day (random between 5000 and 20000 if not set)
           const costPerDay = asset.cost_per_day || Math.floor(Math.random() * 15000) + 5000;
           return sum + costPerDay * campaignDays;
         }, 0);
 
         const platformTotalImpressions = platformAssets.reduce((sum, asset) => {
-          // Estimated impressions (random between 10000 and 100000 if not set)
           const impressions = asset.estimated_impressions || Math.floor(Math.random() * 90000) + 10000;
           return sum + impressions * campaignDays;
         }, 0);
@@ -140,7 +144,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       title: "Export Started",
       description: "Your quotation is being prepared as a PDF."
     });
-    // In a real implementation, this would trigger a PDF download
   };
 
   const handleExportExcel = () => {
@@ -148,7 +151,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       title: "Export Started",
       description: "Your quotation is being prepared as an Excel file."
     });
-    // In a real implementation, this would trigger an Excel download
   };
 
   const handlePrint = () => {
@@ -157,7 +159,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
   return (
     <div className="quotation-preview">
-      {/* Export Actions */}
       <div className="flex justify-end gap-2 mb-6">
         <NeuButton variant="outline" size="sm" onClick={handleExportPDF}>
           <Download size={16} />
@@ -173,7 +174,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
         </NeuButton>
       </div>
 
-      {/* Quotation Header */}
       <NeuCard className="mb-6 p-6">
         <div className="flex justify-between items-start">
           <div>
@@ -221,7 +221,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
         </div>
       </NeuCard>
 
-      {/* Campaign Details */}
       <NeuCard className="mb-6 p-6">
         <h3 className="text-lg font-semibold mb-4">Campaign Details</h3>
         
@@ -297,9 +296,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
         </div>
       </NeuCard>
 
-      {/* Platform and Asset Breakdown */}
-      <h3 className="text-lg font-semibold mb-4">Platform & Asset Breakdown</h3>
-      
       {loading ? (
         <div className="flex justify-center items-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -325,7 +321,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
               </div>
             </div>
 
-            {/* Assets Table */}
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="border-b">
@@ -378,7 +373,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
         </div>
       )}
 
-      {/* Summary and Notes */}
       {platforms.length > 0 && (
         <NeuCard className="mt-6 p-6">
           <h3 className="text-lg font-semibold mb-4">Campaign Summary</h3>
@@ -444,7 +438,6 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
   );
 };
 
-// Helper function to format user counts
 const formatUserCount = (count: string | number | null | undefined): string => {
   if (!count) return "N/A";
   

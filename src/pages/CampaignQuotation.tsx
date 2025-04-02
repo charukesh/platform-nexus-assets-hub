@@ -6,6 +6,7 @@ import MultiStepForm from "@/components/MultiStepForm";
 import CampaignRequirements from "@/components/campaign/CampaignRequirements";
 import PlatformSelection from "@/components/campaign/PlatformSelection";
 import QuotationPreview from "@/components/campaign/QuotationPreview";
+import NeuCard from "@/components/NeuCard";
 import { useToast } from "@/hooks/use-toast";
 
 export interface CampaignData {
