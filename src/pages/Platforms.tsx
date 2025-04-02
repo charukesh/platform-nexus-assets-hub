@@ -8,6 +8,7 @@ import { Search, Filter, Server, PlusCircle, Users, Database, Globe } from "luci
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Platforms: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);
@@ -50,6 +51,15 @@ const Platforms: React.FC = () => {
     }
   };
 
+  const formatUserCount = (count: string | number | null | undefined): string => {
+    if (!count) return "N/A";
+    
+    const numValue = typeof count === 'string' ? parseInt(count.replace(/,/g, ''), 10) : count;
+    if (isNaN(Number(numValue))) return "N/A";
+    
+    return `${Math.round(Number(numValue) / 1000000)}M`;
+  };
+
   const filteredPlatforms = platforms.filter((platform) => {
     const matchesIndustry = industryFilter === "All" || platform.industry === industryFilter;
     const matchesSearch = platform.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,30 +99,34 @@ const Platforms: React.FC = () => {
               />
             </div>
             <div className="flex gap-2">
+              <Select
+                value={industryFilter}
+                onValueChange={setIndustryFilter}
+              >
+                <SelectTrigger className="bg-white border-none neu-flat hover:shadow-neu-pressed w-[180px]">
+                  <SelectValue placeholder="Select Industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {industries.map((industry) => (
+                    <SelectItem key={industry} value={industry}>
+                      {industry}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
               <NeuButton 
                 variant="outline" 
                 className="flex items-center gap-1"
-                onClick={() => setIndustryFilter("All")}
+                onClick={() => {
+                  setIndustryFilter("All");
+                  setSearchQuery("");
+                }}
               >
                 <Filter size={16} />
-                Filter
+                Reset
               </NeuButton>
             </div>
-          </div>
-
-          <div className="mt-4 flex gap-2 flex-wrap">
-            <span className="text-sm font-medium">Industries:</span>
-            {industries.map((industry) => (
-              <span
-                key={industry}
-                className={`text-xs py-1 px-2 neu-flat hover:shadow-neu-pressed cursor-pointer ${
-                  industryFilter === industry ? 'shadow-neu-pressed' : ''
-                }`}
-                onClick={() => setIndustryFilter(industry)}
-              >
-                {industry}
-              </span>
-            ))}
           </div>
         </NeuCard>
 
@@ -143,7 +157,7 @@ const Platforms: React.FC = () => {
                         <span>MAU/DAU</span>
                       </div>
                       <div className="font-medium">
-                        {platform.mau || "N/A"}/{platform.dau || "N/A"}
+                        {formatUserCount(platform.mau)}/{formatUserCount(platform.dau)}
                       </div>
                     </div>
                     <div className="neu-pressed p-2 rounded-lg">
@@ -169,15 +183,6 @@ const Platforms: React.FC = () => {
                       <span>iOS: {platform.device_split?.ios || 50}%</span>
                       <span>Android: {platform.device_split?.android || 50}%</span>
                     </div>
-                  </div>
-                  
-                  <div className="mt-4 flex gap-2">
-                    <NeuButton size="sm" variant="outline" className="text-xs flex-1">
-                      Data
-                    </NeuButton>
-                    <NeuButton size="sm" variant="outline" className="text-xs flex-1">
-                      Assets
-                    </NeuButton>
                   </div>
                 </NeuCard>
               </Link>

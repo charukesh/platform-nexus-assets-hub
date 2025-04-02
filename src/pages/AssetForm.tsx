@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
@@ -8,653 +8,644 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, X, File, Image } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import MultiStepForm from "@/components/MultiStepForm";
+import { useToast } from "@/hooks/use-toast";
+import { Upload, X, FileIcon, Image } from "lucide-react";
 
-// Categories and types definitions
-const categories = ["Digital", "Physical", "Phygital"];
+interface Platform {
+  id: string;
+  name: string;
+}
 
-const assetTypes = {
-  Digital: [
-    "Static Masthead", 
-    "Video Masthead", 
-    "Shoppable Story", 
-    "Scratch Card", 
-    "Premium Banner",
-    "Interactive Ad",
-    "Story Ad",
-    "Sponsored Content",
-    "Carousel Ad"
-  ],
-  Physical: [
-    "Flyer", 
-    "Co-branded Carry Bag", 
-    "Rider Jersey Branding", 
-    "Sample", 
-    "Kiosk", 
-    "Lift Posters", 
-    "Food Truck",
-    "Branded Merchandise",
-    "Store Display"
-  ],
-  Phygital: [
-    "Journey Ads", 
-    "Map Integration", 
-    "Spotlight Banner", 
-    "Roadblock",
-    "QR Experience",
-    "AR Overlay",
-    "Location-based Notification",
-    "Digital-to-Physical Redemption"
-  ]
-};
-
-const tagSuggestions = [
-  "Social", "Video", "Banner", "Interactive", "Branding", "Retail", 
-  "Header", "Shopping", "Premium", "Location", "AR", "VR", "Mobile",
-  "Desktop", "Immersive", "Promotional", "Seasonal", "Campaign"
-];
+const assetCategories = ["Digital", "Physical", "Phygital"];
+const assetTypes = ["Image", "Video", "Document", "3D Model", "Audio", "Other"];
 
 const AssetForm: React.FC = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
-  const location = useLocation();
   const { toast } = useToast();
-  const isEditMode = Boolean(id);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
   
-  // Get platform_id from URL search params if it exists
-  const queryParams = new URLSearchParams(location.search);
-  const platformIdFromQuery = queryParams.get('platform_id');
-  
-  const [platforms, setPlatforms] = useState<any[]>([]);
+  const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fetchLoading, setFetchLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState<string>("");
-  const [fileUploaded, setFileUploaded] = useState(false);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
   
-  // Form state
   const [formData, setFormData] = useState({
     name: "",
-    category: "",
-    type: "",
-    platform_id: platformIdFromQuery || "",
     description: "",
-    file_url: "",
-    file_size: ""
+    category: "Digital" as string,
+    type: "Image" as string,
+    platform_id: "" as string,
+    tags: [] as string[],
+    tagInput: "",
+    file_url: "" as string | null,
+    thumbnail_url: "" as string | null,
+    file_size: "" as string | null
+  });
+  
+  const [files, setFiles] = useState<{
+    file: File | null,
+    thumbnail: File | null,
+    filePreview: string | null,
+    thumbnailPreview: string | null
+  }>({
+    file: null,
+    thumbnail: null,
+    filePreview: null,
+    thumbnailPreview: null
   });
 
   useEffect(() => {
-    // Fetch platforms for dropdown
     fetchPlatforms();
     
-    if (isEditMode) {
-      fetchAsset();
+    if (id) {
+      setIsEdit(true);
+      fetchAssetDetails(id);
     }
   }, [id]);
 
   const fetchPlatforms = async () => {
     try {
       const { data, error } = await supabase
-        .from('platforms')
-        .select('id, name');
-
+        .from("platforms")
+        .select("id, name");
+        
       if (error) throw error;
       
       if (data) {
         setPlatforms(data);
+        // Set first platform as default if creating new asset
+        if (!id && data.length > 0) {
+          setFormData(prev => ({ ...prev, platform_id: data[0].id }));
+        }
       }
     } catch (error: any) {
       toast({
         title: "Error fetching platforms",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
 
-  const fetchAsset = async () => {
-    if (!id) return;
-    
+  const fetchAssetDetails = async (assetId: string) => {
     try {
-      setFetchLoading(true);
+      setLoading(true);
+      
       const { data, error } = await supabase
-        .from('assets')
-        .select('*')
-        .eq('id', id)
+        .from("assets")
+        .select("*")
+        .eq("id", assetId)
         .single();
-
+        
       if (error) throw error;
       
       if (data) {
         setFormData({
           name: data.name || "",
-          category: data.category || "",
-          type: data.type || "",
-          platform_id: data.platform_id || "",
           description: data.description || "",
-          file_url: data.file_url || "",
-          file_size: data.file_size || ""
+          category: data.category || "Digital",
+          type: data.type || "Image",
+          platform_id: data.platform_id || "",
+          tags: data.tags || [],
+          tagInput: "",
+          file_url: data.file_url || null,
+          thumbnail_url: data.thumbnail_url || null,
+          file_size: data.file_size || null
         });
         
-        setSelectedCategory(data.category || "");
-        setTags(data.tags || []);
-        
-        if (data.file_url) {
-          setFileUploaded(true);
-          // If it's an image, set preview
-          if (data.file_url.match(/\.(jpeg|jpg|gif|png)$/)) {
-            setFilePreview(data.file_url);
-          }
-        }
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error fetching asset",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setFetchLoading(false);
-    }
-  };
-
-  const handleChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value);
-    handleChange('category', value);
-    // Reset type when category changes
-    handleChange('type', '');
-  };
-
-  const handleAddTag = () => {
-    if (tagInput && !tags.includes(tagInput)) {
-      setTags([...tags, tagInput]);
-      setTagInput("");
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
-    }
-  }, []);
-
-  const handleFile = (file: File) => {
-    setFileUploaded(true);
-    setUploadedFile(file);
-    
-    // Update file size
-    const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2);
-    handleChange('file_size', `${fileSizeInMB}MB`);
-    
-    // Create preview for images
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFilePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setFilePreview(null);
-    }
-
-    toast({
-      title: "File selected",
-      description: `${file.name} has been selected for upload.`,
-    });
-  };
-
-  const handleRemoveFile = () => {
-    setFileUploaded(false);
-    setFilePreview(null);
-    setUploadedFile(null);
-    handleChange('file_size', '');
-    handleChange('file_url', '');
-  };
-
-  const uploadFile = async () => {
-    if (!uploadedFile) return null;
-    
-    try {
-      // Create a unique file path with proper directory structure
-      const fileExt = uploadedFile.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `asset-files/${fileName}`; // Use a dedicated folder for uploads
-      
-      // Upload file to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('assets') // Make sure this bucket exists in Supabase
-        .upload(filePath, uploadedFile, {
-          cacheControl: '3600',
-          upsert: false
+        // Set previews for existing files
+        setFiles({
+          file: null,
+          thumbnail: null,
+          filePreview: data.file_url,
+          thumbnailPreview: data.thumbnail_url
         });
-      
-      if (uploadError) throw uploadError;
-      
-      // Get public URL
-      const { data } = supabase.storage
-        .from('assets')
-        .getPublicUrl(filePath);
-      
-      return data.publicUrl;
-    } catch (error: any) {
-      toast({
-        title: "Error uploading file",
-        description: error.message,
-        variant: "destructive",
-      });
-      return null;
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
-      setLoading(true);
-      
-      // Upload file if selected and get URL
-      let fileUrl = formData.file_url; // Keep existing URL if in edit mode
-      if (uploadedFile) {
-        fileUrl = await uploadFile();
-        if (!fileUrl) return; // Stop if upload failed
-      }
-      
-      // Create thumbnail URL (just use the same URL for now)
-      const thumbnailUrl = fileUrl;
-      
-      // Prepare data for database
-      const assetData = {
-        name: formData.name,
-        category: formData.category,
-        type: formData.type,
-        platform_id: formData.platform_id || null, // Allow null if no platform selected
-        description: formData.description,
-        tags,
-        file_url: fileUrl,
-        file_size: formData.file_size,
-        thumbnail_url: thumbnailUrl
-      };
-      
-      let result;
-      
-      if (isEditMode) {
-        // Update existing asset
-        result = await supabase
-          .from('assets')
-          .update(assetData)
-          .eq('id', id);
-      } else {
-        // Insert new asset
-        result = await supabase
-          .from('assets')
-          .insert(assetData);
-      }
-      
-      const { error } = result;
-      
-      if (error) throw error;
-      
-      toast({
-        title: isEditMode ? "Asset updated" : "Asset created",
-        description: isEditMode 
-          ? "Asset has been successfully updated." 
-          : "Asset has been successfully created.",
-      });
-      
-      // Navigate back to platform detail if we came from there
-      if (platformIdFromQuery) {
-        navigate(`/platforms/${platformIdFromQuery}`);
-      } else {
-        navigate("/assets");
       }
     } catch (error: any) {
       toast({
-        title: "Error saving asset",
+        title: "Error fetching asset details",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Validate the basic info step
-  const validateBasicInfo = () => {
-    if (!formData.name || !formData.category || !formData.type) {
-      toast({
-        title: "Missing required fields",
-        description: "Please fill in all required fields.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    return true;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Create the steps for our multistep form
-  const formSteps = [
-    {
-      title: "Basic Information",
-      validator: validateBasicInfo,
-      content: (
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="asset-name">Asset Name*</Label>
-            <Input
-              id="asset-name"
-              placeholder="Enter asset name"
-              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              required
-            />
-          </div>
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="category">Category*</Label>
-              <Select 
-                required
-                value={formData.category}
-                onValueChange={handleCategoryChange}
-              >
-                <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="type">Asset Type*</Label>
-              <Select
-                required
-                disabled={!selectedCategory}
-                value={formData.type}
-                onValueChange={(value) => handleChange('type', value)}
-              >
-                <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-                  <SelectValue placeholder={selectedCategory ? "Select type" : "Select category first"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedCategory && 
-                    assetTypes[selectedCategory as keyof typeof assetTypes].map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))
-                  }
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="platform">Platform Association</Label>
-              <Select
-                value={formData.platform_id}
-                onValueChange={(value) => handleChange('platform_id', value)}
-              >
-                <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-                  <SelectValue placeholder="Select platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  {platforms.map((platform) => (
-                    <SelectItem key={platform.id} value={platform.id}>
-                      {platform.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description/Notes</Label>
-            <Textarea
-              id="description"
-              placeholder="Enter description or notes about this asset..."
-              className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
-              value={formData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-            />
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "Tags & Keywords",
-      content: (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2 mb-2">
-            {tags.map((tag) => (
-              <div key={tag} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-                <span>{tag}</span>
-                <button 
-                  type="button"
-                  onClick={() => handleRemoveTag(tag)}
-                  className="ml-1 text-muted-foreground hover:text-foreground"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-          
-          <div className="flex gap-2">
-            <Input
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              placeholder="Add a tag"
-              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddTag();
-                }
-              }}
-            />
-            <NeuButton type="button" onClick={handleAddTag}>
-              Add
-            </NeuButton>
-          </div>
-          
-          <div className="mt-2">
-            <p className="text-xs text-muted-foreground mb-1">Suggestions:</p>
-            <div className="flex flex-wrap gap-1">
-              {tagSuggestions.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  type="button"
-                  className="text-xs py-1 px-2 neu-flat hover:shadow-neu-pressed"
-                  onClick={() => {
-                    if (!tags.includes(suggestion)) {
-                      setTags([...tags, suggestion]);
-                    }
-                  }}
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      title: "File Upload",
-      content: (
-        <div className="space-y-4">
-          {!fileUploaded ? (
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                dragActive ? "border-primary bg-primary/5" : "border-neugray-300"
-              }`}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
-              <h3 className="text-lg font-medium mb-1">Drag & Drop</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                or click to browse files
-              </p>
-              
-              <input
-                type="file"
-                className="hidden"
-                id="file-upload"
-                onChange={handleFileInputChange}
-                onClick={(e) => e.stopPropagation()}
-              />
-              <label htmlFor="file-upload">
-                <div className="cursor-pointer inline-block">
-                  <NeuButton type="button" variant="outline" className="cursor-pointer">
-                    Browse Files
-                  </NeuButton>
-                </div>
-              </label>
-              
-              <p className="text-xs text-muted-foreground mt-4">
-                Supported file types: JPG, PNG, GIF, PDF, MP4, MOV
-              </p>
-            </div>
-          ) : (
-            <div className="neu-flat p-4 rounded-lg">
-              {filePreview ? (
-                <div className="space-y-3">
-                  <div className="relative h-40 bg-neugray-200 rounded-lg overflow-hidden">
-                    <img
-                      src={filePreview}
-                      alt="File preview"
-                      className="w-full h-full object-contain"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleRemoveFile}
-                      className="absolute top-2 right-2 p-1 bg-foreground/10 backdrop-blur-sm rounded-full"
-                    >
-                      <X size={16} className="text-white" />
-                    </button>
-                  </div>
-                  <p className="text-sm font-medium">Image uploaded successfully</p>
-                </div>
-              ) : (
-                <div className="flex items-center">
-                  <div className="mr-3 p-2 bg-neugray-200 rounded">
-                    <File size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">File selected for upload</p>
-                    <p className="text-xs text-muted-foreground">
-                      File ready for submission
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleRemoveFile}
-                    className="p-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-3 mt-4">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Upload Date:</span>
-              <span className="text-sm">{new Date().toLocaleDateString()}</span>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">File Size:</span>
-              <span className="text-sm">{formData.file_size || "-"}</span>
-            </div>
-            
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Uploaded By:</span>
-              <span className="text-sm">Current User</span>
-            </div>
-          </div>
-        </div>
-      )
+  const handleAddTag = () => {
+    if (formData.tagInput.trim() !== "" && !formData.tags.includes(formData.tagInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, prev.tagInput.trim()],
+        tagInput: ""
+      }));
     }
-  ];
+  };
 
-  if (fetchLoading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </Layout>
-    );
-  }
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'file' | 'thumbnail') => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      const fileReader = new FileReader();
+      
+      fileReader.onload = (event) => {
+        if (type === 'file') {
+          setFiles(prev => ({
+            ...prev,
+            file: selectedFile,
+            filePreview: event.target?.result as string
+          }));
+          setFormData(prev => ({
+            ...prev,
+            file_size: formatFileSize(selectedFile.size)
+          }));
+        } else {
+          setFiles(prev => ({
+            ...prev,
+            thumbnail: selectedFile,
+            thumbnailPreview: event.target?.result as string
+          }));
+        }
+      };
+      
+      fileReader.readAsDataURL(selectedFile);
+    }
+  };
+
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>, type: 'file' | 'thumbnail') => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const droppedFile = e.dataTransfer.files[0];
+      const fileReader = new FileReader();
+      
+      fileReader.onload = (event) => {
+        if (type === 'file') {
+          setFiles(prev => ({
+            ...prev,
+            file: droppedFile,
+            filePreview: event.target?.result as string
+          }));
+          setFormData(prev => ({
+            ...prev,
+            file_size: formatFileSize(droppedFile.size)
+          }));
+        } else {
+          setFiles(prev => ({
+            ...prev,
+            thumbnail: droppedFile,
+            thumbnailPreview: event.target?.result as string
+          }));
+        }
+      };
+      
+      fileReader.readAsDataURL(droppedFile);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const removeFile = (type: 'file' | 'thumbnail') => {
+    if (type === 'file') {
+      setFiles(prev => ({
+        ...prev,
+        file: null,
+        filePreview: null
+      }));
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      setFormData(prev => ({
+        ...prev,
+        file_url: null,
+        file_size: null
+      }));
+    } else {
+      setFiles(prev => ({
+        ...prev,
+        thumbnail: null,
+        thumbnailPreview: null
+      }));
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = '';
+      }
+      setFormData(prev => ({
+        ...prev,
+        thumbnail_url: null
+      }));
+    }
+  };
+
+  const handleBrowseClick = (type: 'file' | 'thumbnail') => {
+    if (type === 'file' && fileInputRef.current) {
+      fileInputRef.current.click();
+    } else if (type === 'thumbnail' && thumbnailInputRef.current) {
+      thumbnailInputRef.current.click();
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      setLoading(true);
+      
+      let file_url = formData.file_url;
+      let thumbnail_url = formData.thumbnail_url;
+      
+      // For now, simulate file uploads by using the file previews
+      // In a real app, you would upload these to storage
+      if (files.file) {
+        file_url = files.filePreview;
+      }
+      
+      if (files.thumbnail) {
+        thumbnail_url = files.thumbnailPreview;
+      }
+      
+      const assetData = {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        type: formData.type,
+        platform_id: formData.platform_id,
+        tags: formData.tags,
+        file_url,
+        thumbnail_url,
+        file_size: formData.file_size,
+        updated_at: new Date().toISOString()
+      };
+      
+      let result;
+      
+      if (isEdit) {
+        result = await supabase
+          .from("assets")
+          .update(assetData)
+          .eq("id", id);
+      } else {
+        result = await supabase
+          .from("assets")
+          .insert([{ ...assetData, created_at: new Date().toISOString() }]);
+      }
+      
+      if (result.error) throw result.error;
+      
+      toast({
+        title: `Asset ${isEdit ? 'updated' : 'created'} successfully`,
+        variant: "default"
+      });
+      
+      navigate("/assets");
+    } catch (error: any) {
+      toast({
+        title: `Error ${isEdit ? 'updating' : 'creating'} asset`,
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Layout>
       <div className="animate-fade-in">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">{isEditMode ? "Edit Asset" : "Add New Asset"}</h1>
-            <p className="text-muted-foreground mt-1">Upload and categorize a new asset</p>
-          </div>
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold">{isEdit ? "Edit Asset" : "Add New Asset"}</h1>
+          <p className="text-muted-foreground mt-1">
+            {isEdit ? "Update asset information" : "Create a new digital or physical asset"}
+          </p>
         </header>
-
-        <div className="max-w-3xl mx-auto">
+        
+        <form onSubmit={handleSubmit} className="space-y-8">
           <NeuCard>
-            <MultiStepForm
-              steps={formSteps}
-              onComplete={handleSubmit}
-              onCancel={() => navigate("/assets")}
-              isSubmitting={loading}
-            />
+            <h2 className="text-xl font-bold mb-4">Basic Information</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Asset Name*</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="Enter asset name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="category">Category*</Label>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => handleSelectChange("category", value)}
+                  >
+                    <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assetCategories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="type">Asset Type*</Label>
+                  <Select
+                    value={formData.type}
+                    onValueChange={(value) => handleSelectChange("type", value)}
+                  >
+                    <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assetTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="platform">Platform</Label>
+                  <Select
+                    value={formData.platform_id}
+                    onValueChange={(value) => handleSelectChange("platform_id", value)}
+                  >
+                    <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
+                      <SelectValue placeholder="Select platform" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {platforms.map((platform) => (
+                        <SelectItem key={platform.id} value={platform.id}>
+                          {platform.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    name="description"
+                    placeholder="Enter asset description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    className="mt-1.5 min-h-[120px] bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <div className="flex mt-1.5">
+                    <Input
+                      id="tagInput"
+                      name="tagInput"
+                      placeholder="Add tags"
+                      value={formData.tagInput}
+                      onChange={handleChange}
+                      onKeyDown={handleKeyDown}
+                      className="flex-1 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    <NeuButton
+                      type="button"
+                      onClick={handleAddTag}
+                      className="ml-2"
+                    >
+                      Add
+                    </NeuButton>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {formData.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center bg-neugray-200 rounded-full px-2 py-1 text-sm"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-1 text-gray-500 hover:text-gray-700"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </NeuCard>
-        </div>
+          
+          <NeuCard>
+            <h2 className="text-xl font-bold mb-4">Asset Files</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label>Asset File</Label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={(e) => handleFileChange(e, 'file')}
+                  className="hidden"
+                />
+                
+                <div
+                  className={`mt-1.5 border-2 border-dashed rounded-lg p-6 text-center ${
+                    files.filePreview ? 'border-primary' : 'border-gray-300'
+                  }`}
+                  onDrop={(e) => handleFileDrop(e, 'file')}
+                  onDragOver={handleDragOver}
+                >
+                  {files.filePreview ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center">
+                        <div className="w-full max-h-48 overflow-hidden flex items-center justify-center bg-neugray-200 rounded-lg">
+                          {formData.type === 'Image' ? (
+                            <img
+                              src={files.filePreview}
+                              alt="File preview"
+                              className="max-w-full max-h-48 object-contain"
+                            />
+                          ) : (
+                            <div className="p-8">
+                              <FileIcon size={60} className="mx-auto text-neugray-400" />
+                              <p className="mt-2 text-sm text-muted-foreground truncate max-w-xs">
+                                {files.file?.name || 'File'}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">
+                          {formData.file_size || 'Unknown size'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeFile('file')}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm font-medium mb-1">
+                        Drag and drop your file here
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Supports images, documents, videos, and audio files
+                      </p>
+                      <NeuButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBrowseClick('file')}
+                      >
+                        Browse Files
+                      </NeuButton>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div>
+                <Label>Thumbnail Image</Label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={thumbnailInputRef}
+                  onChange={(e) => handleFileChange(e, 'thumbnail')}
+                  className="hidden"
+                />
+                
+                <div
+                  className={`mt-1.5 border-2 border-dashed rounded-lg p-6 text-center ${
+                    files.thumbnailPreview ? 'border-primary' : 'border-gray-300'
+                  }`}
+                  onDrop={(e) => handleFileDrop(e, 'thumbnail')}
+                  onDragOver={handleDragOver}
+                >
+                  {files.thumbnailPreview ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center">
+                        <div className="w-full h-40 overflow-hidden flex items-center justify-center bg-neugray-200 rounded-lg">
+                          <img
+                            src={files.thumbnailPreview}
+                            alt="Thumbnail preview"
+                            className="max-w-full max-h-40 object-contain"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => removeFile('thumbnail')}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm font-medium mb-1">
+                        Add a thumbnail image
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        This will be displayed in the asset list
+                      </p>
+                      <NeuButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleBrowseClick('thumbnail')}
+                      >
+                        Browse Images
+                      </NeuButton>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </NeuCard>
+          
+          <div className="flex justify-end gap-3">
+            <NeuButton
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/assets")}
+            >
+              Cancel
+            </NeuButton>
+            <NeuButton type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="animate-spin mr-2">◌</span>
+                  {isEdit ? "Saving..." : "Creating..."}
+                </>
+              ) : (
+                isEdit ? "Save Changes" : "Create Asset"
+              )}
+            </NeuButton>
+          </div>
+        </form>
       </div>
     </Layout>
   );

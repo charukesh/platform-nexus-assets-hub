@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
@@ -6,7 +7,7 @@ import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Filter, Plus, Upload, Download, Grid, List, Calendar, Info, Tag, ExternalLink, FileIcon } from "lucide-react";
+import { Search, Filter, Plus, Grid, List, Calendar, Info, Tag, ExternalLink, FileIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -269,19 +270,11 @@ const AssetsManagement: React.FC = () => {
                       <span>{asset.file_size || "N/A"}</span>
                     </div>
                     
-                    <div className="mt-4 flex gap-2">
-                      {asset.file_url && (
-                        <a href={asset.file_url} target="_blank" rel="noopener noreferrer" className="flex-1">
-                          <NeuButton size="sm" variant="outline" className="text-xs w-full flex gap-1 items-center justify-center">
-                            <Download size={12} />
-                            Download
-                          </NeuButton>
-                        </a>
-                      )}
-                      <Link to={`/assets/${asset.id}`} className="flex-1">
+                    <div className="mt-4">
+                      <Link to={`/assets/${asset.id}`} className="w-full">
                         <NeuButton size="sm" variant="outline" className="text-xs w-full flex gap-1 items-center justify-center">
                           <ExternalLink size={12} />
-                          View
+                          View Details
                         </NeuButton>
                       </Link>
                     </div>
@@ -348,18 +341,10 @@ const AssetsManagement: React.FC = () => {
                     </div>
                     
                     <div className="flex gap-2">
-                      {asset.file_url && (
-                        <a href={asset.file_url} target="_blank" rel="noopener noreferrer">
-                          <NeuButton size="sm" variant="outline" className="text-xs flex gap-1 items-center justify-center">
-                            <Download size={12} />
-                            Download
-                          </NeuButton>
-                        </a>
-                      )}
                       <Link to={`/assets/${asset.id}`}>
                         <NeuButton size="sm" variant="outline" className="text-xs flex gap-1 items-center justify-center">
                           <ExternalLink size={12} />
-                          View
+                          View Details
                         </NeuButton>
                       </Link>
                     </div>

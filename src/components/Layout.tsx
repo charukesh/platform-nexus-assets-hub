@@ -49,6 +49,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [location.pathname, isMobile]);
 
+  const isActive = (path: string) => {
+    if (path === '/' && location.pathname === '/') {
+      return true;
+    }
+    if (path !== '/' && location.pathname.startsWith(path)) {
+      return true;
+    }
+    return false;
+  };
+
   return (
     <div className="min-h-screen flex bg-neugray-100">
       {/* Mobile menu toggle */}
@@ -78,7 +88,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         
         <nav className="space-y-2">
           {navItems.map(item => {
-            const isActive = location.pathname === item.path;
+            const active = isActive(item.path);
             const Icon = item.icon;
             return (
               <Link
@@ -86,10 +96,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 to={item.path}
                 className={cn(
                   "flex items-center p-3 rounded-lg transition-all duration-200",
-                  isActive ? "neu-pressed text-primary" : "neu-flat hover:shadow-neu-pressed"
+                  active 
+                    ? "neu-pressed text-primary font-medium bg-white" 
+                    : "neu-flat hover:shadow-neu-pressed"
                 )}
               >
-                <Icon size={18} className="mr-2" />
+                <Icon size={18} className={cn("mr-2", active ? "text-primary" : "")} />
                 <span>{item.name}</span>
               </Link>
             );
