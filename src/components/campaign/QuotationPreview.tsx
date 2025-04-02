@@ -19,7 +19,7 @@ interface Platform {
   dau: string | number;
 }
 
-interface Asset {
+interface SupabaseAsset {
   id: string;
   name: string;
   category: string;
@@ -33,9 +33,11 @@ interface Asset {
   uploaded_by: string;
   created_at: string;
   updated_at: string;
-  
-  cost_per_day?: number;
-  estimated_impressions?: number;
+}
+
+interface Asset extends SupabaseAsset {
+  cost_per_day: number;
+  estimated_impressions: number;
 }
 
 interface PlatformWithAssets extends Platform {
@@ -88,18 +90,22 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       let calculatedTotalImpressions = 0;
 
       const processedPlatforms = platformsData.map((platform) => {
-        const platformAssets = assetsData.filter(
+        const platformAssetsFromDB = assetsData.filter(
           (asset) => asset.platform_id === platform.id
         );
+        
+        const platformAssets = platformAssetsFromDB.map(asset => ({
+          ...asset,
+          cost_per_day: Math.floor(Math.random() * 15000) + 5000,
+          estimated_impressions: Math.floor(Math.random() * 90000) + 10000
+        }));
 
         const platformTotalCost = platformAssets.reduce((sum, asset) => {
-          const costPerDay = asset.cost_per_day || Math.floor(Math.random() * 15000) + 5000;
-          return sum + costPerDay * campaignDays;
+          return sum + asset.cost_per_day * campaignDays;
         }, 0);
 
         const platformTotalImpressions = platformAssets.reduce((sum, asset) => {
-          const impressions = asset.estimated_impressions || Math.floor(Math.random() * 90000) + 10000;
-          return sum + impressions * campaignDays;
+          return sum + asset.estimated_impressions * campaignDays;
         }, 0);
 
         calculatedTotalCost += platformTotalCost;
@@ -333,27 +339,23 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {platform.assets.map((asset) => {
-                    const costPerDay = asset.cost_per_day || Math.floor(Math.random() * 15000) + 5000;
-                    const impressions = asset.estimated_impressions || Math.floor(Math.random() * 90000) + 10000;
-                    return (
-                      <tr key={asset.id}>
-                        <td className="p-2 font-medium">{asset.name}</td>
-                        <td className="p-2">
-                          <span className="text-xs px-2 py-1 rounded bg-neugray-200 dark:bg-gray-700">
-                            {asset.category}
-                          </span>
-                        </td>
-                        <td className="p-2 text-right">
-                          {formatNumber(impressions * campaignDays)}
-                        </td>
-                        <td className="p-2 text-right">{formatCurrency(costPerDay)}</td>
-                        <td className="p-2 text-right font-medium">
-                          {formatCurrency(costPerDay * campaignDays)}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {platform.assets.map((asset) => (
+                    <tr key={asset.id}>
+                      <td className="p-2 font-medium">{asset.name}</td>
+                      <td className="p-2">
+                        <span className="text-xs px-2 py-1 rounded bg-neugray-200 dark:bg-gray-700">
+                          {asset.category}
+                        </span>
+                      </td>
+                      <td className="p-2 text-right">
+                        {formatNumber(asset.estimated_impressions * campaignDays)}
+                      </td>
+                      <td className="p-2 text-right">{formatCurrency(asset.cost_per_day)}</td>
+                      <td className="p-2 text-right font-medium">
+                        {formatCurrency(asset.cost_per_day * campaignDays)}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
                 <tfoot className="border-t bg-neugray-100 dark:bg-gray-800">
                   <tr>
