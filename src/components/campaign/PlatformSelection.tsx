@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { CampaignData } from "@/pages/CampaignQuotation";
-import NeuCard from "@/components/NeuCard";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +28,7 @@ interface Platform {
   premium_users: number;
   description?: string;
   logo_url?: string;
+  audience_data?: any;
 }
 
 const PlatformSelection: React.FC<PlatformSelectionProps> = ({
@@ -70,13 +71,81 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
       }
 
       if (platformsData) {
-        setPlatforms(platformsData);
+        // Filter platforms based on demographic and geographic match
+        let filteredPlatforms = platformsData;
+        
+        if (data.demographics.ageGroups.length > 0 || 
+            data.demographics.gender.length > 0 || 
+            data.demographics.interests.length > 0 || 
+            data.geographics.cities.length > 0 || 
+            data.geographics.states.length > 0) {
+          
+          filteredPlatforms = platformsData.filter(platform => {
+            // Skip filtering if platform has no audience data
+            if (!platform.audience_data) return true;
+            
+            // Check for demographic matches
+            let demographicsMatch = true;
+            if (data.demographics.ageGroups.length > 0 && 
+                platform.audience_data.demographic?.ageGroups) {
+              // Check if any age group matches
+              demographicsMatch = data.demographics.ageGroups.some(
+                age => platform.audience_data.demographic.ageGroups.includes(age)
+              );
+              if (!demographicsMatch) return false;
+            }
+            
+            if (data.demographics.gender.length > 0 && 
+                platform.audience_data.demographic?.gender) {
+              // Check if any gender matches
+              demographicsMatch = data.demographics.gender.some(
+                gender => platform.audience_data.demographic.gender.includes(gender)
+              );
+              if (!demographicsMatch) return false;
+            }
+            
+            if (data.demographics.interests.length > 0 && 
+                platform.audience_data.demographic?.interests) {
+              // Check if any interest matches
+              demographicsMatch = data.demographics.interests.some(
+                interest => platform.audience_data.demographic.interests.includes(interest)
+              );
+              if (!demographicsMatch) return false;
+            }
+            
+            // Check for geographic matches
+            let geographicsMatch = true;
+            if (data.geographics.cities.length > 0 && 
+                platform.audience_data.geographic?.cities) {
+              // Check if any city matches
+              geographicsMatch = data.geographics.cities.some(
+                city => platform.audience_data.geographic.cities.includes(city)
+              );
+              if (!geographicsMatch) return false;
+            }
+            
+            if (data.geographics.states.length > 0 && 
+                platform.audience_data.geographic?.states) {
+              // Check if any state matches
+              geographicsMatch = data.geographics.states.some(
+                state => platform.audience_data.geographic.states.includes(state)
+              );
+              if (!geographicsMatch) return false;
+            }
+            
+            return true;
+          });
+        }
+        
+        setPlatforms(filteredPlatforms);
 
-        // Auto-suggest platforms if no manual selection
+        // Auto-suggest platforms if no manual selection and we have filtered platforms
         if (autoSuggestEnabled && data.platformPreferences.length === 0) {
-          const suggestedPlatforms = platformsData
-            .slice(0, 3)
-            .map((platform) => platform.id);
+          // Prioritize platforms that have better audience matches
+          let suggestedPlatforms = filteredPlatforms
+            .slice(0, Math.min(3, filteredPlatforms.length))
+            .map(platform => platform.id);
+          
           setSelectedPlatforms(suggestedPlatforms);
         }
       }
@@ -165,7 +234,7 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
             <Input
               placeholder="Search platforms..."
-              className="pl-10 neu-pressed dark:bg-gray-800"
+              className="pl-10 dark:bg-gray-800"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -184,7 +253,7 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
             ? platforms.filter((p) => selectedPlatforms.includes(p.id))
             : filteredPlatforms
           ).map((platform) => (
-            <NeuCard
+            <Card
               key={platform.id}
               className={`p-4 cursor-pointer transition-all ${
                 selectedPlatforms.includes(platform.id)
@@ -196,7 +265,7 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   {platform.logo_url ? (
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-neugray-200 dark:bg-gray-700">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
                       <img
                         src={platform.logo_url}
                         alt={platform.name}
@@ -204,7 +273,7 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                       />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-neugray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                       <span className="text-lg font-bold">
                         {platform.name.charAt(0)}
                       </span>
@@ -234,12 +303,16 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
                 </span>
               </div>
 
-              {platform.description && (
-                <p className="mt-2 text-sm line-clamp-2 text-muted-foreground">
-                  {platform.description}
-                </p>
+              {/* Show audience match details */}
+              {selectedPlatforms.includes(platform.id) && platform.audience_data && (
+                <div className="mt-2 text-sm">
+                  <div className="text-green-600 dark:text-green-400 text-xs flex items-center">
+                    <Info className="h-3 w-3 mr-1" />
+                    <span>Matching audience profiles</span>
+                  </div>
+                </div>
               )}
-            </NeuCard>
+            </Card>
           ))}
         </div>
       )}

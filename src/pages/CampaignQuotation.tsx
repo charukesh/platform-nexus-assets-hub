@@ -6,7 +6,7 @@ import MultiStepForm from "@/components/MultiStepForm";
 import CampaignRequirements from "@/components/campaign/CampaignRequirements";
 import PlatformSelection from "@/components/campaign/PlatformSelection";
 import QuotationPreview from "@/components/campaign/QuotationPreview";
-import NeuCard from "@/components/NeuCard";
+import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 export interface CampaignData {
@@ -145,14 +145,14 @@ const CampaignQuotation: React.FC = () => {
       <div className="max-w-4xl mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold mb-8">Create Campaign Quotation</h1>
         
-        <NeuCard variant="flat" className="p-8">
+        <Card className="p-8">
           <MultiStepForm 
             steps={steps} 
             onComplete={handleComplete} 
             onCancel={() => navigate("/")} 
             isSubmitting={isSubmitting}
           />
-        </NeuCard>
+        </Card>
       </div>
     </Layout>
   );
