@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MultiStepForm from "@/components/MultiStepForm";
+import { Plus, X, MapPin, Users, Globe } from "lucide-react";
 
 // Available industries
 const industries = [
@@ -25,6 +26,39 @@ const industries = [
   "Education",
   "Transportation",
   "Real Estate"
+];
+
+// Common interests for audience targeting
+const commonInterests = [
+  "Social Media", "Shopping", "Entertainment", "Sports", "Travel", 
+  "Food", "Music", "Technology", "Fashion", "Gaming", "Fitness", 
+  "Education", "Finance", "Health", "Books", "Movies", "Photography"
+];
+
+// Buy types for campaign management
+const buyTypes = [
+  "CPC (Cost Per Click)",
+  "CPM (Cost Per Mille)",
+  "CPA (Cost Per Action)",
+  "CPL (Cost Per Lead)",
+  "CPI (Cost Per Install)",
+  "CPV (Cost Per View)",
+  "CPCV (Cost Per Completed View)",
+  "Flat Fee"
+];
+
+// Innovations and gamification options
+const innovationOptions = [
+  "Playable Ads",
+  "AR Experiences",
+  "Interactive Polls",
+  "Mini-Games",
+  "Quizzes",
+  "3D Experiences",
+  "Swipe Interactions",
+  "Augmented Reality",
+  "Reward Mechanics",
+  "Referral Programs"
 ];
 
 const PlatformForm: React.FC = () => {
@@ -70,13 +104,24 @@ const PlatformForm: React.FC = () => {
     interests: ["Social Media", "Shopping", "Entertainment"]
   });
   
+  // Geographic data
+  const [geographicData, setGeographicData] = useState({
+    cities: [] as string[],
+    states: [] as string[],
+    regions: [] as string[],
+    countries: [] as string[]
+  });
+  
   // Campaign data
   const [campaignData, setCampaignData] = useState({
     min_budget: 1000,
     avg_cpm: 5.5,
     avg_ctr: 1.2,
     accepted_formats: ["Image", "Video", "Carousel"],
-    tracking_available: true
+    tracking_available: true,
+    funneling: [] as string[],
+    buy_types: ["CPM (Cost Per Mille)"],
+    innovations: [] as string[]
   });
   
   // Restrictions
@@ -114,22 +159,73 @@ const PlatformForm: React.FC = () => {
           premium_users: data.premium_users || 0,
           mau: data.mau || "",
           dau: data.dau || "",
-          device_split: data.device_split || { ios: 50, android: 50 }
+          device_split: data.device_split && typeof data.device_split === 'object' ? 
+            {
+              ios: (data.device_split as any).ios || 50,
+              android: (data.device_split as any).android || 50
+            } : 
+            { ios: 50, android: 50 }
         });
         
         // Set audience data
-        if (data.audience_data) {
-          setAudienceData(data.audience_data as any);
+        if (data.audience_data && typeof data.audience_data === 'object') {
+          const audience = data.audience_data as any;
+          setAudienceData({
+            age_groups: audience.age_groups || {
+              "18-24": 20,
+              "25-34": 30,
+              "35-44": 25,
+              "45-54": 15,
+              "55+": 10
+            },
+            gender_split: audience.gender_split || {
+              male: 50,
+              female: 50
+            },
+            income_brackets: audience.income_brackets || {
+              low: 20,
+              medium: 50,
+              high: 30
+            },
+            interests: audience.interests || ["Social Media", "Shopping", "Entertainment"]
+          });
+        }
+        
+        // Set geographic data
+        if (data.geographic_data && typeof data.geographic_data === 'object') {
+          const geo = data.geographic_data as any;
+          setGeographicData({
+            cities: geo.cities || [],
+            states: geo.states || [],
+            regions: geo.regions || [],
+            countries: geo.countries || []
+          });
         }
         
         // Set campaign data
-        if (data.campaign_data) {
-          setCampaignData(data.campaign_data as any);
+        if (data.campaign_data && typeof data.campaign_data === 'object') {
+          const campaign = data.campaign_data as any;
+          setCampaignData({
+            min_budget: campaign.min_budget || 1000,
+            avg_cpm: campaign.avg_cpm || 5.5,
+            avg_ctr: campaign.avg_ctr || 1.2,
+            accepted_formats: campaign.accepted_formats || ["Image", "Video", "Carousel"],
+            tracking_available: campaign.tracking_available ?? true,
+            funneling: campaign.funneling || [],
+            buy_types: campaign.buy_types || ["CPM (Cost Per Mille)"],
+            innovations: campaign.innovations || []
+          });
         }
         
         // Set restrictions
-        if (data.restrictions) {
-          setRestrictions(data.restrictions as any);
+        if (data.restrictions && typeof data.restrictions === 'object') {
+          const restrict = data.restrictions as any;
+          setRestrictions({
+            restricted_categories: restrict.restricted_categories || ["Gambling", "Alcohol", "Tobacco"],
+            min_age: restrict.min_age || 13,
+            geo_targeting: restrict.geo_targeting ?? true,
+            requires_approval: restrict.requires_approval ?? true
+          });
         }
       }
     } catch (error: any) {
@@ -171,7 +267,7 @@ const PlatformForm: React.FC = () => {
   };
   
   const handleAudienceInterestAdd = (interest: string) => {
-    if (!audienceData.interests.includes(interest)) {
+    if (!audienceData.interests.includes(interest) && interest.trim() !== '') {
       setAudienceData(prev => ({
         ...prev,
         interests: [...prev.interests, interest]
@@ -186,6 +282,24 @@ const PlatformForm: React.FC = () => {
     }));
   };
   
+  // Geographic handlers
+  const handleGeoItemAdd = (section: keyof typeof geographicData, item: string) => {
+    if (!geographicData[section].includes(item) && item.trim() !== '') {
+      setGeographicData(prev => ({
+        ...prev,
+        [section]: [...prev[section], item]
+      }));
+    }
+  };
+  
+  const handleGeoItemRemove = (section: keyof typeof geographicData, item: string) => {
+    setGeographicData(prev => ({
+      ...prev,
+      [section]: prev[section].filter(i => i !== item)
+    }));
+  };
+  
+  // Campaign handlers
   const handleCampaignChange = (field: string, value: any) => {
     setCampaignData(prev => ({
       ...prev,
@@ -210,6 +324,56 @@ const PlatformForm: React.FC = () => {
     });
   };
   
+  const handleCampaignItemAdd = (section: 'funneling' | 'buy_types' | 'innovations', item: string) => {
+    if (!campaignData[section].includes(item) && item.trim() !== '') {
+      setCampaignData(prev => ({
+        ...prev,
+        [section]: [...prev[section], item]
+      }));
+    }
+  };
+  
+  const handleCampaignItemRemove = (section: 'funneling' | 'buy_types' | 'innovations', item: string) => {
+    setCampaignData(prev => ({
+      ...prev,
+      [section]: prev[section].filter(i => i !== item)
+    }));
+  };
+  
+  const handleBuyTypeToggle = (buyType: string) => {
+    setCampaignData(prev => {
+      const types = prev.buy_types;
+      if (types.includes(buyType)) {
+        return {
+          ...prev,
+          buy_types: types.filter(t => t !== buyType)
+        };
+      } else {
+        return {
+          ...prev,
+          buy_types: [...types, buyType]
+        };
+      }
+    });
+  };
+  
+  const handleInnovationToggle = (innovation: string) => {
+    setCampaignData(prev => {
+      const innovations = prev.innovations;
+      if (innovations.includes(innovation)) {
+        return {
+          ...prev,
+          innovations: innovations.filter(i => i !== innovation)
+        };
+      } else {
+        return {
+          ...prev,
+          innovations: [...innovations, innovation]
+        };
+      }
+    });
+  };
+  
   const handleRestrictionChange = (field: string, value: any) => {
     setRestrictions(prev => ({
       ...prev,
@@ -218,7 +382,7 @@ const PlatformForm: React.FC = () => {
   };
   
   const handleRestrictionCategoryAdd = (category: string) => {
-    if (!restrictions.restricted_categories.includes(category)) {
+    if (!restrictions.restricted_categories.includes(category) && category.trim() !== '') {
       setRestrictions(prev => ({
         ...prev,
         restricted_categories: [...prev.restricted_categories, category]
@@ -246,6 +410,7 @@ const PlatformForm: React.FC = () => {
         dau: formData.dau,
         device_split: formData.device_split,
         audience_data: audienceData,
+        geographic_data: geographicData,
         campaign_data: campaignData,
         restrictions: restrictions
       };
@@ -254,6 +419,7 @@ const PlatformForm: React.FC = () => {
       const supabaseData = {
         ...platformData,
         audience_data: platformData.audience_data as any,
+        geographic_data: platformData.geographic_data as any,
         campaign_data: platformData.campaign_data as any,
         device_split: platformData.device_split as any,
         restrictions: platformData.restrictions as any
@@ -409,6 +575,7 @@ const PlatformForm: React.FC = () => {
   const AudienceDataStep = (
     <div className="space-y-6">
       <div className="space-y-2">
+        <h3 className="text-lg font-medium">Demographic Targeting</h3>
         <Label>Age Group Distribution</Label>
         <div className="space-y-2">
           {Object.entries(audienceData.age_groups).map(([age, value]) => (
@@ -478,7 +645,7 @@ const PlatformForm: React.FC = () => {
       </div>
 
       <div className="space-y-2">
-        <Label>Interests</Label>
+        <Label>User Interests</Label>
         <div className="flex flex-wrap gap-2 mb-2">
           {audienceData.interests.map((interest) => (
             <div key={interest} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
@@ -493,17 +660,328 @@ const PlatformForm: React.FC = () => {
             </div>
           ))}
         </div>
+        <div className="flex flex-col gap-2">
+          <Select 
+            onValueChange={(value) => {
+              if (value) {
+                handleAudienceInterestAdd(value);
+              }
+            }}
+          >
+            <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
+              <SelectValue placeholder="Select common interest" />
+            </SelectTrigger>
+            <SelectContent>
+              {commonInterests
+                .filter(interest => !audienceData.interests.includes(interest))
+                .map((interest) => (
+                  <SelectItem key={interest} value={interest}>
+                    {interest}
+                  </SelectItem>
+                ))
+              }
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2">
+            <Input
+              id="new-interest"
+              placeholder="Add custom interest"
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const input = e.currentTarget;
+                  if (input.value) {
+                    handleAudienceInterestAdd(input.value);
+                    input.value = '';
+                  }
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="px-3 py-2 neu-btn rounded-md"
+              onClick={() => {
+                const input = document.getElementById('new-interest') as HTMLInputElement;
+                if (input && input.value) {
+                  handleAudienceInterestAdd(input.value);
+                  input.value = '';
+                }
+              }}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Step 3: Geographic targeting
+  const GeographicTargetingStep = (
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-lg font-medium flex items-center gap-2">
+          <Globe size={20} />
+          Geographic Targeting
+        </h3>
+        
+        <div className="space-y-4">
+          {/* Cities */}
+          <div className="space-y-2">
+            <Label>Cities</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {geographicData.cities.length === 0 ? (
+                <div className="text-muted-foreground text-sm">No cities specified</div>
+              ) : (
+                geographicData.cities.map((city) => (
+                  <div key={city} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
+                    <span>{city}</span>
+                    <button 
+                      type="button"
+                      onClick={() => handleGeoItemRemove('cities', city)}
+                      className="ml-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                id="new-city"
+                placeholder="Add city"
+                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = e.currentTarget;
+                    if (input.value) {
+                      handleGeoItemAdd('cities', input.value);
+                      input.value = '';
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="px-3 py-2 neu-btn rounded-md"
+                onClick={() => {
+                  const input = document.getElementById('new-city') as HTMLInputElement;
+                  if (input && input.value) {
+                    handleGeoItemAdd('cities', input.value);
+                    input.value = '';
+                  }
+                }}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+          
+          {/* States */}
+          <div className="space-y-2">
+            <Label>States</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {geographicData.states.length === 0 ? (
+                <div className="text-muted-foreground text-sm">No states specified</div>
+              ) : (
+                geographicData.states.map((state) => (
+                  <div key={state} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
+                    <span>{state}</span>
+                    <button 
+                      type="button"
+                      onClick={() => handleGeoItemRemove('states', state)}
+                      className="ml-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                id="new-state"
+                placeholder="Add state"
+                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = e.currentTarget;
+                    if (input.value) {
+                      handleGeoItemAdd('states', input.value);
+                      input.value = '';
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="px-3 py-2 neu-btn rounded-md"
+                onClick={() => {
+                  const input = document.getElementById('new-state') as HTMLInputElement;
+                  if (input && input.value) {
+                    handleGeoItemAdd('states', input.value);
+                    input.value = '';
+                  }
+                }}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+          
+          {/* Regions */}
+          <div className="space-y-2">
+            <Label>Regions</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {geographicData.regions.length === 0 ? (
+                <div className="text-muted-foreground text-sm">No regions specified</div>
+              ) : (
+                geographicData.regions.map((region) => (
+                  <div key={region} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
+                    <span>{region}</span>
+                    <button 
+                      type="button"
+                      onClick={() => handleGeoItemRemove('regions', region)}
+                      className="ml-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                id="new-region"
+                placeholder="Add region"
+                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = e.currentTarget;
+                    if (input.value) {
+                      handleGeoItemAdd('regions', input.value);
+                      input.value = '';
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="px-3 py-2 neu-btn rounded-md"
+                onClick={() => {
+                  const input = document.getElementById('new-region') as HTMLInputElement;
+                  if (input && input.value) {
+                    handleGeoItemAdd('regions', input.value);
+                    input.value = '';
+                  }
+                }}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+          
+          {/* Countries */}
+          <div className="space-y-2">
+            <Label>Countries</Label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {geographicData.countries.length === 0 ? (
+                <div className="text-muted-foreground text-sm">No countries specified</div>
+              ) : (
+                geographicData.countries.map((country) => (
+                  <div key={country} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
+                    <span>{country}</span>
+                    <button 
+                      type="button"
+                      onClick={() => handleGeoItemRemove('countries', country)}
+                      className="ml-1 text-muted-foreground hover:text-foreground"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                id="new-country"
+                placeholder="Add country"
+                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const input = e.currentTarget;
+                    if (input.value) {
+                      handleGeoItemAdd('countries', input.value);
+                      input.value = '';
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="px-3 py-2 neu-btn rounded-md"
+                onClick={() => {
+                  const input = document.getElementById('new-country') as HTMLInputElement;
+                  if (input && input.value) {
+                    handleGeoItemAdd('countries', input.value);
+                    input.value = '';
+                  }
+                }}
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Step 4: Campaign management
+  const CampaignManagementStep = (
+    <div className="space-y-6">
+      <h3 className="text-lg font-medium">Campaign Management</h3>
+      
+      {/* Campaign Funneling */}
+      <div className="space-y-2 border-b pb-4">
+        <Label className="flex items-center gap-2">
+          Campaign Funneling
+        </Label>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {campaignData.funneling.length === 0 ? (
+            <div className="text-muted-foreground text-sm">No campaign funneling options specified</div>
+          ) : (
+            campaignData.funneling.map((item) => (
+              <div key={item} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
+                <span>{item}</span>
+                <button 
+                  type="button"
+                  onClick={() => handleCampaignItemRemove('funneling', item)}
+                  className="ml-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
         <div className="flex gap-2">
           <Input
-            id="new-interest"
-            placeholder="Add interest"
+            id="new-funnel"
+            placeholder="Add funnel stage (e.g., Awareness, Consideration)"
             className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
                 const input = e.currentTarget;
                 if (input.value) {
-                  handleAudienceInterestAdd(input.value);
+                  handleCampaignItemAdd('funneling', input.value);
                   input.value = '';
                 }
               }
@@ -513,24 +991,95 @@ const PlatformForm: React.FC = () => {
             type="button"
             className="px-3 py-2 neu-btn rounded-md"
             onClick={() => {
-              const input = document.getElementById('new-interest') as HTMLInputElement;
+              const input = document.getElementById('new-funnel') as HTMLInputElement;
               if (input && input.value) {
-                handleAudienceInterestAdd(input.value);
+                handleCampaignItemAdd('funneling', input.value);
                 input.value = '';
               }
             }}
           >
-            Add
+            <Plus size={16} />
           </button>
         </div>
       </div>
-    </div>
-  );
-
-  // Step 3: Campaign data
-  const CampaignDataStep = (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      
+      {/* Buy Types */}
+      <div className="space-y-2 border-b pb-4">
+        <Label className="flex items-center gap-2">
+          Buy Types
+        </Label>
+        <div className="flex flex-wrap gap-2">
+          {buyTypes.map((buyType) => (
+            <button
+              key={buyType}
+              type="button"
+              className={`px-3 py-2 rounded-md text-sm ${
+                campaignData.buy_types.includes(buyType)
+                  ? 'neu-pressed bg-primary/10 text-primary'
+                  : 'neu-flat'
+              }`}
+              onClick={() => handleBuyTypeToggle(buyType)}
+            >
+              {buyType}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {/* Innovations and Gamification */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          Innovations and Gamification
+        </Label>
+        <div className="flex flex-wrap gap-2">
+          {innovationOptions.map((innovation) => (
+            <button
+              key={innovation}
+              type="button"
+              className={`px-3 py-2 rounded-md text-sm ${
+                campaignData.innovations.includes(innovation)
+                  ? 'neu-pressed bg-primary/10 text-primary'
+                  : 'neu-flat'
+              }`}
+              onClick={() => handleInnovationToggle(innovation)}
+            >
+              {innovation}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-2">
+          <Input
+            id="new-innovation"
+            placeholder="Add custom innovation"
+            className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const input = e.currentTarget;
+                if (input.value) {
+                  handleCampaignItemAdd('innovations', input.value);
+                  input.value = '';
+                }
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="px-3 py-2 neu-btn rounded-md"
+            onClick={() => {
+              const input = document.getElementById('new-innovation') as HTMLInputElement;
+              if (input && input.value) {
+                handleCampaignItemAdd('innovations', input.value);
+                input.value = '';
+              }
+            }}
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div className="space-y-2">
           <Label htmlFor="min-budget">Minimum Campaign Budget ($)</Label>
           <Input
@@ -605,7 +1154,7 @@ const PlatformForm: React.FC = () => {
     </div>
   );
 
-  // Step 4: Restrictions
+  // Step 5: Restrictions
   const RestrictionsStep = (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -702,8 +1251,12 @@ const PlatformForm: React.FC = () => {
       content: AudienceDataStep
     },
     {
-      title: "Campaign Requirements",
-      content: CampaignDataStep
+      title: "Geographic Targeting",
+      content: GeographicTargetingStep
+    },
+    {
+      title: "Campaign Management",
+      content: CampaignManagementStep
     },
     {
       title: "Restrictions",
