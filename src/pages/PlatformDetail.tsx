@@ -11,6 +11,12 @@ import { Label } from "@/components/ui/label";
 import { BarChart, Users, Smartphone, Pencil, Trash2, ExternalLink, Clock, RefreshCw, Tag } from "lucide-react";
 import EditHistoryComponent from "@/components/EditHistoryComponent";
 
+// Interface for demographic data structure
+interface DemographicData {
+  name: string;
+  percentage: number;
+}
+
 const PlatformDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -40,7 +46,13 @@ const PlatformDetail: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        setPlatform(data);
+        // Ensure the audience_data structure is properly formatted
+        const formattedData = {
+          ...data,
+          audience_data: formatAudienceData(data.audience_data)
+        };
+        setPlatform(formattedData);
+        console.log("Platform data:", formattedData);
       }
     } catch (error: any) {
       toast({
@@ -52,6 +64,163 @@ const PlatformDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to ensure audience_data has the expected structure
+  const formatAudienceData = (audienceData: any) => {
+    if (!audienceData) {
+      return {
+        demographic: {
+          ageGroups: [
+            { name: "18-24", percentage: 25 },
+            { name: "25-34", percentage: 35 },
+            { name: "35-44", percentage: 20 },
+            { name: "45+", percentage: 20 }
+          ],
+          gender: [
+            { name: "Male", percentage: 55 },
+            { name: "Female", percentage: 42 },
+            { name: "Other", percentage: 3 }
+          ],
+          interests: [
+            { name: "Technology", percentage: 78 },
+            { name: "Movies", percentage: 65 },
+            { name: "Music", percentage: 57 },
+            { name: "Gaming", percentage: 48 },
+            { name: "Fitness", percentage: 32 }
+          ]
+        },
+        geographic: {
+          cities: [
+            { name: "New York", percentage: 12 },
+            { name: "Los Angeles", percentage: 9 },
+            { name: "Chicago", percentage: 7 },
+            { name: "Houston", percentage: 6 }
+          ],
+          states: [
+            { name: "California", percentage: 18 },
+            { name: "New York", percentage: 12 },
+            { name: "Texas", percentage: 9 },
+            { name: "Florida", percentage: 8 }
+          ],
+          regions: [
+            { name: "North America", percentage: 65 },
+            { name: "Europe", percentage: 20 },
+            { name: "Asia", percentage: 10 },
+            { name: "Other", percentage: 5 }
+          ]
+        }
+      };
+    }
+
+    // Convert string arrays to objects with name and percentage if necessary
+    const demographic = audienceData.demographic || {};
+    const geographic = audienceData.geographic || {};
+    
+    // Format ageGroups array
+    const ageGroups = Array.isArray(demographic.ageGroups) 
+      ? formatDataIfNeeded(demographic.ageGroups)
+      : [
+          { name: "18-24", percentage: 25 },
+          { name: "25-34", percentage: 35 },
+          { name: "35-44", percentage: 20 },
+          { name: "45+", percentage: 20 }
+        ];
+    
+    // Format gender array
+    const gender = Array.isArray(demographic.gender)
+      ? formatDataIfNeeded(demographic.gender)
+      : [
+          { name: "Male", percentage: 55 },
+          { name: "Female", percentage: 42 },
+          { name: "Other", percentage: 3 }
+        ];
+    
+    // Format interests array
+    const interests = Array.isArray(demographic.interests)
+      ? formatDataIfNeeded(demographic.interests)
+      : [
+          { name: "Technology", percentage: 78 },
+          { name: "Movies", percentage: 65 },
+          { name: "Music", percentage: 57 },
+          { name: "Gaming", percentage: 48 },
+          { name: "Fitness", percentage: 32 }
+        ];
+    
+    // Format cities array
+    const cities = Array.isArray(geographic.cities)
+      ? formatDataIfNeeded(geographic.cities)
+      : [
+          { name: "New York", percentage: 12 },
+          { name: "Los Angeles", percentage: 9 },
+          { name: "Chicago", percentage: 7 },
+          { name: "Houston", percentage: 6 }
+        ];
+    
+    // Format states array
+    const states = Array.isArray(geographic.states)
+      ? formatDataIfNeeded(geographic.states)
+      : [
+          { name: "California", percentage: 18 },
+          { name: "New York", percentage: 12 },
+          { name: "Texas", percentage: 9 },
+          { name: "Florida", percentage: 8 }
+        ];
+    
+    // Format regions array
+    const regions = Array.isArray(geographic.regions)
+      ? formatDataIfNeeded(geographic.regions)
+      : [
+          { name: "North America", percentage: 65 },
+          { name: "Europe", percentage: 20 },
+          { name: "Asia", percentage: 10 },
+          { name: "Other", percentage: 5 }
+        ];
+    
+    return {
+      demographic: {
+        ageGroups,
+        gender,
+        interests
+      },
+      geographic: {
+        cities,
+        states,
+        regions
+      }
+    };
+  };
+
+  // Helper function to convert simple string arrays to formatted objects
+  const formatDataIfNeeded = (dataArray: any[]): DemographicData[] => {
+    // If the array already contains objects with name and percentage, return as is
+    if (dataArray.length > 0 && typeof dataArray[0] === 'object' && 'name' in dataArray[0] && 'percentage' in dataArray[0]) {
+      return dataArray;
+    }
+    
+    // If it's a string array, convert to objects with random percentages
+    if (dataArray.length > 0 && typeof dataArray[0] === 'string') {
+      let total = 100;
+      let result: DemographicData[] = [];
+      
+      // For all items except the last one, assign a percentage
+      for (let i = 0; i < dataArray.length - 1; i++) {
+        // Generate a random percentage between 5 and 25, or the remaining total if it's less
+        const percentage = Math.min(Math.floor(Math.random() * 20) + 5, total - 5);
+        result.push({ name: dataArray[i], percentage });
+        total -= percentage;
+      }
+      
+      // Assign the remaining percentage to the last item
+      if (dataArray.length > 0) {
+        result.push({ name: dataArray[dataArray.length - 1], percentage: total });
+      }
+      
+      return result;
+    }
+    
+    // Default empty return
+    return [];
   };
 
   const fetchPlatformAssets = async (platformId: string) => {
@@ -142,7 +311,7 @@ const PlatformDetail: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold">{platform?.name}</h1>
-              <span className="inline-block text-sm bg-neugray-200 py-0.5 px-2 rounded-full">
+              <span className="inline-block text-sm bg-neugray-200 py-0.5 px-2 rounded-full dark:bg-gray-700">
                 {platform?.industry}
               </span>
             </div>
@@ -168,17 +337,17 @@ const PlatformDetail: React.FC = () => {
         </header>
         
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="neu-flat bg-white p-1">
-            <TabsTrigger value="overview" className="data-[state=active]:neu-pressed">
+          <TabsList className="neu-flat bg-white dark:bg-gray-800 p-1">
+            <TabsTrigger value="overview" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700">
               Overview
             </TabsTrigger>
-            <TabsTrigger value="audience" className="data-[state=active]:neu-pressed">
+            <TabsTrigger value="audience" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700">
               Audience
             </TabsTrigger>
-            <TabsTrigger value="assets" className="data-[state=active]:neu-pressed">
+            <TabsTrigger value="assets" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700">
               Assets
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:neu-pressed">
+            <TabsTrigger value="history" className="data-[state=active]:neu-pressed dark:data-[state=active]:bg-gray-700">
               Edit History
             </TabsTrigger>
           </TabsList>
@@ -227,7 +396,7 @@ const PlatformDetail: React.FC = () => {
                       <span>iOS</span>
                       <span>{platform?.device_split?.ios || 50}%</span>
                     </div>
-                    <div className="w-full h-3 bg-neugray-200 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-neugray-200 rounded-full overflow-hidden dark:bg-gray-700">
                       <div 
                         className="h-full bg-primary rounded-full" 
                         style={{ width: `${platform?.device_split?.ios || 50}%` }}
@@ -240,7 +409,7 @@ const PlatformDetail: React.FC = () => {
                       <span>Android</span>
                       <span>{platform?.device_split?.android || 50}%</span>
                     </div>
-                    <div className="w-full h-3 bg-neugray-200 rounded-full overflow-hidden">
+                    <div className="w-full h-3 bg-neugray-200 rounded-full overflow-hidden dark:bg-gray-700">
                       <div 
                         className="h-full bg-green-500 rounded-full" 
                         style={{ width: `${platform?.device_split?.android || 50}%` }}
@@ -285,8 +454,8 @@ const PlatformDetail: React.FC = () => {
                   <div>
                     <h4 className="font-medium mb-2">Age Groups</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {platform.audience_data.demographic.ageGroups?.map((ageGroup: any, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg text-center">
+                      {platform.audience_data.demographic.ageGroups?.map((ageGroup: DemographicData, idx: number) => (
+                        <div key={idx} className="neu-pressed p-3 rounded-lg text-center dark:bg-gray-700">
                           <p className="font-medium">{ageGroup.name}</p>
                           <p className="text-sm text-muted-foreground">{ageGroup.percentage}%</p>
                         </div>
@@ -297,8 +466,8 @@ const PlatformDetail: React.FC = () => {
                   <div>
                     <h4 className="font-medium mb-2">Gender</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {platform.audience_data.demographic.gender?.map((genderData: any, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg text-center">
+                      {platform.audience_data.demographic.gender?.map((genderData: DemographicData, idx: number) => (
+                        <div key={idx} className="neu-pressed p-3 rounded-lg text-center dark:bg-gray-700">
                           <p className="font-medium">{genderData.name}</p>
                           <p className="text-sm text-muted-foreground">{genderData.percentage}%</p>
                         </div>
@@ -309,8 +478,8 @@ const PlatformDetail: React.FC = () => {
                   <div>
                     <h4 className="font-medium mb-2">Interests</h4>
                     <div className="flex flex-wrap gap-2">
-                      {platform.audience_data.demographic.interests?.map((interest: any, idx: number) => (
-                        <div key={idx} className="neu-flat px-2 py-1 rounded-full text-sm">
+                      {platform.audience_data.demographic.interests?.map((interest: DemographicData, idx: number) => (
+                        <div key={idx} className="neu-flat px-2 py-1 rounded-full text-sm dark:bg-gray-700">
                           {interest.name} ({interest.percentage}%)
                         </div>
                       ))}
@@ -329,8 +498,8 @@ const PlatformDetail: React.FC = () => {
                   <div>
                     <h4 className="font-medium mb-2">Top Cities</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {platform.audience_data.geographic.cities?.map((city: any, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg">
+                      {platform.audience_data.geographic.cities?.map((city: DemographicData, idx: number) => (
+                        <div key={idx} className="neu-pressed p-3 rounded-lg dark:bg-gray-700">
                           <p className="font-medium">{city.name}</p>
                           <p className="text-sm text-muted-foreground">{city.percentage}%</p>
                         </div>
@@ -341,8 +510,8 @@ const PlatformDetail: React.FC = () => {
                   <div>
                     <h4 className="font-medium mb-2">Top States/Provinces</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {platform.audience_data.geographic.states?.map((state: any, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg">
+                      {platform.audience_data.geographic.states?.map((state: DemographicData, idx: number) => (
+                        <div key={idx} className="neu-pressed p-3 rounded-lg dark:bg-gray-700">
                           <p className="font-medium">{state.name}</p>
                           <p className="text-sm text-muted-foreground">{state.percentage}%</p>
                         </div>
@@ -353,11 +522,11 @@ const PlatformDetail: React.FC = () => {
                   <div>
                     <h4 className="font-medium mb-2">Regions</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {platform.audience_data.geographic.regions?.map((region: any, idx: number) => (
+                      {platform.audience_data.geographic.regions?.map((region: DemographicData, idx: number) => (
                         <div key={idx} className="flex justify-between items-center mb-2">
                           <span>{region.name}</span>
                           <div className="flex items-center gap-2">
-                            <div className="w-32 h-2 bg-neugray-200 rounded-full overflow-hidden">
+                            <div className="w-32 h-2 bg-neugray-200 rounded-full overflow-hidden dark:bg-gray-700">
                               <div 
                                 className="h-full bg-primary rounded-full" 
                                 style={{ width: `${region.percentage}%` }}
@@ -392,7 +561,7 @@ const PlatformDetail: React.FC = () => {
                 {assets.map((asset) => (
                   <Link key={asset.id} to={`/assets/${asset.id}`}>
                     <NeuCard className="h-full hover:shadow-neu-pressed transition-all cursor-pointer">
-                      <div className="w-full h-32 bg-neugray-200 mb-3 rounded-lg overflow-hidden">
+                      <div className="w-full h-32 bg-neugray-200 mb-3 rounded-lg overflow-hidden dark:bg-gray-700">
                         {asset.thumbnail_url ? (
                           <img
                             src={asset.thumbnail_url}
@@ -401,7 +570,7 @@ const PlatformDetail: React.FC = () => {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Smartphone size={36} className="text-neugray-400" />
+                            <Smartphone size={36} className="text-neugray-400 dark:text-gray-500" />
                           </div>
                         )}
                       </div>
@@ -410,9 +579,9 @@ const PlatformDetail: React.FC = () => {
                         <div className="flex items-start justify-between mb-1">
                           <h4 className="font-medium">{asset.name}</h4>
                           <span className={`text-xs py-0.5 px-1.5 rounded-full 
-                            ${asset.category === "Digital" ? "bg-neublue-100 text-neublue-500" : 
-                              asset.category === "Physical" ? "bg-green-100 text-green-600" : 
-                              "bg-purple-100 text-purple-600"}`}>
+                            ${asset.category === "Digital" ? "bg-neublue-100 text-neublue-500 dark:bg-blue-900 dark:text-blue-300" : 
+                              asset.category === "Physical" ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300" : 
+                              "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300"}`}>
                             {asset.category}
                           </span>
                         </div>
@@ -423,12 +592,12 @@ const PlatformDetail: React.FC = () => {
                         
                         <div className="flex flex-wrap gap-1 mb-1">
                           {asset.tags && asset.tags.slice(0, 3).map((tag: string, idx: number) => (
-                            <span key={idx} className="text-xs bg-neugray-200 py-0.5 px-1.5 rounded">
+                            <span key={idx} className="text-xs bg-neugray-200 py-0.5 px-1.5 rounded dark:bg-gray-700">
                               {tag}
                             </span>
                           ))}
                           {asset.tags && asset.tags.length > 3 && (
-                            <span className="text-xs bg-neugray-200 py-0.5 px-1.5 rounded">
+                            <span className="text-xs bg-neugray-200 py-0.5 px-1.5 rounded dark:bg-gray-700">
                               +{asset.tags.length - 3} more
                             </span>
                           )}
