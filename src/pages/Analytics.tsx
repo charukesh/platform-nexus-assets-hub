@@ -103,7 +103,7 @@ const Analytics: React.FC = () => {
       <div className="animate-fade-in">
         <header className="mb-8">
           <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Platform and asset performance metrics</p>
+          <p className="text-muted-foreground mt-1">MobistackIO platform and asset performance metrics</p>
         </header>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

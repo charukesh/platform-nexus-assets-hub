@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Upload, X, File, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import MultiStepForm from "@/components/MultiStepForm";
 
 // Categories and types definitions
 const categories = ["Digital", "Physical", "Phygital"];
@@ -283,21 +284,9 @@ const AssetForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async () => {
     try {
       setLoading(true);
-      
-      // Validate required fields
-      if (!formData.name || !formData.category || !formData.type) {
-        toast({
-          title: "Missing required fields",
-          description: "Please fill in all required fields.",
-          variant: "destructive",
-        });
-        return;
-      }
       
       // Upload file if selected and get URL
       let fileUrl = formData.file_url; // Keep existing URL if in edit mode
@@ -365,6 +354,274 @@ const AssetForm: React.FC = () => {
     }
   };
 
+  // Validate the basic info step
+  const validateBasicInfo = () => {
+    if (!formData.name || !formData.category || !formData.type) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // Create the steps for our multistep form
+  const formSteps = [
+    {
+      title: "Basic Information",
+      validator: validateBasicInfo,
+      content: (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="asset-name">Asset Name*</Label>
+            <Input
+              id="asset-name"
+              placeholder="Enter asset name"
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+              value={formData.name}
+              onChange={(e) => handleChange('name', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="category">Category*</Label>
+              <Select 
+                required
+                value={formData.category}
+                onValueChange={handleCategoryChange}
+              >
+                <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="type">Asset Type*</Label>
+              <Select
+                required
+                disabled={!selectedCategory}
+                value={formData.type}
+                onValueChange={(value) => handleChange('type', value)}
+              >
+                <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
+                  <SelectValue placeholder={selectedCategory ? "Select type" : "Select category first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedCategory && 
+                    assetTypes[selectedCategory as keyof typeof assetTypes].map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="platform">Platform Association</Label>
+              <Select
+                value={formData.platform_id}
+                onValueChange={(value) => handleChange('platform_id', value)}
+              >
+                <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  {platforms.map((platform) => (
+                    <SelectItem key={platform.id} value={platform.id}>
+                      {platform.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description/Notes</Label>
+            <Textarea
+              id="description"
+              placeholder="Enter description or notes about this asset..."
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
+              value={formData.description}
+              onChange={(e) => handleChange('description', e.target.value)}
+            />
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Tags & Keywords",
+      content: (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2 mb-2">
+            {tags.map((tag) => (
+              <div key={tag} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
+                <span>{tag}</span>
+                <button 
+                  type="button"
+                  onClick={() => handleRemoveTag(tag)}
+                  className="ml-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex gap-2">
+            <Input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              placeholder="Add a tag"
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddTag();
+                }
+              }}
+            />
+            <NeuButton type="button" onClick={handleAddTag}>
+              Add
+            </NeuButton>
+          </div>
+          
+          <div className="mt-2">
+            <p className="text-xs text-muted-foreground mb-1">Suggestions:</p>
+            <div className="flex flex-wrap gap-1">
+              {tagSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  className="text-xs py-1 px-2 neu-flat hover:shadow-neu-pressed"
+                  onClick={() => {
+                    if (!tags.includes(suggestion)) {
+                      setTags([...tags, suggestion]);
+                    }
+                  }}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "File Upload",
+      content: (
+        <div className="space-y-4">
+          {!fileUploaded ? (
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center ${
+                dragActive ? "border-primary bg-primary/5" : "border-neugray-300"
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
+              <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+              <h3 className="text-lg font-medium mb-1">Drag & Drop</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                or click to browse files
+              </p>
+              
+              <Input
+                type="file"
+                className="hidden"
+                id="file-upload"
+                onChange={handleFileChange}
+              />
+              <label htmlFor="file-upload">
+                <NeuButton type="button" variant="outline" className="cursor-pointer">
+                  Browse Files
+                </NeuButton>
+              </label>
+              
+              <p className="text-xs text-muted-foreground mt-4">
+                Supported file types: JPG, PNG, GIF, PDF, MP4, MOV
+              </p>
+            </div>
+          ) : (
+            <div className="neu-flat p-4 rounded-lg">
+              {filePreview ? (
+                <div className="space-y-3">
+                  <div className="relative h-40 bg-neugray-200 rounded-lg overflow-hidden">
+                    <img
+                      src={filePreview}
+                      alt="File preview"
+                      className="w-full h-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveFile}
+                      className="absolute top-2 right-2 p-1 bg-foreground/10 backdrop-blur-sm rounded-full"
+                    >
+                      <X size={16} className="text-white" />
+                    </button>
+                  </div>
+                  <p className="text-sm font-medium">Image uploaded successfully</p>
+                </div>
+              ) : (
+                <div className="flex items-center">
+                  <div className="mr-3 p-2 bg-neugray-200 rounded">
+                    <File size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">File selected for upload</p>
+                    <p className="text-xs text-muted-foreground">
+                      File ready for submission
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveFile}
+                    className="p-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-3 mt-4">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Upload Date:</span>
+              <span className="text-sm">{new Date().toLocaleDateString()}</span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">File Size:</span>
+              <span className="text-sm">{formData.file_size || "-"}</span>
+            </div>
+            
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Uploaded By:</span>
+              <span className="text-sm">Current User</span>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  ];
+
   if (fetchLoading) {
     return (
       <Layout>
@@ -385,276 +642,16 @@ const AssetForm: React.FC = () => {
           </div>
         </header>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 space-y-6">
-              <NeuCard>
-                <h2 className="text-xl font-semibold mb-4">Asset Information</h2>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="asset-name">Asset Name*</Label>
-                    <Input
-                      id="asset-name"
-                      placeholder="Enter asset name"
-                      className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-                      value={formData.name}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category*</Label>
-                      <Select 
-                        required
-                        value={formData.category}
-                        onValueChange={handleCategoryChange}
-                      >
-                        <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Asset Type*</Label>
-                      <Select
-                        required
-                        disabled={!selectedCategory}
-                        value={formData.type}
-                        onValueChange={(value) => handleChange('type', value)}
-                      >
-                        <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-                          <SelectValue placeholder={selectedCategory ? "Select type" : "Select category first"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectedCategory && 
-                            assetTypes[selectedCategory as keyof typeof assetTypes].map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))
-                          }
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="platform">Platform Association</Label>
-                      <Select
-                        value={formData.platform_id}
-                        onValueChange={(value) => handleChange('platform_id', value)}
-                      >
-                        <SelectTrigger className="bg-white border-none neu-pressed focus:ring-offset-0">
-                          <SelectValue placeholder="Select platform" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {platforms.map((platform) => (
-                            <SelectItem key={platform.id} value={platform.id}>
-                              {platform.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description/Notes</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Enter description or notes about this asset..."
-                      className="bg-white border-none neu-pressed focus-visible:ring-offset-0 min-h-[120px]"
-                      value={formData.description}
-                      onChange={(e) => handleChange('description', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Tags/Keywords</Label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {tags.map((tag) => (
-                        <div key={tag} className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm">
-                          <span>{tag}</span>
-                          <button 
-                            type="button"
-                            onClick={() => handleRemoveTag(tag)}
-                            className="ml-1 text-muted-foreground hover:text-foreground"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Input
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        placeholder="Add a tag"
-                        className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddTag();
-                          }
-                        }}
-                      />
-                      <NeuButton type="button" onClick={handleAddTag}>
-                        Add
-                      </NeuButton>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <p className="text-xs text-muted-foreground mb-1">Suggestions:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {tagSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            className="text-xs py-1 px-2 neu-flat hover:shadow-neu-pressed"
-                            onClick={() => {
-                              if (!tags.includes(suggestion)) {
-                                setTags([...tags, suggestion]);
-                              }
-                            }}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </NeuCard>
-              
-              <div className="flex justify-end gap-3">
-                <NeuButton type="button" variant="outline" onClick={() => navigate("/assets")} disabled={loading}>
-                  Cancel
-                </NeuButton>
-                <NeuButton type="submit" disabled={loading}>
-                  {loading ? 
-                    <span className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Saving...
-                    </span> : 
-                    `Save Asset`
-                  }
-                </NeuButton>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <NeuCard>
-                <h2 className="text-xl font-semibold mb-4">File Upload</h2>
-                
-                {!fileUploaded ? (
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                      dragActive ? "border-primary bg-primary/5" : "border-neugray-300"
-                    }`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                  >
-                    <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
-                    <h3 className="text-lg font-medium mb-1">Drag & Drop</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      or click to browse files
-                    </p>
-                    
-                    <Input
-                      type="file"
-                      className="hidden"
-                      id="file-upload"
-                      onChange={handleFileChange}
-                    />
-                    <label htmlFor="file-upload">
-                      <NeuButton type="button" variant="outline" className="cursor-pointer">
-                        Browse Files
-                      </NeuButton>
-                    </label>
-                    
-                    <p className="text-xs text-muted-foreground mt-4">
-                      Supported file types: JPG, PNG, GIF, PDF, MP4, MOV
-                    </p>
-                  </div>
-                ) : (
-                  <div className="neu-flat p-4 rounded-lg">
-                    {filePreview ? (
-                      <div className="space-y-3">
-                        <div className="relative h-40 bg-neugray-200 rounded-lg overflow-hidden">
-                          <img
-                            src={filePreview}
-                            alt="File preview"
-                            className="w-full h-full object-contain"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleRemoveFile}
-                            className="absolute top-2 right-2 p-1 bg-foreground/10 backdrop-blur-sm rounded-full"
-                          >
-                            <X size={16} className="text-white" />
-                          </button>
-                        </div>
-                        <p className="text-sm font-medium">Image uploaded successfully</p>
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <div className="mr-3 p-2 bg-neugray-200 rounded">
-                          <File size={24} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">File selected for upload</p>
-                          <p className="text-xs text-muted-foreground">
-                            File ready for submission
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={handleRemoveFile}
-                          className="p-2 text-muted-foreground hover:text-foreground"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </NeuCard>
-
-              <NeuCard>
-                <h2 className="text-xl font-semibold mb-4">Asset Details</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Upload Date:</span>
-                    <span className="text-sm">{new Date().toLocaleDateString()}</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">File Size:</span>
-                    <span className="text-sm">{formData.file_size || "-"}</span>
-                  </div>
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Uploaded By:</span>
-                    <span className="text-sm">Current User</span>
-                  </div>
-                </div>
-              </NeuCard>
-            </div>
-          </div>
-        </form>
+        <div className="max-w-3xl mx-auto">
+          <NeuCard>
+            <MultiStepForm
+              steps={formSteps}
+              onComplete={handleSubmit}
+              onCancel={() => navigate("/assets")}
+              isSubmitting={loading}
+            />
+          </NeuCard>
+        </div>
       </div>
     </Layout>
   );
