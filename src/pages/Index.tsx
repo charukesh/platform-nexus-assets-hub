@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
-import { Search, Filter, BarChart2, ChevronRight, Users, PieChart, Layers, Database, FileImage } from "lucide-react";
+import { Search, Filter, BarChart2, ChevronRight, Users, PieChart, Layers, Database, FileImage, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -128,17 +128,23 @@ const Dashboard: React.FC = () => {
   return (
     <Layout>
       <div className="animate-fade-in">
-        <header className="flex justify-between items-center mb-8">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold">Platform Dashboard</h1>
             <p className="text-muted-foreground mt-1">Manage all your platforms and assets</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link to="/platforms/new">
               <NeuButton>Add New Platform</NeuButton>
             </Link>
             <Link to="/assets/new">
               <NeuButton variant="secondary">Add New Asset</NeuButton>
+            </Link>
+            <Link to="/campaigns/quotation">
+              <NeuButton variant="outline" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Create Campaign Quote
+              </NeuButton>
             </Link>
           </div>
         </header>

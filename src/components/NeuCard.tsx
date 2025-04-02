@@ -17,10 +17,10 @@ const NeuCard: React.FC<NeuCardProps> = ({
   return (
     <div 
       className={cn(
-        "p-5", 
-        variant === "flat" && "neu-flat dark:bg-gray-800 dark:shadow-none",
-        variant === "pressed" && "neu-pressed dark:bg-gray-800 dark:shadow-none",
-        variant === "convex" && "neu-convex dark:bg-gray-800 dark:shadow-none",
+        "p-5 transition-all", 
+        variant === "flat" && "neu-flat dark:bg-gray-800 dark:shadow-none dark:border dark:border-gray-700",
+        variant === "pressed" && "neu-pressed dark:bg-gray-800 dark:shadow-none dark:border dark:border-gray-700",
+        variant === "convex" && "neu-convex dark:bg-gray-800 dark:shadow-none dark:border dark:border-gray-700",
         className
       )} 
       {...props}

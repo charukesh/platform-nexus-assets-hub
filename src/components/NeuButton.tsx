@@ -20,9 +20,9 @@ const NeuButton: React.FC<NeuButtonProps> = ({
     <button
       className={cn(
         "font-medium rounded-lg transition-all duration-200 flex items-center justify-center",
-        variant === "primary" && "text-white bg-primary hover:bg-primary/90 neu-btn dark:bg-blue-600 dark:hover:bg-blue-700",
-        variant === "secondary" && "text-foreground bg-neugray-200 hover:bg-neugray-300 neu-btn dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white",
-        variant === "outline" && "border border-input bg-background hover:bg-accent neu-btn dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-white",
+        variant === "primary" && "text-white bg-primary hover:bg-primary/90 neu-btn dark:bg-blue-600 dark:hover:bg-blue-700 dark:shadow-none",
+        variant === "secondary" && "text-foreground bg-neugray-200 hover:bg-neugray-300 neu-btn dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:shadow-none",
+        variant === "outline" && "border border-input bg-background hover:bg-accent neu-btn dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 dark:text-white dark:shadow-none",
         size === "sm" && "text-xs px-3 py-1.5",
         size === "md" && "text-sm px-4 py-2",
         size === "lg" && "text-base px-5 py-2.5",
