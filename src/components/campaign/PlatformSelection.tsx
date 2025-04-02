@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Search, Users, Info } from "lucide-react";
+import { Json } from "@/integrations/supabase/types";
 import {
   Tooltip,
   TooltipContent,
@@ -28,7 +29,24 @@ interface Platform {
   premium_users: number;
   description?: string;
   logo_url?: string;
-  audience_data?: any;
+  audience_data?: Json;
+}
+
+// Type guard to check if a Json value is an object
+function isJsonObject(value: Json | null | undefined): value is { [key: string]: Json } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Type guard to check if a Json value has demographic data
+function hasAudienceDemographic(data: Json | null | undefined): boolean {
+  if (!isJsonObject(data)) return false;
+  return isJsonObject(data.demographic);
+}
+
+// Type guard to check if a Json value has geographic data
+function hasAudienceGeographic(data: Json | null | undefined): boolean {
+  if (!isJsonObject(data)) return false;
+  return isJsonObject(data.geographic);
 }
 
 const PlatformSelection: React.FC<PlatformSelectionProps> = ({
@@ -86,51 +104,71 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
             
             // Check for demographic matches
             let demographicsMatch = true;
-            if (data.demographics.ageGroups.length > 0 && 
-                platform.audience_data.demographic?.ageGroups) {
-              // Check if any age group matches
-              demographicsMatch = data.demographics.ageGroups.some(
-                age => platform.audience_data.demographic.ageGroups.includes(age)
-              );
-              if (!demographicsMatch) return false;
+            if (data.demographics.ageGroups.length > 0) {
+              // Check if any age group matches - use type guards
+              if (hasAudienceDemographic(platform.audience_data)) {
+                const audienceData = platform.audience_data as { demographic: { ageGroups?: string[] } };
+                if (audienceData.demographic.ageGroups) {
+                  demographicsMatch = data.demographics.ageGroups.some(
+                    age => audienceData.demographic.ageGroups?.includes(age)
+                  );
+                  if (!demographicsMatch) return false;
+                }
+              }
             }
             
-            if (data.demographics.gender.length > 0 && 
-                platform.audience_data.demographic?.gender) {
-              // Check if any gender matches
-              demographicsMatch = data.demographics.gender.some(
-                gender => platform.audience_data.demographic.gender.includes(gender)
-              );
-              if (!demographicsMatch) return false;
+            if (data.demographics.gender.length > 0) {
+              // Check if any gender matches - use type guards
+              if (hasAudienceDemographic(platform.audience_data)) {
+                const audienceData = platform.audience_data as { demographic: { gender?: string[] } };
+                if (audienceData.demographic.gender) {
+                  demographicsMatch = data.demographics.gender.some(
+                    gender => audienceData.demographic.gender?.includes(gender)
+                  );
+                  if (!demographicsMatch) return false;
+                }
+              }
             }
             
-            if (data.demographics.interests.length > 0 && 
-                platform.audience_data.demographic?.interests) {
-              // Check if any interest matches
-              demographicsMatch = data.demographics.interests.some(
-                interest => platform.audience_data.demographic.interests.includes(interest)
-              );
-              if (!demographicsMatch) return false;
+            if (data.demographics.interests.length > 0) {
+              // Check if any interest matches - use type guards
+              if (hasAudienceDemographic(platform.audience_data)) {
+                const audienceData = platform.audience_data as { demographic: { interests?: string[] } };
+                if (audienceData.demographic.interests) {
+                  demographicsMatch = data.demographics.interests.some(
+                    interest => audienceData.demographic.interests?.includes(interest)
+                  );
+                  if (!demographicsMatch) return false;
+                }
+              }
             }
             
             // Check for geographic matches
             let geographicsMatch = true;
-            if (data.geographics.cities.length > 0 && 
-                platform.audience_data.geographic?.cities) {
-              // Check if any city matches
-              geographicsMatch = data.geographics.cities.some(
-                city => platform.audience_data.geographic.cities.includes(city)
-              );
-              if (!geographicsMatch) return false;
+            if (data.geographics.cities.length > 0) {
+              // Check if any city matches - use type guards
+              if (hasAudienceGeographic(platform.audience_data)) {
+                const audienceData = platform.audience_data as { geographic: { cities?: string[] } };
+                if (audienceData.geographic.cities) {
+                  geographicsMatch = data.geographics.cities.some(
+                    city => audienceData.geographic.cities?.includes(city)
+                  );
+                  if (!geographicsMatch) return false;
+                }
+              }
             }
             
-            if (data.geographics.states.length > 0 && 
-                platform.audience_data.geographic?.states) {
-              // Check if any state matches
-              geographicsMatch = data.geographics.states.some(
-                state => platform.audience_data.geographic.states.includes(state)
-              );
-              if (!geographicsMatch) return false;
+            if (data.geographics.states.length > 0) {
+              // Check if any state matches - use type guards
+              if (hasAudienceGeographic(platform.audience_data)) {
+                const audienceData = platform.audience_data as { geographic: { states?: string[] } };
+                if (audienceData.geographic.states) {
+                  geographicsMatch = data.geographics.states.some(
+                    state => audienceData.geographic.states?.includes(state)
+                  );
+                  if (!geographicsMatch) return false;
+                }
+              }
             }
             
             return true;
