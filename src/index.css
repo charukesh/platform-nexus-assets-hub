@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -91,7 +90,7 @@
 
 /* Neuomorphic styling */
 .neu-flat {
-  @apply shadow-[6px_6px_12px_0px_rgba(0,0,0,0.1),-6px_-6px_12px_0px_rgba(255,255,255,0.1)] bg-neugray-50 rounded-xl;
+  @apply shadow-[6px_6px_12px_0px_rgba(0,0,0,0.1),-6px_-6px_12px_0px_rgba(255,255,255,0.1)] bg-neugray-100 rounded-xl;
 }
 
 .dark .neu-flat {
