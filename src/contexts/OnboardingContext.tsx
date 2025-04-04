@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 type OnboardingStep = {
@@ -63,14 +62,14 @@ export const OnboardingSteps: ScreenSteps = {
       id: "platforms-intro",
       title: "Platform Management",
       content: "Here you can manage all your advertising platforms and their properties.",
-      target: ".platforms-heading",
+      target: "h1",
       placement: "bottom",
     },
     {
       id: "add-platform",
       title: "Add New Platforms",
       content: "Click here to add new advertising platforms to your account.",
-      target: ".add-platform-button",
+      target: "a[href='/platforms/new']",
       placement: "left",
     },
   ],
@@ -148,20 +147,22 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
 
-  // Load onboarding status from localStorage on initial mount
   useEffect(() => {
     const hasSeenOnboardingFromStorage = localStorage.getItem("hasSeenOnboarding");
     setHasSeenOnboarding(hasSeenOnboardingFromStorage === "true");
   }, []);
 
-  // Auto-start onboarding if user hasn't seen it and it's not already running
   useEffect(() => {
     if (!hasSeenOnboarding && !isOnboarding) {
-      startOnboarding();
+      const timer = setTimeout(() => {
+        startOnboarding();
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [hasSeenOnboarding]);
+  }, [hasSeenOnboarding, isOnboarding]);
 
   const startOnboarding = () => {
+    console.log("Starting onboarding...");
     setIsOnboarding(true);
     setCurrentStepIndex(0);
   };
@@ -184,7 +185,6 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex(prevIndex => prevIndex + 1);
     } else if (currentStepIndex >= steps.length - 1) {
-      // If this is the last step of the last screen, complete onboarding
       skipOnboarding();
     }
   };

@@ -30,11 +30,17 @@ const OnboardingTooltip: React.FC<OnboardingTooltipProps> = ({ className }) => {
       return;
     }
 
+    console.log("Onboarding active, current step:", currentStep);
+
     const positionTooltip = () => {
       const targetElement = document.querySelector(currentStep.target);
       
-      if (!targetElement || !tooltipRef.current) return;
+      if (!targetElement || !tooltipRef.current) {
+        console.log("Target element not found:", currentStep.target);
+        return;
+      }
 
+      console.log("Target element found:", targetElement);
       const targetRect = targetElement.getBoundingClientRect();
       const tooltipRect = tooltipRef.current.getBoundingClientRect();
       
