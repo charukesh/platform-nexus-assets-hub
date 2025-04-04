@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from "react";
-import { Skip, ChevronRight, ChevronLeft, X } from "lucide-react";
+import { SkipForward, ChevronRight, ChevronLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { Button } from "@/components/ui/button";
@@ -136,7 +137,7 @@ const OnboardingTooltip: React.FC<OnboardingTooltipProps> = ({ className }) => {
             onClick={skipOnboarding}
             className="flex items-center text-xs"
           >
-            <Skip size={14} className="mr-1" />
+            <SkipForward size={14} className="mr-1" />
             Skip Tour
           </Button>
         </div>
