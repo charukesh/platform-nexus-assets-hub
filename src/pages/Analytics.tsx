@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
@@ -292,10 +291,8 @@ const Analytics: React.FC = () => {
                       endAngle={0}
                     >
                       <RadialBar 
-                        minAngle={15} 
                         label={{ fill: '#666', position: 'insideStart' }} 
                         background 
-                        clockWise={true} 
                         dataKey="value" 
                       >
                         {assetsByCategory.map((entry, index) => (
