@@ -24,6 +24,7 @@ type OnboardingContextType = {
   prevStep: () => void;
   getCurrentStep: () => OnboardingStep | null;
   hasSeenOnboarding: boolean;
+  resetOnboardingStatus: () => void;
 };
 
 const defaultContext: OnboardingContextType = {
@@ -37,6 +38,7 @@ const defaultContext: OnboardingContextType = {
   prevStep: () => {},
   getCurrentStep: () => null,
   hasSeenOnboarding: false,
+  resetOnboardingStatus: () => {},
 };
 
 export const OnboardingSteps: ScreenSteps = {
@@ -171,6 +173,12 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setHasSeenOnboarding(true);
   };
 
+  const resetOnboardingStatus = () => {
+    localStorage.removeItem("hasSeenOnboarding");
+    setHasSeenOnboarding(false);
+    startOnboarding();
+  };
+
   const nextStep = () => {
     const steps = OnboardingSteps[currentScreen] || [];
     if (currentStepIndex < steps.length - 1) {
@@ -205,6 +213,7 @@ export const OnboardingProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         prevStep,
         getCurrentStep,
         hasSeenOnboarding,
+        resetOnboardingStatus,
       }}
     >
       {children}
