@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   enhanceAsset, 
@@ -92,14 +93,10 @@ export const savePlatform = async (formData: PlatformFormDataType, id?: string) 
         formats: formData.campaign_data.buyTypes || [],
         adUnits: formData.campaign_data.funneling || [],
         tracking: [],
+        innovations: formData.campaign_data.innovations,
         ...formData.campaign_data
       },
-      restrictions: {
-        categories: formData.restrictions.blockedCategories || [],
-        placements: [],
-        content: [],
-        ...formData.restrictions
-      },
+      restrictions: formData.restrictions,
       updated_at: new Date().toISOString()
     };
 
