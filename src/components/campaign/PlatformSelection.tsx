@@ -130,14 +130,16 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
     setPlatforms(updatedPlatforms);
     
     // Update the campaign data with the selected assets
-    const selectedAssets = { ...data.selectedAssets } || {};
+    // Fix the always-truthy expression by using proper object initialization and checking
+    const selectedAssets = data.selectedAssets ? { ...data.selectedAssets } : {};
+    
     if (selected) {
       selectedAssets[platformId] = [
         ...(selectedAssets[platformId] || []),
         assetId
       ];
-    } else {
-      selectedAssets[platformId] = (selectedAssets[platformId] || [])
+    } else if (selectedAssets[platformId]) { // Only filter if the array exists
+      selectedAssets[platformId] = selectedAssets[platformId]
         .filter(id => id !== assetId);
     }
     

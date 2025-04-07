@@ -7,6 +7,115 @@ import {
   PlatformDbRecord 
 } from "@/types/campaign";
 
+// Add missing exports for constants used in CampaignRequirements.tsx
+export const Industries = [
+  "E-commerce",
+  "Finance",
+  "Healthcare",
+  "Technology",
+  "Education",
+  "Entertainment",
+  "Food & Beverage",
+  "Travel",
+  "Automotive",
+  "Real Estate",
+  "Fashion",
+  "Sports"
+];
+
+export const AgeGroups = [
+  "13-17",
+  "18-24",
+  "25-34",
+  "35-44",
+  "45-54",
+  "55-64",
+  "65+"
+];
+
+export const Genders = [
+  "Male",
+  "Female",
+  "Non-binary",
+  "Prefer not to say"
+];
+
+export const Interests = [
+  "Gaming",
+  "Music",
+  "Movies",
+  "Sports",
+  "Technology",
+  "Fashion",
+  "Beauty",
+  "Travel",
+  "Food",
+  "Fitness",
+  "Business",
+  "Education"
+];
+
+export const TierLevels = [
+  "Tier 1",
+  "Tier 2",
+  "Tier 3"
+];
+
+export const Cities = [
+  "Mumbai",
+  "Delhi",
+  "Bangalore",
+  "Hyderabad",
+  "Chennai",
+  "Kolkata",
+  "Pune",
+  "Ahmedabad",
+  "Jaipur",
+  "Lucknow"
+];
+
+export const States = [
+  "Maharashtra",
+  "Delhi",
+  "Karnataka",
+  "Telangana",
+  "Tamil Nadu",
+  "West Bengal",
+  "Gujarat",
+  "Rajasthan",
+  "Uttar Pradesh",
+  "Haryana"
+];
+
+export const Objectives = [
+  "Brand Awareness",
+  "Lead Generation",
+  "Sales Conversion",
+  "App Downloads",
+  "Website Traffic",
+  "Engagement",
+  "Retention"
+];
+
+export const AssetCategories = [
+  "Banner",
+  "Video",
+  "Native",
+  "Rich Media",
+  "Interstitial",
+  "Audio"
+];
+
+export const PlatformTypes = [
+  "Social Media",
+  "Search Engine",
+  "Video Platform",
+  "News App",
+  "OTT Platform",
+  "Gaming App",
+  "E-commerce App"
+];
+
 export function isAudienceData(value: unknown): value is AudienceData {
   return value !== null && typeof value === 'object';
 }

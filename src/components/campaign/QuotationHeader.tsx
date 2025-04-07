@@ -24,7 +24,7 @@ const QuotationHeader: React.FC<QuotationHeaderProps> = ({ data, campaignDays })
           <div className="flex items-center justify-end gap-2 mb-1">
             <Calendar size={16} className="text-primary" />
             <span className="font-medium">Campaign Duration:</span>
-            <span>{data.durationDays} days</span>
+            <span>{campaignDays} days</span>
           </div>
         </div>
       </div>
