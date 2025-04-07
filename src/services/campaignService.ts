@@ -31,20 +31,20 @@ export interface Asset {
 export interface Platform {
   id: string;
   name: string;
-  type: string;
-  status: string;
-  description: string | null;
-  average_cpm: number;
-  base_cost: number;
-  min_budget: number;
-  audience_reach: number;
+  industry: string;
+  description?: string | null;
+  type?: string;
+  status?: string;
+  average_cpm?: number;
+  base_cost?: number;
+  min_budget?: number;
+  audience_reach?: number;
   audience_data: AudienceData;
-  capabilities: string[];
-  requirements: string[];
-  restrictions: string[];
+  capabilities?: string[];
+  requirements?: string[];
+  restrictions?: string[];
   created_at: string | null;
   updated_at: string | null;
-  industry?: string;
   mau?: string | number;
   dau?: string | number;
   premium_users?: number;
@@ -147,34 +147,40 @@ export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAss
     // Create assets with required fields
     const assets: Asset[] = (assetsData || []).map(asset => ({
       ...asset,
-      status: "active",
-      cost_per_day: 0,
-      targeting_score: 0,
-      allocated_budget: 0,
-      estimated_impressions: 0,
-      restrictions: null,
-      dimensions: null
+      status: asset.status || "active",
+      cost_per_day: asset.cost_per_day || 0,
+      targeting_score: asset.targeting_score || 0,
+      allocated_budget: asset.allocated_budget || 0,
+      estimated_impressions: asset.estimated_impressions || 0,
+      restrictions: asset.restrictions || null,
+      dimensions: asset.dimensions || null
     }));
 
     // Calculate costs and impressions
     const totalCost = 0;
     const totalImpressions = 0;
 
+    // Create platform with all required fields, with defaults for ones that might not be in DB
     return {
       ...platform,
-      audience_data: audienceData,
-      assets,
-      totalCost,
-      totalImpressions,
+      description: platform.description || null,
       type: platform.type || "platform",
       status: platform.status || "active",
       average_cpm: platform.average_cpm || 0,
       base_cost: platform.base_cost || 0,
       min_budget: platform.min_budget || 0,
       audience_reach: platform.audience_reach || 0,
+      audience_data: audienceData,
       capabilities: platform.capabilities || [],
       requirements: platform.requirements || [],
-      restrictions: platform.restrictions ? JSON.stringify(platform.restrictions).split(',') : []
+      restrictions: platform.restrictions ? 
+        (typeof platform.restrictions === 'string' ? 
+          platform.restrictions.split(',') : 
+          JSON.stringify(platform.restrictions).split(',')) : 
+        [],
+      assets,
+      totalCost,
+      totalImpressions
     };
   } catch (error) {
     console.error('Error fetching platform with assets:', error);
@@ -366,19 +372,24 @@ export const generateCampaignQuotation = async (
       
       processedPlatforms.push({
         ...platform,
-        audience_data: processedAudienceData,
-        assets: platformAssets,
-        totalCost: platformTotalCost,
-        totalImpressions: platformTotalImpressions,
+        description: platform.description || null,
         type: platform.type || "platform",
         status: platform.status || "active",
         average_cpm: platform.average_cpm || 0,
         base_cost: platform.base_cost || 0,
         min_budget: platform.min_budget || 0,
         audience_reach: platform.audience_reach || 0,
+        audience_data: processedAudienceData,
         capabilities: platform.capabilities || [],
         requirements: platform.requirements || [],
-        restrictions: platform.restrictions ? JSON.stringify(platform.restrictions).split(',') : []
+        restrictions: platform.restrictions ? 
+          (typeof platform.restrictions === 'string' ? 
+            platform.restrictions.split(',') : 
+            JSON.stringify(platform.restrictions).split(',')) : 
+          [],
+        assets: platformAssets,
+        totalCost: platformTotalCost,
+        totalImpressions: platformTotalImpressions
       });
     }
   });
