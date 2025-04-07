@@ -16,12 +16,6 @@ interface QuotationPreviewProps {
   data: CampaignData;
 }
 
-// Remove the duplicate PlatformCardProps interface since we're using the one from PlatformCard.tsx
-// interface PlatformCardProps {
-//   platform: PlatformWithAssets;
-//   campaignDays: number;
-// }
-
 const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
   const [platforms, setPlatforms] = useState<PlatformWithAssets[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +25,9 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchData();
+    if (data) {
+      fetchData();
+    }
   }, [data]);
 
   const fetchData = async () => {
@@ -40,16 +36,18 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       
       const quotation = await generateCampaignQuotation(data);
       
-      setPlatforms(quotation.platforms);
-      setTotalCost(quotation.totalCost);
-      setTotalImpressions(quotation.totalImpressions);
-      setCampaignDays(quotation.campaignDays);
+      setPlatforms(quotation.platforms || []);
+      setTotalCost(quotation.totalCost || 0);
+      setTotalImpressions(quotation.totalImpressions || 0);
+      setCampaignDays(quotation.campaignDays || data.durationDays || 1);
     } catch (error: any) {
       toast({
         title: "Error generating quotation",
         description: error.message,
         variant: "destructive"
       });
+      // Set platforms to empty array in case of error
+      setPlatforms([]);
     } finally {
       setLoading(false);
     }
