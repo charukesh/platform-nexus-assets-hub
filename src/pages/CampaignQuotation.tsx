@@ -29,6 +29,9 @@ export interface CampaignData {
   budget: number;
   assetCategories: string[];
   platformPreferences: string[];
+  // Additional targeting options can be added here
+  premiumOnly?: boolean;
+  platformTypes?: string[]; // Mobile, CTV, Web
 }
 
 const initialCampaignData: CampaignData = {
@@ -50,7 +53,9 @@ const initialCampaignData: CampaignData = {
   },
   budget: 0,
   assetCategories: [],
-  platformPreferences: []
+  platformPreferences: [],
+  premiumOnly: false,
+  platformTypes: []
 };
 
 const CampaignQuotation: React.FC = () => {

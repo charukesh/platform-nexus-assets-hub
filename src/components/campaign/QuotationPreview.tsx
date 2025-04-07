@@ -1,49 +1,15 @@
+
 import React, { useEffect, useState } from "react";
 import { CampaignData } from "@/pages/CampaignQuotation";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { differenceInDays, format } from "date-fns";
+import { format } from "date-fns";
 import { Calendar, Download, FileSpreadsheet, Printer, Users } from "lucide-react";
+import { generateCampaignQuotation, PlatformWithAssets } from "@/services/campaignService";
 
 interface QuotationPreviewProps {
   data: CampaignData;
-}
-
-interface Platform {
-  id: string;
-  name: string;
-  industry: string;
-  mau: string | number;
-  dau: string | number;
-}
-
-interface SupabaseAsset {
-  id: string;
-  name: string;
-  category: string;
-  platform_id: string;
-  type: string;
-  file_url: string;
-  thumbnail_url: string;
-  description: string;
-  tags: string[];
-  file_size: string;
-  uploaded_by: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Asset extends SupabaseAsset {
-  cost_per_day: number;
-  estimated_impressions: number;
-}
-
-interface PlatformWithAssets extends Platform {
-  assets: Asset[];
-  totalCost: number;
-  totalImpressions: number;
 }
 
 const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
@@ -55,76 +21,22 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (data.duration.startDate && data.duration.endDate) {
-      const days = differenceInDays(data.duration.endDate, data.duration.startDate) + 1;
-      setCampaignDays(days > 0 ? days : 1);
-    }
-
     fetchData();
   }, [data]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      if (!data.platformPreferences.length) {
-        setPlatforms([]);
-        return;
-      }
-
-      const { data: platformsData, error: platformsError } = await supabase
-        .from("platforms")
-        .select("*")
-        .in("id", data.platformPreferences);
-
-      if (platformsError) throw platformsError;
-
-      const { data: assetsData, error: assetsError } = await supabase
-        .from("assets")
-        .select("*")
-        .in("platform_id", data.platformPreferences)
-        .in("category", data.assetCategories);
-
-      if (assetsError) throw assetsError;
-
-      let calculatedTotalCost = 0;
-      let calculatedTotalImpressions = 0;
-
-      const processedPlatforms = platformsData.map((platform) => {
-        const platformAssetsFromDB = assetsData.filter(
-          (asset) => asset.platform_id === platform.id
-        );
-        
-        const platformAssets = platformAssetsFromDB.map(asset => ({
-          ...asset,
-          cost_per_day: Math.floor(Math.random() * 15000) + 5000,
-          estimated_impressions: Math.floor(Math.random() * 90000) + 10000
-        }));
-
-        const platformTotalCost = platformAssets.reduce((sum, asset) => {
-          return sum + asset.cost_per_day * campaignDays;
-        }, 0);
-
-        const platformTotalImpressions = platformAssets.reduce((sum, asset) => {
-          return sum + asset.estimated_impressions * campaignDays;
-        }, 0);
-
-        calculatedTotalCost += platformTotalCost;
-        calculatedTotalImpressions += platformTotalImpressions;
-
-        return {
-          ...platform,
-          assets: platformAssets,
-          totalCost: platformTotalCost,
-          totalImpressions: platformTotalImpressions
-        };
-      });
-
-      setPlatforms(processedPlatforms);
-      setTotalCost(calculatedTotalCost);
-      setTotalImpressions(calculatedTotalImpressions);
+      
+      const quotation = await generateCampaignQuotation(data);
+      
+      setPlatforms(quotation.platforms);
+      setTotalCost(quotation.totalCost);
+      setTotalImpressions(quotation.totalImpressions);
+      setCampaignDays(quotation.campaignDays);
     } catch (error: any) {
       toast({
-        title: "Error fetching data",
+        title: "Error generating quotation",
         description: error.message,
         variant: "destructive"
       });
