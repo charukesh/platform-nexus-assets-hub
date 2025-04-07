@@ -35,7 +35,18 @@ interface Platform {
   premium_users: number;
   premium_users_display_as_percentage?: boolean;
   device_split?: any;
-  audience_data?: any;
+  audience_data?: {
+    demographic?: {
+      ageGroups?: string[];
+      gender?: string[];
+      interests?: string[];
+    };
+    geographic?: {
+      cities?: string[];
+      states?: string[];
+      tierLevels?: string[];
+    };
+  };
   campaign_data?: any;
   restrictions?: any;
 }
@@ -110,47 +121,60 @@ export const generateCampaignQuotation = async (
     
     // If we have audience data for the platform, use it for scoring
     if (platform?.audience_data) {
+      const audienceData = platform.audience_data as {
+        demographic?: {
+          ageGroups?: string[];
+          gender?: string[];
+          interests?: string[];
+        };
+        geographic?: {
+          cities?: string[];
+          states?: string[];
+          tierLevels?: string[];
+        };
+      };
+
       // Check demographic matches (age groups)
-      if (platform.audience_data.demographic?.ageGroups && 
+      if (audienceData.demographic?.ageGroups && 
           data.demographics.ageGroups.length > 0) {
         const ageGroupMatch = data.demographics.ageGroups.some(
-          age => platform.audience_data.demographic.ageGroups.includes(age)
+          age => audienceData.demographic?.ageGroups?.includes(age)
         );
         if (ageGroupMatch) score += 0.2;
       }
       
       // Check gender matches
-      if (platform.audience_data.demographic?.gender && 
+      if (audienceData.demographic?.gender && 
           data.demographics.gender.length > 0) {
         const genderMatch = data.demographics.gender.some(
-          gender => platform.audience_data.demographic.gender.includes(gender)
+          gender => audienceData.demographic?.gender?.includes(gender)
         );
         if (genderMatch) score += 0.2;
       }
       
       // Check interest matches
-      if (platform.audience_data.demographic?.interests && 
+      if (audienceData.demographic?.interests && 
           data.demographics.interests.length > 0) {
         const interestMatch = data.demographics.interests.some(
-          interest => platform.audience_data.demographic.interests.includes(interest)
+          interest => audienceData.demographic?.interests?.includes(interest)
         );
         if (interestMatch) score += 0.2;
       }
       
       // Check geographic matches (cities)
-      if (platform.audience_data.geographic?.cities && 
+      if (audienceData.geographic?.cities && 
           data.geographics.cities.length > 0) {
         const cityMatch = data.geographics.cities.some(
-          city => platform.audience_data.geographic.cities.includes(city)
+          city => audienceData.geographic?.cities?.includes(city)
         );
         if (cityMatch) score += 0.2;
       }
       
       // Check geographic matches (states)
-      if (platform.audience_data.geographic?.states && 
+      if (audienceData.geographic?.states && 
           data.geographics.states.length > 0) {
         const stateMatch = data.geographics.states.some(
-          state => platform.audience_data.geographic.states.includes(state)
+          state => audienceData.geographic?.states?.includes(state)
         );
         if (stateMatch) score += 0.2;
       }
