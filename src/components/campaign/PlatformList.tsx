@@ -28,14 +28,17 @@ const PlatformList: React.FC<PlatformListProps> = ({
   onAssetSelect,
   campaignDays
 }) => {
+  // Ensure platforms is always an array
+  const platformsArray = Array.isArray(platforms) ? platforms : [];
+  
   // Filter platforms based on search query
-  const filteredPlatforms = platforms.filter((platform) =>
-    platform.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPlatforms = platformsArray.filter((platform) =>
+    platform.name.toLowerCase().includes((searchQuery || '').toLowerCase())
   );
 
   // Get the platforms to display based on autosuggest setting
   const platformsToDisplay = autoSuggestEnabled
-    ? platforms.filter((p) => selectedPlatforms.includes(p.id))
+    ? platformsArray.filter((p) => selectedPlatforms.includes(p.id))
     : filteredPlatforms;
 
   if (loading) {
@@ -67,7 +70,7 @@ const PlatformList: React.FC<PlatformListProps> = ({
           campaignDays={campaignDays}
           assets={showAssetSelection && selectedPlatforms.includes(platform.id) ? platform.assets : []}
           onAssetSelect={showAssetSelection ? onAssetSelect : undefined}
-          selectedAssets={platform.selectedAssets}
+          selectedAssets={platform.selectedAssets || []}
         />
       ))}
     </div>

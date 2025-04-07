@@ -46,7 +46,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
     togglePlatform(platform.id);
   };
 
-  const showAssets = assets.length > 0 && onAssetSelect;
+  const showAssets = assets && assets.length > 0 && onAssetSelect;
 
   return (
     <NeuCard className="mb-4 p-0 overflow-hidden">
@@ -139,7 +139,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
                 <AssetItem 
                   key={asset.id}
                   asset={asset}
-                  isSelected={selectedAssets.includes(asset.id)}
+                  isSelected={selectedAssets?.includes(asset.id) || false}
                   onSelect={(selected) => {
                     if (onAssetSelect) {
                       onAssetSelect(platform.id, asset.id, selected);

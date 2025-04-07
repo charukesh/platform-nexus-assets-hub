@@ -26,10 +26,10 @@ export const generateCampaignQuotation = async (
   campaignDays: number;
 }> => {
   // Get campaign days directly from the data
-  const campaignDays = data.durationDays || 1;
+  const campaignDays = data?.durationDays || 1;
 
   // Ensure there are selected platforms
-  if (!data.platformPreferences?.length) {
+  if (!data?.platformPreferences || !data.platformPreferences.length) {
     return { 
       platforms: [], 
       totalCost: 0, 
@@ -55,27 +55,30 @@ export const generateCampaignQuotation = async (
       };
     }
 
+    // Make sure we have assetCategories to filter by
+    const assetCategories = data.assetCategories || [];
+
     const { data: assetsData, error: assetsError } = await supabase
       .from("assets")
       .select("*")
-      .in("platform_id", data.platformPreferences)
-      .in("category", data.assetCategories || []);
+      .in("platform_id", data.platformPreferences);
 
     if (assetsError) throw assetsError;
     
     // Ensure assetsData is an array
     const assets = assetsData || [];
 
-    // Step 2: Objective-Based Filtering
-    // For now, we assume all assets have the necessary metrics
-    // In a real implementation, we would check for relevant metrics based on objectives
+    // Filter assets by category if categories are provided
+    const filteredAssets = assetCategories.length > 0 
+      ? assets.filter(asset => assetCategories.includes(asset.category || ''))
+      : assets;
     
     // Apply cost and impressions to assets (simulated for now)
-    const processedAssets = assets.map(asset => enhanceAsset({
+    const processedAssets = filteredAssets.map(asset => enhanceAsset({
       ...asset,
-      cost_per_day: Math.floor(Math.random() * 15000) + 5000,
-      estimated_impressions: Math.floor(Math.random() * 90000) + 10000,
-      targeting_score: 1.0,
+      cost_per_day: asset.cost_per_day || Math.floor(Math.random() * 15000) + 5000,
+      estimated_impressions: asset.estimated_impressions || Math.floor(Math.random() * 90000) + 10000,
+      targeting_score: asset.targeting_score || 1.0,
     }));
 
     // Step 3: Targeting-Based Scoring
@@ -95,7 +98,7 @@ export const generateCampaignQuotation = async (
         if (audienceData) {
           // Check demographic matches (age groups)
           if (audienceData.demographic?.ageGroups && 
-              data.demographics.ageGroups?.length > 0) {
+              data.demographics?.ageGroups?.length > 0) {
             const ageGroupMatch = data.demographics.ageGroups.some(
               age => audienceData.demographic?.ageGroups?.includes(age)
             );
@@ -104,7 +107,7 @@ export const generateCampaignQuotation = async (
           
           // Check gender matches
           if (audienceData.demographic?.gender && 
-              data.demographics.gender?.length > 0) {
+              data.demographics?.gender?.length > 0) {
             const genderMatch = data.demographics.gender.some(
               gender => audienceData.demographic?.gender?.includes(gender)
             );
@@ -113,7 +116,7 @@ export const generateCampaignQuotation = async (
           
           // Check interest matches
           if (audienceData.demographic?.interests && 
-              data.demographics.interests?.length > 0) {
+              data.demographics?.interests?.length > 0) {
             const interestMatch = data.demographics.interests.some(
               interest => audienceData.demographic?.interests?.includes(interest)
             );
@@ -122,7 +125,7 @@ export const generateCampaignQuotation = async (
           
           // Check geographic matches (cities)
           if (audienceData.geographic?.cities && 
-              data.geographics.cities?.length > 0) {
+              data.geographics?.cities?.length > 0) {
             const cityMatch = data.geographics.cities.some(
               city => audienceData.geographic?.cities?.includes(city)
             );
@@ -131,7 +134,7 @@ export const generateCampaignQuotation = async (
           
           // Check geographic matches (states)
           if (audienceData.geographic?.states && 
-              data.geographics.states?.length > 0) {
+              data.geographics?.states?.length > 0) {
             const stateMatch = data.geographics.states.some(
               state => audienceData.geographic?.states?.includes(state)
             );
@@ -157,7 +160,7 @@ export const generateCampaignQuotation = async (
     );
 
     // Step 4: Filter assets based on user selection if specified
-    const filteredAssets = data.selectedAssets && Object.keys(data.selectedAssets).length > 0
+    const filteredBySelectionAssets = data.selectedAssets && Object.keys(data.selectedAssets).length > 0
       ? scoredAssets.filter(asset => {
           const platformAssets = data.selectedAssets?.[asset.platform_id];
           return platformAssets?.includes(asset.id);
@@ -165,7 +168,7 @@ export const generateCampaignQuotation = async (
       : scoredAssets;
 
     // Handle edge case where there are no assets after filtering
-    if (filteredAssets.length === 0) {
+    if (filteredBySelectionAssets.length === 0) {
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -175,17 +178,17 @@ export const generateCampaignQuotation = async (
     }
 
     // Step 5: Budget Allocation
-    const totalTargetingScore = filteredAssets.reduce(
+    const totalTargetingScore = filteredBySelectionAssets.reduce(
       (sum, asset) => sum + (asset.targeting_score || 1), 
       0
     );
     
     // Allocate budget proportionally based on targeting score
-    const assetsWithBudget = filteredAssets.map(asset => {
+    const assetsWithBudget = filteredBySelectionAssets.map(asset => {
       const proportion = (asset.targeting_score || 1) / totalTargetingScore;
       const allocatedBudget = Math.min(
-        data.budget * proportion,
-        asset.cost_per_day * campaignDays
+        (data.budget || 0) * proportion,
+        (asset.cost_per_day || 0) * campaignDays
       );
       
       return {
@@ -207,11 +210,11 @@ export const generateCampaignQuotation = async (
       
       const platformTotalCost = platformAssets.reduce((sum, asset) => {
         // Use the asset's calculated cost based on campaign days
-        return sum + asset.cost_per_day * campaignDays;
+        return sum + (asset.cost_per_day || 0) * campaignDays;
       }, 0);
 
       const platformTotalImpressions = platformAssets.reduce((sum, asset) => {
-        return sum + asset.estimated_impressions * campaignDays;
+        return sum + (asset.estimated_impressions || 0) * campaignDays;
       }, 0);
 
       calculatedTotalCost += platformTotalCost;

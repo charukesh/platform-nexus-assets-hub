@@ -11,6 +11,9 @@ interface QuotationHeaderProps {
 }
 
 const QuotationHeader: React.FC<QuotationHeaderProps> = ({ data, campaignDays }) => {
+  // Make sure campaignDays is a number and has a fallback
+  const days = typeof campaignDays === 'number' ? campaignDays : (data?.durationDays || 1);
+  
   return (
     <NeuCard className="mb-6 p-6">
       <div className="flex justify-between items-start">
@@ -24,7 +27,7 @@ const QuotationHeader: React.FC<QuotationHeaderProps> = ({ data, campaignDays })
           <div className="flex items-center justify-end gap-2 mb-1">
             <Calendar size={16} className="text-primary" />
             <span className="font-medium">Campaign Duration:</span>
-            <span>{campaignDays} days</span>
+            <span>{days} days</span>
           </div>
         </div>
       </div>

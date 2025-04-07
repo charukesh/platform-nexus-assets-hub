@@ -60,7 +60,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
       <div className="mb-6">
         <QuotationStats 
-          budget={data.budget}
+          budget={data?.budget || 0}
           totalCost={totalCost}
           totalImpressions={totalImpressions}
           platformCount={platforms.length}
