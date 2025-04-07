@@ -22,7 +22,7 @@ const NeuCard: React.FC<NeuCardProps> = ({
         "p-5 transition-all", 
         variant === "flat" && "neu-flat",
         variant === "pressed" && "neu-pressed",
-        variant === "convex" && "shadow-neu-convex",
+        variant === "convex" && "neu-convex",
         gradient === "blue" && "card-gradient-blue",
         gradient === "green" && "card-gradient-green",
         gradient === "purple" && "card-gradient-purple",
