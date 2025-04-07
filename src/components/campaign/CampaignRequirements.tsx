@@ -1,6 +1,6 @@
 
 import React from "react";
-import { CampaignData } from "@/pages/CampaignQuotation";
+import { CampaignData } from "@/types/campaign";
 import NeuCard from "@/components/NeuCard";
 import {
   Form,

@@ -1,8 +1,10 @@
 import { Json } from "@/integrations/supabase/types";
 import { CampaignData, Platform } from "@/types/campaign";
 import { supabase } from "@/integrations/supabase/client";
+import { enhancePlatform } from "@/utils/campaignUtils";
 
-export { Platform };
+// Use export type for re-exporting types when isolatedModules is enabled
+export type { Platform };
 
 // Type guard to check if a Json value is an object
 export function isJsonObject(value: Json | null | undefined): value is { [key: string]: Json } {
@@ -52,8 +54,11 @@ export const fetchPlatformsFromSupabase = async (
     return [];
   }
 
+  // Transform the raw platforms data using enhancePlatform
+  const enhancedPlatforms = platformsData.map(platform => enhancePlatform(platform));
+
   // Filter platforms based on demographic and geographic match
-  let filteredPlatforms = platformsData;
+  let filteredPlatforms = enhancedPlatforms;
   
   if (data.demographics.ageGroups.length > 0 || 
       data.demographics.gender.length > 0 || 
@@ -61,7 +66,7 @@ export const fetchPlatformsFromSupabase = async (
       data.geographics.cities.length > 0 || 
       data.geographics.states.length > 0) {
     
-    filteredPlatforms = platformsData.filter(platform => {
+    filteredPlatforms = enhancedPlatforms.filter(platform => {
       // Skip filtering if platform has no audience data
       if (!platform.audience_data) return true;
       

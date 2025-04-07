@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Users, Info } from "lucide-react";
@@ -16,6 +17,7 @@ interface PlatformCardProps {
   autoSuggestEnabled: boolean;
   togglePlatform: (platformId: string) => void;
   formatUserCount: (count: string | number | null | undefined) => string;
+  campaignDays?: number; // Add optional campaignDays prop
 }
 
 const PlatformCard: React.FC<PlatformCardProps> = ({
@@ -24,6 +26,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
   autoSuggestEnabled,
   togglePlatform,
   formatUserCount,
+  campaignDays, // Add campaignDays to props
 }) => {
   return (
     <Card
@@ -37,6 +40,7 @@ const PlatformCard: React.FC<PlatformCardProps> = ({
     >
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
+          {/* Use optional chaining for logo_url since it might not exist */}
           {platform.logo_url ? (
             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
               <img

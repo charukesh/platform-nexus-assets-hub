@@ -10,15 +10,17 @@ import CampaignDetails from "./CampaignDetails";
 import PlatformCard from "./PlatformCard";
 import CampaignSummary from "./CampaignSummary";
 import EmptyPlatforms from "./EmptyPlatforms";
+import { formatUserCount } from "./platformSelectionUtils";
 
 interface QuotationPreviewProps {
   data: CampaignData;
 }
 
-interface PlatformCardProps {
-  platform: PlatformWithAssets;
-  campaignDays: number;
-}
+// Remove the duplicate PlatformCardProps interface since we're using the one from PlatformCard.tsx
+// interface PlatformCardProps {
+//   platform: PlatformWithAssets;
+//   campaignDays: number;
+// }
 
 const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
   const [platforms, setPlatforms] = useState<PlatformWithAssets[]>([]);
@@ -79,7 +81,11 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
             <PlatformCard 
               key={platform.id} 
               platform={platform} 
-              campaignDays={campaignDays} 
+              campaignDays={campaignDays}
+              isSelected={true}
+              autoSuggestEnabled={false}
+              togglePlatform={() => {}}
+              formatUserCount={formatUserCount}
             />
           ))}
           

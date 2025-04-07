@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { CampaignData } from "@/pages/CampaignQuotation";
+import { CampaignData } from "@/types/campaign";
 import { useToast } from "@/hooks/use-toast";
 import PlatformList from "./PlatformList";
 import PlatformSearchBar from "./PlatformSearchBar";
@@ -49,7 +48,7 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
         setSelectedPlatforms
       );
       
-      setPlatforms(platformsData);
+      setPlatforms(platformsData as Platform[]);
     } catch (error: any) {
       toast({
         title: "Error fetching platforms",

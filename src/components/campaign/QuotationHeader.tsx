@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Calendar } from "lucide-react";
 import NeuCard from "@/components/NeuCard";
 import { formatDate } from "@/utils/formatUtils";
-import { CampaignData } from "@/pages/CampaignQuotation";
+import { CampaignData } from "@/types/campaign";
 
 interface QuotationHeaderProps {
   data: CampaignData;

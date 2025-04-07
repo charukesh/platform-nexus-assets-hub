@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays } from "date-fns";
 import { 
@@ -14,12 +13,9 @@ import {
 } from "@/types/campaign";
 import { getPlatformWithAssets } from "./platformService";
 
-export { 
-  Asset, 
-  PlatformDbRecord,
-  PlatformWithAssets,
-  getPlatformWithAssets
-};
+// Use export type for re-exporting types when isolatedModules is enabled
+export type { Asset, PlatformDbRecord, PlatformWithAssets };
+export { getPlatformWithAssets };
 
 export const generateCampaignQuotation = async (
   data: CampaignData

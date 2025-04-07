@@ -1,7 +1,6 @@
-
 import React from "react";
 import NeuCard from "@/components/NeuCard";
-import { CampaignData } from "@/pages/CampaignQuotation";
+import { CampaignData } from "@/types/campaign";
 
 interface CampaignDetailsProps {
   data: CampaignData;
