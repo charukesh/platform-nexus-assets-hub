@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -25,7 +24,6 @@ const PlatformForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(false);
   
-  // Form state
   const [formData, setFormData] = useState<FormDataType>(defaultFormData);
   
   useEffect(() => {
@@ -49,7 +47,6 @@ const PlatformForm: React.FC = () => {
       
       if (data) {
         const audienceData = parseJsonField(data.audience_data, defaultFormData.audience_data);
-        // Ensure supports object exists with default values if not present
         if (!audienceData.supports) {
           audienceData.supports = defaultFormData.audience_data.supports;
         }
@@ -60,7 +57,9 @@ const PlatformForm: React.FC = () => {
           mau: data.mau || "",
           dau: data.dau || "",
           premium_users: data.premium_users || 0,
-          premium_users_display_as_percentage: data.premium_users_display_as_percentage !== false,
+          premium_users_display_as_percentage: data.premium_users_display_as_percentage !== undefined 
+            ? data.premium_users_display_as_percentage 
+            : true,
           device_split: parseJsonField(data.device_split, defaultFormData.device_split),
           audience_data: audienceData,
           campaign_data: parseJsonField(data.campaign_data, defaultFormData.campaign_data),
@@ -236,7 +235,6 @@ const PlatformForm: React.FC = () => {
     try {
       setLoading(true);
       
-      // Prepare data for database
       const platformData = {
         name: formData.name,
         industry: formData.industry,
@@ -253,13 +251,11 @@ const PlatformForm: React.FC = () => {
       let result;
       
       if (isEditMode) {
-        // Update existing platform
         result = await supabase
           .from('platforms')
           .update(platformData)
           .eq('id', id);
       } else {
-        // Insert new platform
         result = await supabase
           .from('platforms')
           .insert(platformData);
@@ -288,7 +284,6 @@ const PlatformForm: React.FC = () => {
     }
   };
 
-  // Validate the basic info step
   const validateBasicInfo = () => {
     if (!formData.name || !formData.industry) {
       toast({
@@ -301,7 +296,6 @@ const PlatformForm: React.FC = () => {
     return true;
   };
 
-  // Create the steps for our multistep form
   const formSteps = [
     {
       title: "Basic Information",
