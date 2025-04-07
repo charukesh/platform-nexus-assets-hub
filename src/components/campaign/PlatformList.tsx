@@ -1,15 +1,19 @@
+
 import React from "react";
 import PlatformCard from "./PlatformCard";
-import { Platform } from "@/types/campaign";
+import { PlatformWithAssets } from "@/types/campaign";
 
 interface PlatformListProps {
-  platforms: Platform[];
+  platforms: PlatformWithAssets[];
   selectedPlatforms: string[];
   autoSuggestEnabled: boolean;
   togglePlatform: (platformId: string) => void;
   searchQuery: string;
   loading: boolean;
   formatUserCount: (count: string | number | null | undefined) => string;
+  showAssetSelection?: boolean;
+  onAssetSelect?: (platformId: string, assetId: string, selected: boolean) => void;
+  campaignDays?: number;
 }
 
 const PlatformList: React.FC<PlatformListProps> = ({
@@ -20,6 +24,9 @@ const PlatformList: React.FC<PlatformListProps> = ({
   searchQuery,
   loading,
   formatUserCount,
+  showAssetSelection = false,
+  onAssetSelect,
+  campaignDays
 }) => {
   // Filter platforms based on search query
   const filteredPlatforms = platforms.filter((platform) =>
@@ -48,7 +55,7 @@ const PlatformList: React.FC<PlatformListProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {platformsToDisplay.map((platform) => (
         <PlatformCard
           key={platform.id}
@@ -57,6 +64,10 @@ const PlatformList: React.FC<PlatformListProps> = ({
           autoSuggestEnabled={autoSuggestEnabled}
           togglePlatform={togglePlatform}
           formatUserCount={formatUserCount}
+          campaignDays={campaignDays}
+          assets={showAssetSelection && selectedPlatforms.includes(platform.id) ? platform.assets : []}
+          onAssetSelect={showAssetSelection ? onAssetSelect : undefined}
+          selectedAssets={platform.selectedAssets}
         />
       ))}
     </div>

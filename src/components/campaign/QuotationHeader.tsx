@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Calendar } from "lucide-react";
 import NeuCard from "@/components/NeuCard";
@@ -23,17 +24,7 @@ const QuotationHeader: React.FC<QuotationHeaderProps> = ({ data, campaignDays })
           <div className="flex items-center justify-end gap-2 mb-1">
             <Calendar size={16} className="text-primary" />
             <span className="font-medium">Campaign Duration:</span>
-            {data.duration.startDate && data.duration.endDate ? (
-              <span>
-                {formatDate(data.duration.startDate)} - {formatDate(data.duration.endDate)}
-              </span>
-            ) : (
-              <span>Not set</span>
-            )}
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <span className="font-medium">Days:</span>
-            <span>{campaignDays}</span>
+            <span>{data.durationDays} days</span>
           </div>
         </div>
       </div>

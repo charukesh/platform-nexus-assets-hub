@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -22,13 +23,11 @@ const initialCampaignData: CampaignData = {
     tierLevels: []
   },
   objectives: [],
-  duration: {
-    startDate: undefined,
-    endDate: undefined
-  },
+  durationDays: 7, // Default to 7 days instead of start/end dates
   budget: 0,
   assetCategories: [],
   platformPreferences: [],
+  selectedAssets: {}, // Initialize empty object for selected assets
   premiumOnly: false,
   platformTypes: []
 };
@@ -73,7 +72,7 @@ const CampaignQuotation: React.FC = () => {
       title: "Campaign Requirements",
       content: <CampaignRequirements data={campaignData} updateData={updateCampaignData} />,
       validator: () => {
-        const { industry, demographics, geographics, objectives, duration, budget, assetCategories } = campaignData;
+        const { industry, demographics, geographics, objectives, durationDays, budget, assetCategories } = campaignData;
         if (!industry) {
           toast({ title: "Error", description: "Please select an industry", variant: "destructive" });
           return false;
@@ -90,7 +89,7 @@ const CampaignQuotation: React.FC = () => {
           toast({ title: "Error", description: "Please select at least one campaign objective", variant: "destructive" });
           return false;
         }
-        if (!duration.startDate || !duration.endDate) {
+        if (!durationDays || durationDays <= 0) {
           toast({ title: "Error", description: "Please set campaign duration", variant: "destructive" });
           return false;
         }

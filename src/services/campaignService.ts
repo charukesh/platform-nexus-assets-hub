@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays } from "date-fns";
 import { 
@@ -25,12 +26,8 @@ export const generateCampaignQuotation = async (
   totalImpressions: number;
   campaignDays: number;
 }> => {
-  // Determine campaign duration in days
-  let campaignDays = 1;
-  if (data.duration.startDate && data.duration.endDate) {
-    const days = differenceInDays(data.duration.endDate, data.duration.startDate) + 1;
-    campaignDays = days > 0 ? days : 1;
-  }
+  // Get campaign days directly from the data
+  const campaignDays = data.durationDays || 1;
 
   // Ensure there are selected platforms
   if (!data.platformPreferences.length) {
@@ -148,14 +145,22 @@ export const generateCampaignQuotation = async (
     (b.targeting_score || 0) - (a.targeting_score || 0)
   );
 
-  // Step 4: Budget Allocation
-  const totalTargetingScore = scoredAssets.reduce(
+  // Step 4: Filter assets based on user selection if specified
+  const filteredAssets = data.selectedAssets && Object.keys(data.selectedAssets).length > 0
+    ? scoredAssets.filter(asset => {
+        const platformAssets = data.selectedAssets?.[asset.platform_id];
+        return platformAssets?.includes(asset.id);
+      })
+    : scoredAssets;
+
+  // Step 5: Budget Allocation
+  const totalTargetingScore = filteredAssets.reduce(
     (sum, asset) => sum + (asset.targeting_score || 1), 
     0
   );
   
   // Allocate budget proportionally based on targeting score
-  const assetsWithBudget = scoredAssets.map(asset => {
+  const assetsWithBudget = filteredAssets.map(asset => {
     const proportion = (asset.targeting_score || 1) / totalTargetingScore;
     const allocatedBudget = Math.min(
       data.budget * proportion,
@@ -168,7 +173,7 @@ export const generateCampaignQuotation = async (
     };
   });
 
-  // Step 5: Final Asset Selection
+  // Step 6: Final Asset Selection
   // Group assets by platform
   const processedPlatforms: PlatformWithAssets[] = [];
   let calculatedTotalCost = 0;
@@ -199,7 +204,8 @@ export const generateCampaignQuotation = async (
         ...enhancedPlatform,
         assets: platformAssets,
         totalCost: platformTotalCost,
-        totalImpressions: platformTotalImpressions
+        totalImpressions: platformTotalImpressions,
+        selectedAssets: data.selectedAssets?.[platform.id] || []
       });
     }
   });

@@ -77,12 +77,18 @@ export interface AudienceData {
     states?: string[];
     tierLevels?: string[];
   };
+  supports?: {
+    targeting: boolean;
+    customSegments: boolean;
+    lookalikes: boolean;
+  };
 }
 
 export interface PlatformWithAssets extends Platform {
   assets: Asset[];
   totalCost?: number;
   totalImpressions?: number;
+  selectedAssets?: string[]; // Add this field to track selected assets
 }
 
 export interface PlatformAllocation {
@@ -108,8 +114,7 @@ export interface Quotation {
   campaignObjective: string;
   targetAudience: string;
   budget: number;
-  startDate: Date;
-  endDate: Date;
+  durationDays: number; // Changed from startDate/endDate
   platformAllocations: PlatformAllocation[];
   createdAt: Date;
   updatedAt: Date;
@@ -129,13 +134,11 @@ export interface CampaignData {
     tierLevels: string[];
   };
   objectives: string[];
-  duration: {
-    startDate: Date | undefined;
-    endDate: Date | undefined;
-  };
+  durationDays: number; // Changed from startDate/endDate object
   budget: number;
   assetCategories: string[];
   platformPreferences: string[];
+  selectedAssets?: { [platformId: string]: string[] }; // To store selected assets by platform
   premiumOnly?: boolean;
   platformTypes?: string[];
 }

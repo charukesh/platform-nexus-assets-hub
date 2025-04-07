@@ -1,6 +1,9 @@
+
 import React, { useEffect, useState } from "react";
-import { CampaignData } from "@/types/campaign";
+import { CampaignData, Asset, PlatformWithAssets } from "@/types/campaign";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import PlatformList from "./PlatformList";
 import PlatformSearchBar from "./PlatformSearchBar";
 import PlatformAutoSuggestToggle from "./PlatformAutoSuggestToggle";
@@ -9,6 +12,7 @@ import {
   formatUserCount, 
   fetchPlatformsFromSupabase 
 } from "./platformSelectionUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlatformSelectionProps {
   data: CampaignData;
@@ -19,7 +23,7 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
   data,
   updateData,
 }) => {
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [platforms, setPlatforms] = useState<PlatformWithAssets[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
@@ -28,6 +32,7 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
   const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(
     data.platformPreferences.length === 0
   );
+  const [showAssetSelection, setShowAssetSelection] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,13 +47,36 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
     try {
       setLoading(true);
       
+      // Fetch platforms
       const platformsData = await fetchPlatformsFromSupabase(
         data, 
         autoSuggestEnabled, 
         setSelectedPlatforms
       );
+
+      // Fetch assets for each platform
+      const platformsWithAssets = await Promise.all(platformsData.map(async (platform) => {
+        const { data: assetsData, error } = await supabase
+          .from('assets')
+          .select('*')
+          .eq('platform_id', platform.id);
+          
+        if (error) {
+          console.error("Error fetching assets:", error);
+          return {
+            ...platform,
+            assets: []
+          };
+        }
+        
+        return {
+          ...platform,
+          assets: assetsData || [],
+          selectedAssets: data.selectedAssets?.[platform.id] || []
+        };
+      }));
       
-      setPlatforms(platformsData as Platform[]);
+      setPlatforms(platformsWithAssets as PlatformWithAssets[]);
     } catch (error: any) {
       toast({
         title: "Error fetching platforms",
@@ -82,6 +110,40 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
     }
   };
 
+  const handleAssetSelect = (platformId: string, assetId: string, selected: boolean) => {
+    // Update the selected assets in the local state
+    const updatedPlatforms = platforms.map(platform => {
+      if (platform.id === platformId) {
+        const currentSelectedAssets = platform.selectedAssets || [];
+        const newSelectedAssets = selected
+          ? [...currentSelectedAssets, assetId]
+          : currentSelectedAssets.filter(id => id !== assetId);
+        
+        return {
+          ...platform,
+          selectedAssets: newSelectedAssets
+        };
+      }
+      return platform;
+    });
+    
+    setPlatforms(updatedPlatforms);
+    
+    // Update the campaign data with the selected assets
+    const selectedAssets = { ...data.selectedAssets } || {};
+    if (selected) {
+      selectedAssets[platformId] = [
+        ...(selectedAssets[platformId] || []),
+        assetId
+      ];
+    } else {
+      selectedAssets[platformId] = (selectedAssets[platformId] || [])
+        .filter(id => id !== assetId);
+    }
+    
+    updateData({ selectedAssets });
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -90,6 +152,16 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
           autoSuggestEnabled={autoSuggestEnabled}
           toggleAutoSuggest={toggleAutoSuggest}
         />
+      </div>
+
+      {/* Asset Selection Toggle */}
+      <div className="flex items-center space-x-2 mb-6">
+        <Switch
+          id="asset-selection"
+          checked={showAssetSelection}
+          onCheckedChange={setShowAssetSelection}
+        />
+        <Label htmlFor="asset-selection">Manually select assets for each platform</Label>
       </div>
 
       {/* Search and Filter */}
@@ -111,6 +183,9 @@ const PlatformSelection: React.FC<PlatformSelectionProps> = ({
         searchQuery={searchQuery}
         loading={loading}
         formatUserCount={formatUserCount}
+        showAssetSelection={showAssetSelection}
+        onAssetSelect={handleAssetSelect}
+        campaignDays={data.durationDays}
       />
 
       {selectedPlatforms.length > 0 && (
