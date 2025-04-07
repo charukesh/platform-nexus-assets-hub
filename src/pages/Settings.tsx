@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
@@ -11,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User, Bell, Shield, RefreshCw, Monitor, Database, Save, Mail, Palette } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import DangerZone from "@/components/settings/DangerZone";
 
 const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState("account");
@@ -413,6 +413,8 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </NeuCard>
+            
+            <DangerZone />
           </TabsContent>
         </Tabs>
       </div>

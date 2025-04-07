@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignData } from "@/pages/CampaignQuotation";
 import { differenceInDays } from "date-fns";
