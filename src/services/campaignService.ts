@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { CampaignData } from "@/pages/CampaignQuotation";
 import { differenceInDays } from "date-fns";
+import { Json } from "@/integrations/supabase/types";
 
 // Define types for the algorithm
 interface Asset {
@@ -35,26 +36,86 @@ interface Platform {
   premium_users: number;
   premium_users_display_as_percentage?: boolean;
   device_split?: any;
-  audience_data?: {
-    demographic?: {
-      ageGroups?: string[];
-      gender?: string[];
-      interests?: string[];
-    };
-    geographic?: {
-      cities?: string[];
-      states?: string[];
-      tierLevels?: string[];
-    };
-  };
+  audience_data?: Json;
   campaign_data?: any;
   restrictions?: any;
 }
 
-export interface PlatformWithAssets extends Platform {
+// Create a type for the processed audience data format
+interface AudienceData {
+  demographic?: {
+    ageGroups?: string[];
+    gender?: string[];
+    interests?: string[];
+  };
+  geographic?: {
+    cities?: string[];
+    states?: string[];
+    tierLevels?: string[];
+  };
+}
+
+export interface PlatformWithAssets extends Omit<Platform, 'audience_data'> {
+  audience_data?: AudienceData;
   assets: Asset[];
   totalCost: number;
   totalImpressions: number;
+}
+
+// Type guard to check if Json value is valid audience data structure
+function isValidAudienceData(data: Json | null | undefined): data is AudienceData {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  
+  return true;
+}
+
+// Function to safely process audience data into the expected format
+function processAudienceData(data: Json | null | undefined): AudienceData | undefined {
+  if (!isValidAudienceData(data)) return undefined;
+  
+  const result: AudienceData = {};
+  
+  // Process demographic data if it exists
+  if (data.demographic && typeof data.demographic === 'object' && !Array.isArray(data.demographic)) {
+    result.demographic = {};
+    
+    // Process age groups
+    if (Array.isArray(data.demographic.ageGroups)) {
+      result.demographic.ageGroups = data.demographic.ageGroups as string[];
+    }
+    
+    // Process gender
+    if (Array.isArray(data.demographic.gender)) {
+      result.demographic.gender = data.demographic.gender as string[];
+    }
+    
+    // Process interests
+    if (Array.isArray(data.demographic.interests)) {
+      result.demographic.interests = data.demographic.interests as string[];
+    }
+  }
+  
+  // Process geographic data if it exists
+  if (data.geographic && typeof data.geographic === 'object' && !Array.isArray(data.geographic)) {
+    result.geographic = {};
+    
+    // Process cities
+    if (Array.isArray(data.geographic.cities)) {
+      result.geographic.cities = data.geographic.cities as string[];
+    }
+    
+    // Process states
+    if (Array.isArray(data.geographic.states)) {
+      result.geographic.states = data.geographic.states as string[];
+    }
+    
+    // Process tier levels
+    if (Array.isArray(data.geographic.tierLevels)) {
+      result.geographic.tierLevels = data.geographic.tierLevels as string[];
+    }
+  }
+  
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 // Algorithm implementation
@@ -121,62 +182,54 @@ export const generateCampaignQuotation = async (
     
     // If we have audience data for the platform, use it for scoring
     if (platform?.audience_data) {
-      const audienceData = platform.audience_data as {
-        demographic?: {
-          ageGroups?: string[];
-          gender?: string[];
-          interests?: string[];
-        };
-        geographic?: {
-          cities?: string[];
-          states?: string[];
-          tierLevels?: string[];
-        };
-      };
-
-      // Check demographic matches (age groups)
-      if (audienceData.demographic?.ageGroups && 
-          data.demographics.ageGroups.length > 0) {
-        const ageGroupMatch = data.demographics.ageGroups.some(
-          age => audienceData.demographic?.ageGroups?.includes(age)
-        );
-        if (ageGroupMatch) score += 0.2;
-      }
+      // Process audience data to ensure correct type
+      const audienceData = processAudienceData(platform.audience_data);
       
-      // Check gender matches
-      if (audienceData.demographic?.gender && 
-          data.demographics.gender.length > 0) {
-        const genderMatch = data.demographics.gender.some(
-          gender => audienceData.demographic?.gender?.includes(gender)
-        );
-        if (genderMatch) score += 0.2;
-      }
-      
-      // Check interest matches
-      if (audienceData.demographic?.interests && 
-          data.demographics.interests.length > 0) {
-        const interestMatch = data.demographics.interests.some(
-          interest => audienceData.demographic?.interests?.includes(interest)
-        );
-        if (interestMatch) score += 0.2;
-      }
-      
-      // Check geographic matches (cities)
-      if (audienceData.geographic?.cities && 
-          data.geographics.cities.length > 0) {
-        const cityMatch = data.geographics.cities.some(
-          city => audienceData.geographic?.cities?.includes(city)
-        );
-        if (cityMatch) score += 0.2;
-      }
-      
-      // Check geographic matches (states)
-      if (audienceData.geographic?.states && 
-          data.geographics.states.length > 0) {
-        const stateMatch = data.geographics.states.some(
-          state => audienceData.geographic?.states?.includes(state)
-        );
-        if (stateMatch) score += 0.2;
+      if (audienceData) {
+        // Check demographic matches (age groups)
+        if (audienceData.demographic?.ageGroups && 
+            data.demographics.ageGroups.length > 0) {
+          const ageGroupMatch = data.demographics.ageGroups.some(
+            age => audienceData.demographic?.ageGroups?.includes(age)
+          );
+          if (ageGroupMatch) score += 0.2;
+        }
+        
+        // Check gender matches
+        if (audienceData.demographic?.gender && 
+            data.demographics.gender.length > 0) {
+          const genderMatch = data.demographics.gender.some(
+            gender => audienceData.demographic?.gender?.includes(gender)
+          );
+          if (genderMatch) score += 0.2;
+        }
+        
+        // Check interest matches
+        if (audienceData.demographic?.interests && 
+            data.demographics.interests.length > 0) {
+          const interestMatch = data.demographics.interests.some(
+            interest => audienceData.demographic?.interests?.includes(interest)
+          );
+          if (interestMatch) score += 0.2;
+        }
+        
+        // Check geographic matches (cities)
+        if (audienceData.geographic?.cities && 
+            data.geographics.cities.length > 0) {
+          const cityMatch = data.geographics.cities.some(
+            city => audienceData.geographic?.cities?.includes(city)
+          );
+          if (cityMatch) score += 0.2;
+        }
+        
+        // Check geographic matches (states)
+        if (audienceData.geographic?.states && 
+            data.geographics.states.length > 0) {
+          const stateMatch = data.geographics.states.some(
+            state => audienceData.geographic?.states?.includes(state)
+          );
+          if (stateMatch) score += 0.2;
+        }
       }
     }
     
@@ -240,8 +293,12 @@ export const generateCampaignQuotation = async (
     calculatedTotalImpressions += platformTotalImpressions;
 
     if (platformAssets.length > 0) {
+      // Process audience_data to ensure correct type
+      const processedAudienceData = processAudienceData(platform.audience_data);
+      
       processedPlatforms.push({
         ...platform,
+        audience_data: processedAudienceData,
         assets: platformAssets,
         totalCost: platformTotalCost,
         totalImpressions: platformTotalImpressions
