@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -148,10 +147,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             <div className="flex items-center space-x-2">
               <Input
                 id="premium-users-count"
-                type="number"
-                step="0.1"
-                min="0"
-                placeholder="Count in millions"
+                placeholder="e.g., 0.5"
                 className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
                 value={getPremiumUserCount()}
                 onChange={(e) => handlePremiumCountChange(e.target.value)}
