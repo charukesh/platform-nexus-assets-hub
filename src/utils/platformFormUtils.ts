@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 // Interface for form data structure
@@ -11,6 +12,8 @@ export interface FormDataType {
   device_split: {
     ios: number;
     android: number;
+    web?: number;
+    other?: number;
   };
   audience_data: {
     supports: {
@@ -32,7 +35,7 @@ export interface FormDataType {
       states: string[];
       regions: string[];
       pincodes: string[];
-      tierLevels: string[]; // Added tierLevels property
+      tierLevels: string[]; 
     };
     realtime: boolean;
   };
@@ -40,11 +43,17 @@ export interface FormDataType {
     buyTypes: string[];
     funneling: string[];
     innovations: string;
+    formats?: string[];
+    adUnits?: string[];
+    tracking?: string[];
   };
   restrictions: {
     blockedCategories: string[];
     minimumSpend: number;
     didYouKnow: string;
+    categories?: string[];
+    placements?: string[];
+    content?: string[];
   };
 }
 

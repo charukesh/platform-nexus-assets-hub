@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface Asset {
@@ -176,13 +177,19 @@ export interface FormDataType {
     };
   };
   campaign_data: {
-    formats: string[];
-    adUnits: string[];
-    tracking: string[];
+    buyTypes: string[];
+    funneling: string[];
+    innovations: string;
+    formats?: string[];
+    adUnits?: string[];
+    tracking?: string[];
   };
   restrictions: {
     categories: string[];
     placements: string[];
     content: string[];
+    blockedCategories?: string[];
+    minimumSpend?: number;
+    didYouKnow?: string;
   };
 }

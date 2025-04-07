@@ -7,8 +7,11 @@ import {
   Asset, 
   PlatformDbRecord, 
   PlatformWithAssets,
-  FormDataType
+  FormDataType as CampaignFormDataType
 } from "@/types/campaign";
+import {
+  FormDataType as PlatformFormDataType
+} from "@/utils/platformFormUtils";
 
 export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAssets | null> => {
   try {
@@ -74,7 +77,7 @@ export const fetchPlatformById = async (id: string) => {
   }
 };
 
-export const savePlatform = async (formData: FormDataType, id?: string) => {
+export const savePlatform = async (formData: PlatformFormDataType, id?: string) => {
   try {
     // Transform the FormDataType to match the database structure if needed
     const platformData = {
@@ -85,8 +88,18 @@ export const savePlatform = async (formData: FormDataType, id?: string) => {
       premium_users: formData.premium_users,
       device_split: formData.device_split,
       audience_data: formData.audience_data,
-      campaign_data: formData.campaign_data,
-      restrictions: formData.restrictions,
+      campaign_data: {
+        formats: formData.campaign_data.buyTypes || [],
+        adUnits: formData.campaign_data.funneling || [],
+        tracking: [],
+        ...formData.campaign_data
+      },
+      restrictions: {
+        categories: formData.restrictions.blockedCategories || [],
+        placements: [],
+        content: [],
+        ...formData.restrictions
+      },
       updated_at: new Date().toISOString()
     };
 
