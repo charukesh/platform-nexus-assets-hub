@@ -1,19 +1,8 @@
-
 import { Json } from "@/integrations/supabase/types";
-import { CampaignData } from "@/pages/CampaignQuotation";
+import { CampaignData, Platform } from "@/types/campaign";
 import { supabase } from "@/integrations/supabase/client";
 
-export interface Platform {
-  id: string;
-  name: string;
-  industry: string;
-  mau: string | number;
-  dau: string | number;
-  premium_users: number;
-  description?: string;
-  logo_url?: string;
-  audience_data?: Json;
-}
+export { Platform };
 
 // Type guard to check if a Json value is an object
 export function isJsonObject(value: Json | null | undefined): value is { [key: string]: Json } {

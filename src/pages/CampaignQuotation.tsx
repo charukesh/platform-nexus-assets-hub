@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -8,31 +7,7 @@ import PlatformSelection from "@/components/campaign/PlatformSelection";
 import QuotationPreview from "@/components/campaign/QuotationPreview";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-
-export interface CampaignData {
-  industry: string;
-  demographics: {
-    ageGroups: string[];
-    gender: string[];
-    interests: string[];
-  };
-  geographics: {
-    cities: string[];
-    states: string[];
-    tierLevels: string[];
-  };
-  objectives: string[];
-  duration: {
-    startDate: Date | undefined;
-    endDate: Date | undefined;
-  };
-  budget: number;
-  assetCategories: string[];
-  platformPreferences: string[];
-  // Additional targeting options can be added here
-  premiumOnly?: boolean;
-  platformTypes?: string[]; // Mobile, CTV, Web
-}
+import { CampaignData } from "@/types/campaign";
 
 const initialCampaignData: CampaignData = {
   industry: "",

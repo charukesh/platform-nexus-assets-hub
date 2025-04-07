@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Users, Info } from "lucide-react";
@@ -9,19 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Json } from "@/integrations/supabase/types";
-
-interface Platform {
-  id: string;
-  name: string;
-  industry: string;
-  mau: string | number;
-  dau: string | number;
-  premium_users: number;
-  description?: string;
-  logo_url?: string;
-  audience_data?: Json;
-}
+import { Platform } from "@/types/campaign";
 
 interface PlatformCardProps {
   platform: Platform;

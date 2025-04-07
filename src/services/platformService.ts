@@ -1,42 +1,58 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { FormDataType } from "@/utils/platformFormUtils";
+import { 
+  enhanceAsset, 
+  enhancePlatform 
+} from "@/utils/campaignUtils";
+import { 
+  Asset, 
+  PlatformDbRecord, 
+  PlatformWithAssets 
+} from "@/types/campaign";
 
-export const fetchPlatformById = async (id: string) => {
-  const { data, error } = await supabase
-    .from('platforms')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error) throw error;
-  return data;
-};
+export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAssets | null> => {
+  try {
+    const { data: platform, error: platformError } = await supabase
+      .from('platforms')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-export const savePlatform = async (platformData: FormDataType, id?: string) => {
-  const dataToSave = {
-    name: platformData.name,
-    industry: platformData.industry,
-    mau: platformData.mau,
-    dau: platformData.dau,
-    premium_users: platformData.premium_users,
-    premium_users_display_as_percentage: platformData.premium_users_display_as_percentage,
-    device_split: platformData.device_split,
-    audience_data: platformData.audience_data,
-    campaign_data: platformData.campaign_data,
-    restrictions: platformData.restrictions
-  };
-  
-  if (id) {
-    // Update existing platform
-    return await supabase
-      .from('platforms')
-      .update(dataToSave)
-      .eq('id', id);
-  } else {
-    // Create new platform
-    return await supabase
-      .from('platforms')
-      .insert(dataToSave);
+    if (platformError) {
+      throw platformError;
+    }
+
+    if (!platform) {
+      return null;
+    }
+
+    const { data: assetsData, error: assetsError } = await supabase
+      .from('assets')
+      .select('*')
+      .eq('platform_id', id);
+
+    if (assetsError) {
+      throw assetsError;
+    }
+
+    // Create assets with required fields
+    const assets: Asset[] = (assetsData || []).map(enhanceAsset);
+
+    // Calculate costs and impressions
+    const totalCost = assets.reduce((sum, asset) => sum + asset.cost_per_day, 0);
+    const totalImpressions = assets.reduce((sum, asset) => sum + asset.estimated_impressions, 0);
+
+    // Create platform with all required fields
+    const enhancedPlatform = enhancePlatform(platform as PlatformDbRecord);
+    
+    return {
+      ...enhancedPlatform,
+      assets,
+      totalCost,
+      totalImpressions
+    };
+  } catch (error) {
+    console.error('Error fetching platform with assets:', error);
+    throw error;
   }
 };

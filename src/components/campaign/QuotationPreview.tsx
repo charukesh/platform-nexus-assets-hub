@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { CampaignData } from "@/pages/CampaignQuotation";
+import { CampaignData } from "@/types/campaign";
 import { useToast } from "@/hooks/use-toast";
 import { generateCampaignQuotation, PlatformWithAssets } from "@/services/campaignService";
 import QuotationActions from "./QuotationActions";
@@ -13,6 +13,11 @@ import EmptyPlatforms from "./EmptyPlatforms";
 
 interface QuotationPreviewProps {
   data: CampaignData;
+}
+
+interface PlatformCardProps {
+  platform: PlatformWithAssets;
+  campaignDays: number;
 }
 
 const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {

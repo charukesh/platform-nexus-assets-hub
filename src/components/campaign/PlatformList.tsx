@@ -1,19 +1,6 @@
-
 import React from "react";
 import PlatformCard from "./PlatformCard";
-import { Json } from "@/integrations/supabase/types";
-
-interface Platform {
-  id: string;
-  name: string;
-  industry: string;
-  mau: string | number;
-  dau: string | number;
-  premium_users: number;
-  description?: string;
-  logo_url?: string;
-  audience_data?: Json;
-}
+import { Platform } from "@/types/campaign";
 
 interface PlatformListProps {
   platforms: Platform[];
