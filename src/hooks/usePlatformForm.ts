@@ -224,20 +224,7 @@ export const usePlatformForm = () => {
     try {
       setLoading(true);
       
-      const platformData = {
-        name: formData.name,
-        industry: formData.industry,
-        mau: formData.mau,
-        dau: formData.dau,
-        premium_users: formData.premium_users,
-        premium_users_display_as_percentage: formData.premium_users_display_as_percentage,
-        device_split: formData.device_split,
-        audience_data: formData.audience_data,
-        campaign_data: formData.campaign_data,
-        restrictions: formData.restrictions
-      };
-      
-      const { error } = await savePlatform(platformData, id);
+      const { error } = await savePlatform(formData, id);
       
       if (error) throw error;
       

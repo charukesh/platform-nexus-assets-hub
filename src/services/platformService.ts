@@ -13,17 +13,30 @@ export const fetchPlatformById = async (id: string) => {
   return data;
 };
 
-export const savePlatform = async (platformData: any, id?: string) => {
+export const savePlatform = async (platformData: FormDataType, id?: string) => {
+  const dataToSave = {
+    name: platformData.name,
+    industry: platformData.industry,
+    mau: platformData.mau,
+    dau: platformData.dau,
+    premium_users: platformData.premium_users,
+    premium_users_display_as_percentage: platformData.premium_users_display_as_percentage,
+    device_split: platformData.device_split,
+    audience_data: platformData.audience_data,
+    campaign_data: platformData.campaign_data,
+    restrictions: platformData.restrictions
+  };
+  
   if (id) {
     // Update existing platform
     return await supabase
       .from('platforms')
-      .update(platformData)
+      .update(dataToSave)
       .eq('id', id);
   } else {
     // Create new platform
     return await supabase
       .from('platforms')
-      .insert(platformData);
+      .insert(dataToSave);
   }
 };
