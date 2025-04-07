@@ -51,15 +51,17 @@ const PlatformForm: React.FC = () => {
           audienceData.supports = defaultFormData.audience_data.supports;
         }
         
+        const displayAsPercentage = 'premium_users_display_as_percentage' in data 
+          ? data.premium_users_display_as_percentage as boolean 
+          : true;
+        
         setFormData({
           name: data.name || "",
           industry: data.industry || "",
           mau: data.mau || "",
           dau: data.dau || "",
           premium_users: data.premium_users || 0,
-          premium_users_display_as_percentage: data.premium_users_display_as_percentage !== undefined 
-            ? data.premium_users_display_as_percentage 
-            : true,
+          premium_users_display_as_percentage: displayAsPercentage,
           device_split: parseJsonField(data.device_split, defaultFormData.device_split),
           audience_data: audienceData,
           campaign_data: parseJsonField(data.campaign_data, defaultFormData.campaign_data),
