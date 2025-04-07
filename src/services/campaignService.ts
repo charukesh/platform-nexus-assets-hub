@@ -1,5 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
+import { differenceInDays } from "date-fns";
+import { CampaignData } from "@/pages/CampaignQuotation";
 
 export interface Asset {
   id: string;
@@ -20,6 +23,9 @@ export interface Asset {
   restrictions: string | null;
   dimensions: string | null;
   file_url: string | null;
+  file_size?: string | null;
+  thumbnail_url?: string | null;
+  tags?: string[] | null;
 }
 
 export interface Platform {
@@ -38,6 +44,12 @@ export interface Platform {
   restrictions: string[];
   created_at: string | null;
   updated_at: string | null;
+  industry?: string;
+  mau?: string | number;
+  dau?: string | number;
+  premium_users?: number;
+  device_split?: any;
+  campaign_data?: any;
 }
 
 export interface AudienceData {
@@ -53,12 +65,14 @@ export interface AudienceData {
   };
 }
 
-export function isAudienceData(value: unknown): value is AudienceData {
-  return value !== null && typeof value === 'object';
-}
-
 export interface PlatformWithAssets extends Platform {
   assets: Asset[];
+  totalCost?: number;
+  totalImpressions?: number;
+}
+
+export function isAudienceData(value: unknown): value is AudienceData {
+  return value !== null && typeof value === 'object';
 }
 
 export interface PlatformAllocation {
@@ -121,7 +135,7 @@ export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAss
 
     const audienceData = parseAudienceData(platform.audience_data);
 
-    const { data: assets, error: assetsError } = await supabase
+    const { data: assetsData, error: assetsError } = await supabase
       .from('assets')
       .select('*')
       .eq('platform_id', id);
@@ -130,10 +144,37 @@ export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAss
       throw assetsError;
     }
 
+    // Create assets with required fields
+    const assets: Asset[] = (assetsData || []).map(asset => ({
+      ...asset,
+      status: "active",
+      cost_per_day: 0,
+      targeting_score: 0,
+      allocated_budget: 0,
+      estimated_impressions: 0,
+      restrictions: null,
+      dimensions: null
+    }));
+
+    // Calculate costs and impressions
+    const totalCost = 0;
+    const totalImpressions = 0;
+
     return {
       ...platform,
       audience_data: audienceData,
-      assets: assets || []
+      assets,
+      totalCost,
+      totalImpressions,
+      type: platform.type || "platform",
+      status: platform.status || "active",
+      average_cpm: platform.average_cpm || 0,
+      base_cost: platform.base_cost || 0,
+      min_budget: platform.min_budget || 0,
+      audience_reach: platform.audience_reach || 0,
+      capabilities: platform.capabilities || [],
+      requirements: platform.requirements || [],
+      restrictions: platform.restrictions ? JSON.stringify(platform.restrictions).split(',') : []
     };
   } catch (error) {
     console.error('Error fetching platform with assets:', error);
@@ -189,9 +230,14 @@ export const generateCampaignQuotation = async (
   // Apply cost and impressions to assets (simulated for now)
   const processedAssets = assetsData.map(asset => ({
     ...asset,
+    status: "active",
     cost_per_day: Math.floor(Math.random() * 15000) + 5000,
-    estimated_impressions: Math.floor(Math.random() * 90000) + 10000
-  }));
+    estimated_impressions: Math.floor(Math.random() * 90000) + 10000,
+    targeting_score: 1.0,
+    allocated_budget: 0,
+    restrictions: null,
+    dimensions: null
+  })) as Asset[];
 
   // Step 3: Targeting-Based Scoring
   // Calculate a matching score for each asset based on demographics, geographics, etc.
@@ -323,7 +369,16 @@ export const generateCampaignQuotation = async (
         audience_data: processedAudienceData,
         assets: platformAssets,
         totalCost: platformTotalCost,
-        totalImpressions: platformTotalImpressions
+        totalImpressions: platformTotalImpressions,
+        type: platform.type || "platform",
+        status: platform.status || "active",
+        average_cpm: platform.average_cpm || 0,
+        base_cost: platform.base_cost || 0,
+        min_budget: platform.min_budget || 0,
+        audience_reach: platform.audience_reach || 0,
+        capabilities: platform.capabilities || [],
+        requirements: platform.requirements || [],
+        restrictions: platform.restrictions ? JSON.stringify(platform.restrictions).split(',') : []
       });
     }
   });

@@ -16,17 +16,17 @@ const PlatformCard: React.FC<PlatformCardProps> = ({ platform, campaignDays }) =
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
         <div>
           <h4 className="text-xl font-bold">{platform.name}</h4>
-          <p className="text-muted-foreground">{platform.industry}</p>
+          <p className="text-muted-foreground">{platform.industry || 'N/A'}</p>
         </div>
         <div className="flex items-center gap-3 mt-2 md:mt-0">
           <div className="flex items-center gap-1">
             <Users size={16} className="text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
-              MAU: {formatUserCount(platform.mau)}
+              MAU: {formatUserCount(platform.mau || 0)}
             </span>
           </div>
           <div className="neu-pressed px-3 py-1 rounded-lg">
-            <span className="font-medium">{formatCurrency(platform.totalCost)}</span>
+            <span className="font-medium">{formatCurrency(platform.totalCost || 0)}</span>
           </div>
         </div>
       </div>
@@ -64,9 +64,9 @@ const PlatformCard: React.FC<PlatformCardProps> = ({ platform, campaignDays }) =
           <tfoot className="border-t bg-neugray-100 dark:bg-gray-800">
             <tr>
               <td colSpan={2} className="p-2 font-bold">Platform Total</td>
-              <td className="p-2 text-right font-bold">{formatNumber(platform.totalImpressions)}</td>
+              <td className="p-2 text-right font-bold">{formatNumber(platform.totalImpressions || 0)}</td>
               <td className="p-2"></td>
-              <td className="p-2 text-right font-bold">{formatCurrency(platform.totalCost)}</td>
+              <td className="p-2 text-right font-bold">{formatCurrency(platform.totalCost || 0)}</td>
             </tr>
           </tfoot>
         </table>
