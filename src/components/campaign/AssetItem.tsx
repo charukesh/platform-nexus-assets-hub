@@ -34,9 +34,9 @@ const AssetItem: React.FC<AssetItemProps> = ({
           >
             {asset.name}
           </Label>
-          {asset.price && (
+          {asset.cost_per_day && (
             <span className="text-sm font-medium">
-              {formatCurrency(asset.price * campaignDays)}
+              {formatCurrency(asset.cost_per_day * campaignDays)}
             </span>
           )}
         </div>
