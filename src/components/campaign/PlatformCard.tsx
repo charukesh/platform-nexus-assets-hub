@@ -1,77 +1,104 @@
 
 import React from "react";
-import { Users } from "lucide-react";
-import NeuCard from "@/components/NeuCard";
-import { formatCurrency, formatNumber, formatUserCount } from "@/utils/formatUtils";
-import { PlatformWithAssets } from "@/services/campaignService";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Users, Info } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Json } from "@/integrations/supabase/types";
 
-interface PlatformCardProps {
-  platform: PlatformWithAssets;
-  campaignDays: number;
+interface Platform {
+  id: string;
+  name: string;
+  industry: string;
+  mau: string | number;
+  dau: string | number;
+  premium_users: number;
+  description?: string;
+  logo_url?: string;
+  audience_data?: Json;
 }
 
-const PlatformCard: React.FC<PlatformCardProps> = ({ platform, campaignDays }) => {
+interface PlatformCardProps {
+  platform: Platform;
+  isSelected: boolean;
+  autoSuggestEnabled: boolean;
+  togglePlatform: (platformId: string) => void;
+  formatUserCount: (count: string | number | null | undefined) => string;
+}
+
+const PlatformCard: React.FC<PlatformCardProps> = ({
+  platform,
+  isSelected,
+  autoSuggestEnabled,
+  togglePlatform,
+  formatUserCount,
+}) => {
   return (
-    <NeuCard className="mb-4 p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
-        <div>
-          <h4 className="text-xl font-bold">{platform.name}</h4>
-          <p className="text-muted-foreground">{platform.industry || 'N/A'}</p>
-        </div>
-        <div className="flex items-center gap-3 mt-2 md:mt-0">
-          <div className="flex items-center gap-1">
-            <Users size={16} className="text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">
-              MAU: {formatUserCount(platform.mau || 0)}
-            </span>
+    <Card
+      key={platform.id}
+      className={`p-4 cursor-pointer transition-all ${
+        isSelected
+          ? "bg-primary/10 dark:bg-primary/20"
+          : ""
+      }`}
+      onClick={() => !autoSuggestEnabled && togglePlatform(platform.id)}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          {platform.logo_url ? (
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700">
+              <img
+                src={platform.logo_url}
+                alt={platform.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <span className="text-lg font-bold">
+                {platform.name.charAt(0)}
+              </span>
+            </div>
+          )}
+          <div>
+            <h3 className="font-medium">{platform.name}</h3>
+            <p className="text-sm text-muted-foreground">
+              {platform.industry}
+            </p>
           </div>
-          <div className="neu-pressed px-3 py-1 rounded-lg">
-            <span className="font-medium">{formatCurrency(platform.totalCost || 0)}</span>
-          </div>
         </div>
+
+        {!autoSuggestEnabled && (
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => togglePlatform(platform.id)}
+            className="mt-1"
+          />
+        )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="border-b">
-            <tr>
-              <th className="text-left p-2">Asset</th>
-              <th className="text-left p-2">Category</th>
-              <th className="text-right p-2">Est. Impressions</th>
-              <th className="text-right p-2">Cost/Day</th>
-              <th className="text-right p-2">Total Cost</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {platform.assets.map((asset) => (
-              <tr key={asset.id}>
-                <td className="p-2 font-medium">{asset.name}</td>
-                <td className="p-2">
-                  <span className="text-xs px-2 py-1 rounded bg-neugray-200 dark:bg-gray-700">
-                    {asset.category}
-                  </span>
-                </td>
-                <td className="p-2 text-right">
-                  {formatNumber(asset.estimated_impressions * campaignDays)}
-                </td>
-                <td className="p-2 text-right">{formatCurrency(asset.cost_per_day)}</td>
-                <td className="p-2 text-right font-medium">
-                  {formatCurrency(asset.cost_per_day * campaignDays)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot className="border-t bg-neugray-100 dark:bg-gray-800">
-            <tr>
-              <td colSpan={2} className="p-2 font-bold">Platform Total</td>
-              <td className="p-2 text-right font-bold">{formatNumber(platform.totalImpressions || 0)}</td>
-              <td className="p-2"></td>
-              <td className="p-2 text-right font-bold">{formatCurrency(platform.totalCost || 0)}</td>
-            </tr>
-          </tfoot>
-        </table>
+      <div className="mt-3 flex items-center text-sm">
+        <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+        <span className="text-muted-foreground">
+          MAU/DAU: {formatUserCount(platform.mau)}/{formatUserCount(platform.dau)}
+        </span>
       </div>
-    </NeuCard>
+
+      {/* Show audience match details */}
+      {isSelected && platform.audience_data && (
+        <div className="mt-2 text-sm">
+          <div className="text-green-600 dark:text-green-400 text-xs flex items-center">
+            <Info className="h-3 w-3 mr-1" />
+            <span>Matching audience profiles</span>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 };
 
