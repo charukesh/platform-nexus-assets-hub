@@ -1,47 +1,46 @@
 import { supabase } from "@/integrations/supabase/client";
-import { CampaignData } from "@/pages/CampaignQuotation";
-import { differenceInDays } from "date-fns";
-import { Json } from "@/integrations/supabase/types";
+import type { Json } from "@/integrations/supabase/types";
 
-// Define types for the algorithm
-interface Asset {
+export interface Asset {
   id: string;
   name: string;
-  category: string;
-  platform_id: string;
   type: string;
-  file_url: string;
-  thumbnail_url: string;
-  description: string;
-  tags: string[];
-  file_size: string;
-  uploaded_by: string;
-  created_at: string;
-  updated_at: string;
-  
-  // Extended properties for campaign calculation
+  platform_id: string;
+  status: string;
+  description: string | null;
+  category: string;
   cost_per_day: number;
+  targeting_score: number;
+  allocated_budget: number;
   estimated_impressions: number;
-  targeting_score?: number;
-  allocated_budget?: number;
+  created_at: string | null;
+  updated_at: string | null;
+  platform_name?: string;
+  uploaded_by: string | null;
+  restrictions: string | null;
+  dimensions: string | null;
+  file_url: string | null;
 }
 
-interface Platform {
+export interface Platform {
   id: string;
   name: string;
-  industry: string;
-  mau: string | number;
-  dau: string | number;
-  premium_users: number;
-  premium_users_display_as_percentage?: boolean;
-  device_split?: any;
-  audience_data?: Json;
-  campaign_data?: any;
-  restrictions?: any;
+  type: string;
+  status: string;
+  description: string | null;
+  average_cpm: number;
+  base_cost: number;
+  min_budget: number;
+  audience_reach: number;
+  audience_data: AudienceData;
+  capabilities: string[];
+  requirements: string[];
+  restrictions: string[];
+  created_at: string | null;
+  updated_at: string | null;
 }
 
-// Create a type for the processed audience data format
-interface AudienceData {
+export interface AudienceData {
   demographic?: {
     ageGroups?: string[];
     gender?: string[];
@@ -54,70 +53,94 @@ interface AudienceData {
   };
 }
 
-export interface PlatformWithAssets extends Omit<Platform, 'audience_data'> {
-  audience_data?: AudienceData;
+export function isAudienceData(value: unknown): value is AudienceData {
+  return value !== null && typeof value === 'object';
+}
+
+export interface PlatformWithAssets extends Platform {
   assets: Asset[];
-  totalCost: number;
-  totalImpressions: number;
 }
 
-// Type guard to check if Json value is valid audience data structure
-function isValidAudienceData(data: Json | null | undefined): data is AudienceData {
-  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
-  
-  return true;
+export interface PlatformAllocation {
+  platform: Platform;
+  platformAssets: Asset[];
+  totalBudget: number;
+  days: number;
+  estimatedImpressions: number;
 }
 
-// Function to safely process audience data into the expected format
-function processAudienceData(data: Json | null | undefined): AudienceData | undefined {
-  if (!isValidAudienceData(data)) return undefined;
-  
-  const result: AudienceData = {};
-  
-  // Process demographic data if it exists
-  if (data.demographic && typeof data.demographic === 'object' && !Array.isArray(data.demographic)) {
-    result.demographic = {};
-    
-    // Process age groups
-    if (Array.isArray(data.demographic.ageGroups)) {
-      result.demographic.ageGroups = data.demographic.ageGroups as string[];
-    }
-    
-    // Process gender
-    if (Array.isArray(data.demographic.gender)) {
-      result.demographic.gender = data.demographic.gender as string[];
-    }
-    
-    // Process interests
-    if (Array.isArray(data.demographic.interests)) {
-      result.demographic.interests = data.demographic.interests as string[];
-    }
+export interface QuotationSummary {
+  totalBudget: number;
+  totalPlatforms: number;
+  totalAssets: number;
+  estimatedImpressions: number;
+  campaignDuration: number;
+}
+
+export interface Quotation {
+  id: string;
+  name: string;
+  description: string;
+  campaignObjective: string;
+  targetAudience: string;
+  budget: number;
+  startDate: Date;
+  endDate: Date;
+  platformAllocations: PlatformAllocation[];
+  createdAt: Date;
+  updatedAt: Date;
+  summary: QuotationSummary;
+}
+
+export const parseAudienceData = (rawData: Json): AudienceData => {
+  if (typeof rawData === 'object' && rawData !== null) {
+    return rawData as unknown as AudienceData;
   }
   
-  // Process geographic data if it exists
-  if (data.geographic && typeof data.geographic === 'object' && !Array.isArray(data.geographic)) {
-    result.geographic = {};
-    
-    // Process cities
-    if (Array.isArray(data.geographic.cities)) {
-      result.geographic.cities = data.geographic.cities as string[];
-    }
-    
-    // Process states
-    if (Array.isArray(data.geographic.states)) {
-      result.geographic.states = data.geographic.states as string[];
-    }
-    
-    // Process tier levels
-    if (Array.isArray(data.geographic.tierLevels)) {
-      result.geographic.tierLevels = data.geographic.tierLevels as string[];
-    }
-  }
-  
-  return Object.keys(result).length > 0 ? result : undefined;
-}
+  return {
+    demographic: { ageGroups: [], gender: [], interests: [] },
+    geographic: { cities: [], states: [], tierLevels: [] }
+  };
+};
 
-// Algorithm implementation
+export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAssets | null> => {
+  try {
+    const { data: platform, error: platformError } = await supabase
+      .from('platforms')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (platformError) {
+      throw platformError;
+    }
+
+    if (!platform) {
+      return null;
+    }
+
+    const audienceData = parseAudienceData(platform.audience_data);
+
+    const { data: assets, error: assetsError } = await supabase
+      .from('assets')
+      .select('*')
+      .eq('platform_id', id);
+
+    if (assetsError) {
+      throw assetsError;
+    }
+
+    return {
+      ...platform,
+      audience_data: audienceData,
+      assets: assets || []
+    };
+  } catch (error) {
+    console.error('Error fetching platform with assets:', error);
+    throw error;
+  }
+};
+
 export const generateCampaignQuotation = async (
   data: CampaignData
 ): Promise<{ 
@@ -182,7 +205,7 @@ export const generateCampaignQuotation = async (
     // If we have audience data for the platform, use it for scoring
     if (platform?.audience_data) {
       // Process audience data to ensure correct type
-      const audienceData = processAudienceData(platform.audience_data);
+      const audienceData = parseAudienceData(platform.audience_data);
       
       if (audienceData) {
         // Check demographic matches (age groups)
@@ -293,7 +316,7 @@ export const generateCampaignQuotation = async (
 
     if (platformAssets.length > 0) {
       // Process audience_data to ensure correct type
-      const processedAudienceData = processAudienceData(platform.audience_data);
+      const processedAudienceData = parseAudienceData(platform.audience_data);
       
       processedPlatforms.push({
         ...platform,
