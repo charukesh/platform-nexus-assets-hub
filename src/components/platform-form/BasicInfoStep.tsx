@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +20,14 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   handleNestedChange 
 }) => {
   const { toast } = useToast();
+  const [premiumUsersCount, setPremiumUsersCount] = React.useState<string>("");
+
+  useEffect(() => {
+    // Initialize the premium users count when MAU changes
+    if (formData.mau) {
+      calculatePremiumUserCount();
+    }
+  }, [formData.mau, formData.premium_users]);
 
   const validateBasicInfo = () => {
     if (!formData.name || !formData.industry) {
@@ -34,6 +43,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
   // Convert premium users count from millions to a percentage value
   const handlePremiumCountChange = (value: string) => {
+    setPremiumUsersCount(value);
     // Convert from millions to a raw number
     const countInMillions = parseFloat(value) || 0;
     
@@ -49,14 +59,15 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     }
   };
 
-  // Get the current premium user count in millions
-  const getPremiumUserCount = (): string => {
+  // Calculate premium user count from percentage
+  const calculatePremiumUserCount = (): string => {
     const mauValue = parseFloat(formData.mau.replace(/[^0-9.]/g, '')) || 0;
     if (mauValue <= 0) return '';
     
     // Convert percentage to count in millions: (percentage * MAU) / 100
     const count = (formData.premium_users * mauValue) / 100;
-    return count.toString();
+    setPremiumUsersCount(count.toFixed(2));
+    return count.toFixed(2);
   };
 
   return (
@@ -149,7 +160,7 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
                 id="premium-users-count"
                 placeholder="e.g., 0.5"
                 className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
-                value={getPremiumUserCount()}
+                value={premiumUsersCount}
                 onChange={(e) => handlePremiumCountChange(e.target.value)}
               />
               <span className="text-xs text-muted-foreground">Millions</span>
