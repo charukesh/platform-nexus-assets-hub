@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -903,7 +904,7 @@ const PlatformForm: React.FC = () => {
                     </NeuButton>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {formData.audience_data.geographic.pincodes?.map((pincode, index) => (
+                    {formData.audience_data.geographic.pincodes.map((pincode, index) => (
                       <div 
                         key={`pincode-${index}`} 
                         className="flex items-center bg-neugray-200 py-1 px-2 rounded-full text-sm"
@@ -911,4 +912,162 @@ const PlatformForm: React.FC = () => {
                         <span>{pincode}</span>
                         <button 
                           type="button"
-                          onClick={() => handleArrayItemRemove('audience_
+                          onClick={() => handleArrayItemRemove('audience_data', 'geographic', 'pincodes', index)}
+                          className="ml-1 text-muted-foreground hover:text-foreground"
+                        >
+                          <MinusCircle size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Campaign Capabilities",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium mb-3">Buy Types</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {buyTypes.map((type) => (
+                <div key={type} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`buy-${type}`}
+                    checked={formData.campaign_data.buyTypes.includes(type)}
+                    onCheckedChange={(checked) => handleCheckboxToggle('campaign_data', 'buyTypes', type)}
+                  />
+                  <label 
+                    htmlFor={`buy-${type}`}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {type}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-3">Campaign Funneling</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {funnelingOptions.map((option) => (
+                <div key={option} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`funnel-${option}`}
+                    checked={formData.campaign_data.funneling.includes(option)}
+                    onCheckedChange={(checked) => handleCheckboxToggle('campaign_data', 'funneling', option)}
+                  />
+                  <label 
+                    htmlFor={`funnel-${option}`}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {option}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-3">Innovation Capabilities</h3>
+            <Textarea
+              id="innovations"
+              placeholder="Describe any unique innovation capabilities..."
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0 resize-none h-32"
+              value={formData.campaign_data.innovations}
+              onChange={(e) => handleCampaignChange('innovations', e.target.value)}
+            />
+          </div>
+        </div>
+      )
+    },
+    {
+      title: "Restrictions & Notes",
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-lg font-medium mb-3">Blocked Categories</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {blockedCategories.map((category) => (
+                <div key={category} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`block-${category}`}
+                    checked={formData.restrictions.blockedCategories.includes(category)}
+                    onCheckedChange={(checked) => handleCheckboxToggle('restrictions', 'blockedCategories', category)}
+                  />
+                  <label 
+                    htmlFor={`block-${category}`}
+                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    {category}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-3">Minimum Spend (in USD)</h3>
+            <div className="flex items-center space-x-2">
+              <Slider
+                min={0}
+                max={100000}
+                step={1000}
+                value={[formData.restrictions.minimumSpend]}
+                onValueChange={(value) => handleRestrictionsChange('minimumSpend', value[0])}
+                className="flex-1"
+              />
+              <span className="w-24 text-center">
+                ${formData.restrictions.minimumSpend.toLocaleString()}
+              </span>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-medium mb-3">Additional Notes</h3>
+            <Textarea
+              id="did-you-know"
+              placeholder="Add any additional notes or 'Did You Know' facts about this platform..."
+              className="bg-white border-none neu-pressed focus-visible:ring-offset-0 resize-none h-32"
+              value={formData.restrictions.didYouKnow}
+              onChange={(e) => handleRestrictionsChange('didYouKnow', e.target.value)}
+            />
+          </div>
+        </div>
+      )
+    }
+  ];
+
+  return (
+    <Layout>
+      <div className="container py-8">
+        <NeuCard className="max-w-4xl mx-auto p-6 border-t-4 border-primary">
+          <h1 className="text-2xl font-bold mb-6">
+            {isEditMode ? "Edit Platform" : "Add New Platform"}
+          </h1>
+          
+          {fetchLoading ? (
+            <div className="py-12 text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent"></div>
+              <p className="mt-2 text-muted-foreground">Loading platform data...</p>
+            </div>
+          ) : (
+            <MultiStepForm
+              steps={formSteps}
+              onComplete={handleSubmit}
+              onCancel={() => navigate("/platforms")}
+              isSubmitting={loading}
+            />
+          )}
+        </NeuCard>
+      </div>
+    </Layout>
+  );
+};
+
+export default PlatformForm;
