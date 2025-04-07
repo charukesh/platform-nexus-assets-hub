@@ -33,6 +33,33 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     return true;
   };
 
+  // Convert premium users count from millions to a percentage value
+  const handlePremiumCountChange = (value: string) => {
+    // Convert from millions to a raw number
+    const countInMillions = parseFloat(value) || 0;
+    
+    // If MAU is available, convert count to percentage of MAU
+    const mauValue = parseFloat(formData.mau.replace(/[^0-9.]/g, '')) || 0;
+    if (mauValue > 0) {
+      // Calculate percentage: (premiumUsers / MAU) * 100
+      const percentage = (countInMillions / mauValue) * 100;
+      handleChange('premium_users', Math.min(100, Math.max(0, percentage)));
+    } else {
+      // If MAU isn't available, just store the count directly
+      handleChange('premium_users', countInMillions);
+    }
+  };
+
+  // Get the current premium user count in millions
+  const getPremiumUserCount = (): string => {
+    const mauValue = parseFloat(formData.mau.replace(/[^0-9.]/g, '')) || 0;
+    if (mauValue <= 0) return '';
+    
+    // Convert percentage to count in millions: (percentage * MAU) / 100
+    const count = (formData.premium_users * mauValue) / 100;
+    return count.toString();
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -102,19 +129,36 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
               <span className="text-xs text-muted-foreground">Percentage</span>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Slider
-              min={0}
-              max={100}
-              step={1}
-              value={[formData.premium_users]}
-              onValueChange={(value) => handleChange('premium_users', value[0])}
-              className="flex-1"
-            />
-            <span className="w-16 text-center">
-              {formatPremiumUsers(formData.premium_users, formData.premium_users_display_as_percentage, formData.mau)}
-            </span>
-          </div>
+          
+          {formData.premium_users_display_as_percentage ? (
+            <div className="flex items-center space-x-2">
+              <Slider
+                min={0}
+                max={100}
+                step={1}
+                value={[formData.premium_users]}
+                onValueChange={(value) => handleChange('premium_users', value[0])}
+                className="flex-1"
+              />
+              <span className="w-16 text-center">
+                {formatPremiumUsers(formData.premium_users, formData.premium_users_display_as_percentage, formData.mau)}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Input
+                id="premium-users-count"
+                type="number"
+                step="0.1"
+                min="0"
+                placeholder="Count in millions"
+                className="bg-white border-none neu-pressed focus-visible:ring-offset-0"
+                value={getPremiumUserCount()}
+                onChange={(e) => handlePremiumCountChange(e.target.value)}
+              />
+              <span className="text-xs text-muted-foreground">Millions</span>
+            </div>
+          )}
         </div>
       </div>
 
