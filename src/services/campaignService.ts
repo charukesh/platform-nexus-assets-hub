@@ -28,6 +28,23 @@ export interface Asset {
   tags?: string[] | null;
 }
 
+// This interface matches what comes from the database
+export interface PlatformDbRecord {
+  id: string;
+  name: string;
+  industry: string;
+  audience_data: Json;
+  campaign_data: Json | null;
+  created_at: string | null;
+  updated_at: string | null;
+  dau: string | null;
+  mau: string | null;
+  premium_users: number | null;
+  device_split: Json | null;
+  restrictions: Json | null;
+  description?: string | null;
+}
+
 export interface Platform {
   id: string;
   name: string;
@@ -117,6 +134,65 @@ export const parseAudienceData = (rawData: Json): AudienceData => {
   };
 };
 
+// Enhance the database asset type to match our Asset interface
+const enhanceAsset = (asset: any): Asset => {
+  return {
+    id: asset.id,
+    name: asset.name,
+    type: asset.type,
+    platform_id: asset.platform_id || "",
+    status: asset.status || "active",
+    description: asset.description,
+    category: asset.category,
+    cost_per_day: asset.cost_per_day || 0,
+    targeting_score: asset.targeting_score || 0,
+    allocated_budget: asset.allocated_budget || 0,
+    estimated_impressions: asset.estimated_impressions || 0,
+    created_at: asset.created_at,
+    updated_at: asset.updated_at,
+    uploaded_by: asset.uploaded_by,
+    restrictions: asset.restrictions || null,
+    dimensions: asset.dimensions || null,
+    file_url: asset.file_url,
+    file_size: asset.file_size,
+    thumbnail_url: asset.thumbnail_url,
+    tags: asset.tags
+  };
+};
+
+// Convert database platform to our Platform interface
+const enhancePlatform = (platform: PlatformDbRecord): Platform => {
+  const audienceData = parseAudienceData(platform.audience_data);
+  
+  return {
+    id: platform.id,
+    name: platform.name,
+    industry: platform.industry,
+    description: platform.description || null,
+    type: "platform", // Default values for fields not in DB
+    status: "active",
+    average_cpm: 0,
+    base_cost: 0,
+    min_budget: 0,
+    audience_reach: 0,
+    audience_data: audienceData,
+    capabilities: [],
+    requirements: [],
+    restrictions: platform.restrictions ? 
+      (typeof platform.restrictions === 'string' ? 
+        platform.restrictions.split(',') : 
+        JSON.stringify(platform.restrictions).split(',')) : 
+      [],
+    created_at: platform.created_at,
+    updated_at: platform.updated_at,
+    mau: platform.mau,
+    dau: platform.dau,
+    premium_users: platform.premium_users,
+    device_split: platform.device_split,
+    campaign_data: platform.campaign_data
+  };
+};
+
 export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAssets | null> => {
   try {
     const { data: platform, error: platformError } = await supabase
@@ -133,8 +209,6 @@ export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAss
       return null;
     }
 
-    const audienceData = parseAudienceData(platform.audience_data);
-
     const { data: assetsData, error: assetsError } = await supabase
       .from('assets')
       .select('*')
@@ -145,39 +219,17 @@ export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAss
     }
 
     // Create assets with required fields
-    const assets: Asset[] = (assetsData || []).map(asset => ({
-      ...asset,
-      status: asset.status || "active",
-      cost_per_day: asset.cost_per_day || 0,
-      targeting_score: asset.targeting_score || 0,
-      allocated_budget: asset.allocated_budget || 0,
-      estimated_impressions: asset.estimated_impressions || 0,
-      restrictions: asset.restrictions || null,
-      dimensions: asset.dimensions || null
-    }));
+    const assets: Asset[] = (assetsData || []).map(enhanceAsset);
 
     // Calculate costs and impressions
-    const totalCost = 0;
-    const totalImpressions = 0;
+    const totalCost = assets.reduce((sum, asset) => sum + asset.cost_per_day, 0);
+    const totalImpressions = assets.reduce((sum, asset) => sum + asset.estimated_impressions, 0);
 
-    // Create platform with all required fields, with defaults for ones that might not be in DB
+    // Create platform with all required fields
+    const enhancedPlatform = enhancePlatform(platform as PlatformDbRecord);
+    
     return {
-      ...platform,
-      description: platform.description || null,
-      type: platform.type || "platform",
-      status: platform.status || "active",
-      average_cpm: platform.average_cpm || 0,
-      base_cost: platform.base_cost || 0,
-      min_budget: platform.min_budget || 0,
-      audience_reach: platform.audience_reach || 0,
-      audience_data: audienceData,
-      capabilities: platform.capabilities || [],
-      requirements: platform.requirements || [],
-      restrictions: platform.restrictions ? 
-        (typeof platform.restrictions === 'string' ? 
-          platform.restrictions.split(',') : 
-          JSON.stringify(platform.restrictions).split(',')) : 
-        [],
+      ...enhancedPlatform,
       assets,
       totalCost,
       totalImpressions
@@ -234,16 +286,12 @@ export const generateCampaignQuotation = async (
   // In a real implementation, we would check for relevant metrics based on objectives
   
   // Apply cost and impressions to assets (simulated for now)
-  const processedAssets = assetsData.map(asset => ({
+  const processedAssets = assetsData.map(asset => enhanceAsset({
     ...asset,
-    status: "active",
     cost_per_day: Math.floor(Math.random() * 15000) + 5000,
     estimated_impressions: Math.floor(Math.random() * 90000) + 10000,
     targeting_score: 1.0,
-    allocated_budget: 0,
-    restrictions: null,
-    dimensions: null
-  })) as Asset[];
+  }));
 
   // Step 3: Targeting-Based Scoring
   // Calculate a matching score for each asset based on demographics, geographics, etc.
@@ -367,26 +415,11 @@ export const generateCampaignQuotation = async (
     calculatedTotalImpressions += platformTotalImpressions;
 
     if (platformAssets.length > 0) {
-      // Process audience_data to ensure correct type
-      const processedAudienceData = parseAudienceData(platform.audience_data);
+      // Convert the database platform to our Platform interface
+      const enhancedPlatform = enhancePlatform(platform as PlatformDbRecord);
       
       processedPlatforms.push({
-        ...platform,
-        description: platform.description || null,
-        type: platform.type || "platform",
-        status: platform.status || "active",
-        average_cpm: platform.average_cpm || 0,
-        base_cost: platform.base_cost || 0,
-        min_budget: platform.min_budget || 0,
-        audience_reach: platform.audience_reach || 0,
-        audience_data: processedAudienceData,
-        capabilities: platform.capabilities || [],
-        requirements: platform.requirements || [],
-        restrictions: platform.restrictions ? 
-          (typeof platform.restrictions === 'string' ? 
-            platform.restrictions.split(',') : 
-            JSON.stringify(platform.restrictions).split(',')) : 
-          [],
+        ...enhancedPlatform,
         assets: platformAssets,
         totalCost: platformTotalCost,
         totalImpressions: platformTotalImpressions
