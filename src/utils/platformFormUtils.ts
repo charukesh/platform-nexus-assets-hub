@@ -33,6 +33,7 @@ export interface FormDataType {
       states: string[];
       regions: string[];
       pincodes: string[];
+      tierLevels: string[]; // Added tierLevels property
     };
     realtime: boolean;
   };
@@ -79,7 +80,8 @@ export const defaultFormData: FormDataType = {
       cities: [],
       states: [],
       regions: [],
-      pincodes: []
+      pincodes: [],
+      tierLevels: [] // Initialize with empty array
     },
     realtime: false
   },

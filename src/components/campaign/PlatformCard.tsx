@@ -17,7 +17,7 @@ interface PlatformCardProps {
   autoSuggestEnabled: boolean;
   togglePlatform: (platformId: string) => void;
   formatUserCount: (count: string | number | null | undefined) => string;
-  campaignDays?: number; // Add optional campaignDays prop
+  campaignDays?: number; // Optional campaignDays prop
 }
 
 const PlatformCard: React.FC<PlatformCardProps> = ({

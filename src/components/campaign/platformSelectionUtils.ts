@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 import { CampaignData, Platform } from "@/types/campaign";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,7 +75,7 @@ export const fetchPlatformsFromSupabase = async (
       let demographicsMatch = true;
       if (data.demographics.ageGroups.length > 0) {
         // Check if any age group matches - use type guards
-        if (hasAudienceDemographic(platform.audience_data)) {
+        if (hasAudienceDemographic(platform.audience_data as unknown as Json)) {
           const audienceData = platform.audience_data as { demographic: { ageGroups?: string[] } };
           if (audienceData.demographic.ageGroups) {
             demographicsMatch = data.demographics.ageGroups.some(
@@ -87,7 +88,7 @@ export const fetchPlatformsFromSupabase = async (
       
       if (data.demographics.gender.length > 0) {
         // Check if any gender matches - use type guards
-        if (hasAudienceDemographic(platform.audience_data)) {
+        if (hasAudienceDemographic(platform.audience_data as unknown as Json)) {
           const audienceData = platform.audience_data as { demographic: { gender?: string[] } };
           if (audienceData.demographic.gender) {
             demographicsMatch = data.demographics.gender.some(
@@ -100,7 +101,7 @@ export const fetchPlatformsFromSupabase = async (
       
       if (data.demographics.interests.length > 0) {
         // Check if any interest matches - use type guards
-        if (hasAudienceDemographic(platform.audience_data)) {
+        if (hasAudienceDemographic(platform.audience_data as unknown as Json)) {
           const audienceData = platform.audience_data as { demographic: { interests?: string[] } };
           if (audienceData.demographic.interests) {
             demographicsMatch = data.demographics.interests.some(
@@ -115,7 +116,7 @@ export const fetchPlatformsFromSupabase = async (
       let geographicsMatch = true;
       if (data.geographics.cities.length > 0) {
         // Check if any city matches - use type guards
-        if (hasAudienceGeographic(platform.audience_data)) {
+        if (hasAudienceGeographic(platform.audience_data as unknown as Json)) {
           const audienceData = platform.audience_data as { geographic: { cities?: string[] } };
           if (audienceData.geographic.cities) {
             geographicsMatch = data.geographics.cities.some(
@@ -128,7 +129,7 @@ export const fetchPlatformsFromSupabase = async (
       
       if (data.geographics.states.length > 0) {
         // Check if any state matches - use type guards
-        if (hasAudienceGeographic(platform.audience_data)) {
+        if (hasAudienceGeographic(platform.audience_data as unknown as Json)) {
           const audienceData = platform.audience_data as { geographic: { states?: string[] } };
           if (audienceData.geographic.states) {
             geographicsMatch = data.geographics.states.some(

@@ -1,3 +1,4 @@
+
 import { Json } from "@/integrations/supabase/types";
 
 export interface Asset {
@@ -63,7 +64,7 @@ export interface Platform {
   premium_users?: number | null;
   device_split?: any;
   campaign_data?: any;
-  logo_url?: string;
+  logo_url?: string; // Add logo_url property
 }
 
 export interface AudienceData {
@@ -165,7 +166,7 @@ export interface FormDataType {
       states: string[];
       regions: string[];
       pincodes: string[];
-      tierLevels: string[];
+      tierLevels: string[]; // Add tierLevels property
     };
     supports: {
       targeting: boolean;
