@@ -1,4 +1,3 @@
-
 import { Json } from "@/integrations/supabase/types";
 
 export interface Asset {
@@ -25,7 +24,6 @@ export interface Asset {
   tags?: string[] | null;
 }
 
-// This interface matches what comes from the database
 export interface PlatformDbRecord {
   id: string;
   name: string;
@@ -64,7 +62,7 @@ export interface Platform {
   premium_users?: number | null;
   device_split?: any;
   campaign_data?: any;
-  logo_url?: string; // Add logo_url property
+  logo_url?: string;
 }
 
 export interface AudienceData {
@@ -137,9 +135,8 @@ export interface CampaignData {
   budget: number;
   assetCategories: string[];
   platformPreferences: string[];
-  // Additional targeting options can be added here
   premiumOnly?: boolean;
-  platformTypes?: string[]; // Mobile, CTV, Web
+  platformTypes?: string[];
 }
 
 export interface FormDataType {
@@ -166,12 +163,16 @@ export interface FormDataType {
       states: string[];
       regions: string[];
       pincodes: string[];
-      tierLevels: string[]; // Add tierLevels property
+      tierLevels: string[];
     };
     supports: {
-      targeting: boolean;
-      customSegments: boolean;
-      lookalikes: boolean;
+      age: boolean;
+      gender: boolean;
+      interests: boolean;
+      cities: boolean;
+      states: boolean;
+      pincodes: boolean;
+      realtime: boolean;
     };
   };
   campaign_data: {

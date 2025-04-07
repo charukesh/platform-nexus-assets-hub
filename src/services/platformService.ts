@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   enhanceAsset, 
@@ -58,7 +57,7 @@ export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAss
   }
 };
 
-// Add the missing functions for usePlatformForm.ts
+// Add the functions for usePlatformForm.ts
 export const fetchPlatformById = async (id: string) => {
   try {
     const { data, error } = await supabase
@@ -77,23 +76,26 @@ export const fetchPlatformById = async (id: string) => {
 
 export const savePlatform = async (formData: FormDataType, id?: string) => {
   try {
+    // Transform the FormDataType to match the database structure if needed
+    const platformData = {
+      name: formData.name,
+      industry: formData.industry,
+      mau: formData.mau,
+      dau: formData.dau,
+      premium_users: formData.premium_users,
+      device_split: formData.device_split,
+      audience_data: formData.audience_data,
+      campaign_data: formData.campaign_data,
+      restrictions: formData.restrictions,
+      updated_at: new Date().toISOString()
+    };
+
     // Determine if we're creating a new platform or updating an existing one
     if (id) {
       // Update existing platform
       const { data, error } = await supabase
         .from('platforms')
-        .update({
-          name: formData.name,
-          industry: formData.industry,
-          mau: formData.mau,
-          dau: formData.dau,
-          premium_users: formData.premium_users,
-          device_split: formData.device_split,
-          audience_data: formData.audience_data,
-          campaign_data: formData.campaign_data,
-          restrictions: formData.restrictions,
-          updated_at: new Date().toISOString()
-        })
+        .update(platformData)
         .eq('id', id);
         
       return { data, error };
@@ -102,17 +104,8 @@ export const savePlatform = async (formData: FormDataType, id?: string) => {
       const { data, error } = await supabase
         .from('platforms')
         .insert({
-          name: formData.name,
-          industry: formData.industry,
-          mau: formData.mau,
-          dau: formData.dau,
-          premium_users: formData.premium_users,
-          device_split: formData.device_split,
-          audience_data: formData.audience_data,
-          campaign_data: formData.campaign_data,
-          restrictions: formData.restrictions,
+          ...platformData,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
         });
         
       return { data, error };
