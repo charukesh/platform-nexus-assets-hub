@@ -8,7 +8,10 @@ import { parseAudienceData } from "@/utils/campaignUtils";
  * Fetch assets for specified platforms
  */
 export const fetchAssets = async (platformIds: string[]): Promise<Asset[]> => {
-  if (!platformIds || platformIds.length === 0) return [];
+  if (!platformIds || !Array.isArray(platformIds) || platformIds.length === 0) {
+    console.log("No platform IDs provided for asset fetching");
+    return [];
+  }
   
   try {
     const { data, error } = await supabase
@@ -22,7 +25,7 @@ export const fetchAssets = async (platformIds: string[]): Promise<Asset[]> => {
     return (data || []).map(asset => enhanceAsset(asset));
   } catch (error) {
     console.error("Error fetching assets:", error);
-    throw error;
+    return [];
   }
 };
 
@@ -33,15 +36,21 @@ export const filterAssetsByCategory = (
   assets: Asset[], 
   assetCategories: string[]
 ): Asset[] => {
-  if (!assetCategories.length) return assets;
-  return assets.filter(asset => assetCategories.includes(asset.category || ''));
+  if (!assets || !Array.isArray(assets)) return [];
+  if (!assetCategories || !Array.isArray(assetCategories) || assetCategories.length === 0) return assets;
+  
+  return assets.filter(asset => asset && assetCategories.includes(asset.category || ''));
 };
 
 /**
  * Process assets to add required properties
  */
 export const processAssets = (assets: Asset[]): Asset[] => {
+  if (!assets || !Array.isArray(assets)) return [];
+  
   return assets.map((asset) => {
+    if (!asset) return null;
+    
     // Generate default values for missing properties
     const costPerDay = typeof asset.cost_per_day === 'number' ? asset.cost_per_day : Math.floor(Math.random() * 15000) + 5000;
     const estimatedImpressions = typeof asset.estimated_impressions === 'number' ? asset.estimated_impressions : Math.floor(Math.random() * 90000) + 10000;
@@ -54,7 +63,7 @@ export const processAssets = (assets: Asset[]): Asset[] => {
       status: asset.status || "active",
       allocated_budget: typeof asset.allocated_budget === 'number' ? asset.allocated_budget : 0
     };
-  });
+  }).filter(Boolean) as Asset[];
 };
 
 /**
@@ -65,12 +74,29 @@ export const scoreAssets = (
   platformsData: PlatformDbRecord[], 
   campaignData: CampaignData
 ): AssetWithScoring[] => {
+  if (!assets || !Array.isArray(assets) || assets.length === 0) {
+    console.log("No assets provided for scoring");
+    return [];
+  }
+  
+  if (!platformsData || !Array.isArray(platformsData)) {
+    console.log("No platform data provided for scoring");
+    return assets as AssetWithScoring[];
+  }
+  
+  if (!campaignData) {
+    console.log("No campaign data provided for scoring");
+    return assets as AssetWithScoring[];
+  }
+
   return assets.map(asset => {
+    if (!asset) return null;
+    
     // Start with a base score
     let score = 1.0;
 
     // Get the associated platform for the asset
-    const platform = platformsData.find(p => p.id === asset.platform_id);
+    const platform = platformsData.find(p => p && p.id === asset.platform_id);
     
     // If we have audience data for the platform, use it for scoring
     if (platform?.audience_data) {
@@ -129,7 +155,7 @@ export const scoreAssets = (
       ...asset,
       targeting_score: score
     };
-  });
+  }).filter(Boolean) as AssetWithScoring[];
 };
 
 /**
@@ -139,13 +165,18 @@ export const filterAssetsBySelection = (
   assets: AssetWithScoring[], 
   selectedAssets: { [platformId: string]: string[] } | undefined
 ): AssetWithScoring[] => {
+  if (!assets || !Array.isArray(assets)) return [];
   if (!selectedAssets || Object.keys(selectedAssets).length === 0) {
     return assets;
   }
   
   return assets.filter(asset => {
+    if (!asset || !asset.platform_id) return false;
+    
     const platformAssets = selectedAssets[asset.platform_id];
-    return platformAssets?.includes(asset.id);
+    if (!platformAssets || !Array.isArray(platformAssets)) return false;
+    
+    return platformAssets.includes(asset.id);
   });
 };
 
@@ -157,21 +188,33 @@ export const allocateBudget = (
   budget: number,
   campaignDays: number
 ): AssetWithScoring[] => {
+  if (!assets || !Array.isArray(assets) || assets.length === 0) {
+    console.log("No assets provided for budget allocation");
+    return [];
+  }
+  
   const totalTargetingScore = assets.reduce(
-    (sum, asset) => sum + (asset.targeting_score || 1), 
+    (sum, asset) => asset ? sum + (asset.targeting_score || 1) : sum, 
     0
   );
   
+  if (totalTargetingScore === 0) {
+    console.log("Total targeting score is zero");
+    return assets;
+  }
+  
   return assets.map(asset => {
+    if (!asset) return null;
+    
     const proportion = (asset.targeting_score || 1) / totalTargetingScore;
     const allocatedBudget = Math.min(
       (budget || 0) * proportion,
-      (asset.cost_per_day || 0) * campaignDays
+      (asset.cost_per_day || 0) * (campaignDays || 1)
     );
     
     return {
       ...asset,
       allocated_budget: allocatedBudget
     };
-  });
+  }).filter(Boolean) as AssetWithScoring[];
 };

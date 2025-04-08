@@ -31,7 +31,8 @@ export const generateCampaignQuotation = async (
   const campaignDays = data?.durationDays || 1;
 
   // Ensure there are selected platforms
-  if (!data?.platformPreferences || data.platformPreferences.length === 0) {
+  if (!data?.platformPreferences || !Array.isArray(data.platformPreferences) || data.platformPreferences.length === 0) {
+    console.log("No platform preferences found");
     return { 
       platforms: [], 
       totalCost: 0, 
@@ -45,6 +46,7 @@ export const generateCampaignQuotation = async (
     const platformsData = await fetchPlatformsByIds(data.platformPreferences);
     
     if (!platformsData || platformsData.length === 0) {
+      console.log("No platforms data returned");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -68,6 +70,17 @@ export const generateCampaignQuotation = async (
     // Step 3: Targeting-Based Scoring
     const scoredAssets = scoreAssets(processedAssets, platformsData, data);
 
+    // Ensure scoredAssets is not undefined
+    if (!scoredAssets || !Array.isArray(scoredAssets)) {
+      console.log("No scored assets returned");
+      return { 
+        platforms: [], 
+        totalCost: 0, 
+        totalImpressions: 0,
+        campaignDays 
+      };
+    }
+
     // Sort assets by targeting score (descending)
     scoredAssets.sort((a, b) => 
       (b.targeting_score || 0) - (a.targeting_score || 0)
@@ -77,7 +90,8 @@ export const generateCampaignQuotation = async (
     const filteredBySelectionAssets = filterAssetsBySelection(scoredAssets, data.selectedAssets);
 
     // Handle edge case where there are no assets after filtering
-    if (filteredBySelectionAssets.length === 0) {
+    if (!filteredBySelectionAssets || filteredBySelectionAssets.length === 0) {
+      console.log("No assets after filtering by selection");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -93,14 +107,26 @@ export const generateCampaignQuotation = async (
       campaignDays
     );
 
+    if (!assetsWithBudget || !Array.isArray(assetsWithBudget)) {
+      console.log("No assets with budget");
+      return { 
+        platforms: [], 
+        totalCost: 0, 
+        totalImpressions: 0,
+        campaignDays 
+      };
+    }
+
     // Step 6: Final Asset Selection and grouping by platform
     const processedPlatforms: PlatformWithAssets[] = [];
     let calculatedTotalCost = 0;
     let calculatedTotalImpressions = 0;
 
     platformsData.forEach(platform => {
+      if (!platform || !platform.id) return;
+      
       const platformAssets = assetsWithBudget.filter(
-        asset => asset.platform_id === platform.id
+        asset => asset && asset.platform_id === platform.id
       );
       
       const platformTotalCost = platformAssets.reduce((sum, asset) => {

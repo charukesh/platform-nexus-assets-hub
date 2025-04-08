@@ -35,13 +35,23 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
     try {
       setLoading(true);
       
+      // Ensure data is properly defined and has required properties
+      if (!data || !data.platformPreferences) {
+        console.log("Campaign data is missing required properties");
+        setPlatforms([]);
+        setLoading(false);
+        return;
+      }
+      
       const quotation = await generateCampaignQuotation(data);
       
+      // Ensure we have platforms from the quotation
       setPlatforms(quotation.platforms || []);
       setTotalCost(quotation.totalCost || 0);
       setTotalImpressions(quotation.totalImpressions || 0);
       setCampaignDays(quotation.campaignDays || data.durationDays || 1);
     } catch (error: any) {
+      console.error("Error generating quotation:", error);
       toast({
         title: "Error generating quotation",
         description: error.message,
@@ -54,6 +64,11 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
     }
   };
 
+  // Ensure we have valid campaign data before rendering
+  if (!data) {
+    return <EmptyPlatforms />;
+  }
+
   return (
     <div className="quotation-preview">
       <QuotationActions className="mb-6" />
@@ -64,7 +79,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
           budget={data?.budget || 0}
           totalCost={totalCost}
           totalImpressions={totalImpressions}
-          platformCount={platforms.length}
+          platformCount={platforms?.length || 0}
         />
       </div>
 
@@ -72,7 +87,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
       {loading ? (
         <LoadingPlatforms />
-      ) : platforms.length > 0 ? (
+      ) : platforms && platforms.length > 0 ? (
         <>
           {platforms.map((platform) => (
             <PlatformCard 
