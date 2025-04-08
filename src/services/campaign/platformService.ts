@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { enhancePlatform } from "@/utils/campaignUtils";
+import { enhancePlatform, enhanceAsset } from "@/utils/campaignUtils";
 import { 
   Asset, 
   PlatformDbRecord, 
@@ -35,8 +35,10 @@ export const getPlatformWithAssets = async (id: string): Promise<PlatformWithAss
       throw assetsError;
     }
 
+    // Use enhanceAsset to ensure all required fields are present
+    const assets = (assetsData || []).map(asset => enhanceAsset(asset));
+    
     // Calculate costs and impressions
-    const assets = assetsData || [];
     const totalCost = assets.reduce((sum, asset) => {
       return sum + (asset.cost_per_day || 0);
     }, 0);

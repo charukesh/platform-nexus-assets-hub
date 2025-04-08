@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { enhanceAsset } from "@/utils/campaignUtils";
 import { Asset, AssetWithScoring, CampaignData, PlatformDbRecord } from "./types";
@@ -17,7 +16,9 @@ export const fetchAssets = async (platformIds: string[]): Promise<Asset[]> => {
       .in("platform_id", platformIds);
 
     if (error) throw error;
-    return data || [];
+    
+    // Use enhanceAsset to ensure all required properties are present
+    return (data || []).map(asset => enhanceAsset(asset));
   } catch (error) {
     console.error("Error fetching assets:", error);
     throw error;
@@ -41,21 +42,17 @@ export const filterAssetsByCategory = (
 export const processAssets = (assets: Asset[]): Asset[] => {
   return assets.map((asset) => {
     // Generate default values for missing properties
-    const costPerDay = Math.floor(Math.random() * 15000) + 5000;
-    const estimatedImpressions = Math.floor(Math.random() * 90000) + 10000;
+    const costPerDay = typeof asset.cost_per_day === 'number' ? asset.cost_per_day : Math.floor(Math.random() * 15000) + 5000;
+    const estimatedImpressions = typeof asset.estimated_impressions === 'number' ? asset.estimated_impressions : Math.floor(Math.random() * 90000) + 10000;
     
-    // Use enhanceAsset to transform the database asset to our Asset interface
-    return enhanceAsset({
+    return {
       ...asset,
-      // Add these properties to the object before passing to enhanceAsset
       cost_per_day: costPerDay,
       estimated_impressions: estimatedImpressions,
-      targeting_score: 1.0,
-      status: "active",
-      allocated_budget: 0,
-      dimensions: null,
-      restrictions: null
-    });
+      targeting_score: typeof asset.targeting_score === 'number' ? asset.targeting_score : 1.0,
+      status: asset.status || "active",
+      allocated_budget: typeof asset.allocated_budget === 'number' ? asset.allocated_budget : 0
+    };
   });
 };
 
