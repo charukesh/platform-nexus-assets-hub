@@ -2,7 +2,7 @@
 import React from "react";
 import PlatformList from "../PlatformList";
 import PlatformSearchBar from "../PlatformSearchBar";
-import { CampaignData, PlatformWithAssets } from "@/types/campaign";
+import { PlatformWithAssets } from "@/types/campaign";
 
 interface PlatformSelectionContentProps {
   platforms: PlatformWithAssets[];

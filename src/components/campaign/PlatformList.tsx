@@ -2,6 +2,8 @@
 import React from "react";
 import PlatformCard from "./PlatformCard";
 import { PlatformWithAssets } from "@/types/campaign";
+import LoadingPlatforms from "./LoadingPlatforms";
+import EmptyPlatforms from "./EmptyPlatforms";
 
 interface PlatformListProps {
   platforms: PlatformWithAssets[];
@@ -42,19 +44,11 @@ const PlatformList: React.FC<PlatformListProps> = ({
     : filteredPlatforms;
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <LoadingPlatforms />;
   }
 
   if (platformsToDisplay.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-muted-foreground">No platforms found</p>
-      </div>
-    );
+    return <EmptyPlatforms />;
   }
 
   return (
