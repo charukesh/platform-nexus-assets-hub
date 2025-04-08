@@ -8,8 +8,9 @@ import { parseAudienceData } from "@/utils/campaignUtils";
  * Fetch assets for specified platforms
  */
 export const fetchAssets = async (platformIds: string[]): Promise<Asset[]> => {
+  // Validate input
   if (!platformIds || !Array.isArray(platformIds) || platformIds.length === 0) {
-    console.log("No platform IDs provided for asset fetching");
+    console.log("No valid platform IDs provided for asset fetching");
     return [];
   }
   
@@ -19,12 +20,19 @@ export const fetchAssets = async (platformIds: string[]): Promise<Asset[]> => {
       .select("*")
       .in("platform_id", platformIds);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase error fetching assets:", error);
+      throw error;
+    }
     
-    // Use enhanceAsset to ensure all required properties are present
-    return (data && Array.isArray(data)) 
-      ? data.map(asset => enhanceAsset(asset)).filter(Boolean) as Asset[]
-      : [];
+    // Validate data is an array
+    if (!data || !Array.isArray(data)) {
+      console.log("No asset data returned from Supabase or invalid data format");
+      return [];
+    }
+    
+    // Use enhanceAsset with validation
+    return data.map(asset => asset ? enhanceAsset(asset) : null).filter(Boolean) as Asset[];
   } catch (error) {
     console.error("Error fetching assets:", error);
     return [];
@@ -38,20 +46,39 @@ export const filterAssetsByCategory = (
   assets: Asset[], 
   assetCategories: string[]
 ): Asset[] => {
-  if (!assets || !Array.isArray(assets)) return [];
-  if (!assetCategories || !Array.isArray(assetCategories) || assetCategories.length === 0) return assets;
+  // Validate assets is an array
+  if (!assets || !Array.isArray(assets)) {
+    console.log("No valid assets provided to filterAssetsByCategory");
+    return [];
+  }
   
-  return assets.filter(asset => asset && asset.category && assetCategories.includes(asset.category));
+  // If no categories, return all assets
+  if (!assetCategories || !Array.isArray(assetCategories) || assetCategories.length === 0) {
+    return assets;
+  }
+  
+  // Filter with validation
+  return assets.filter(asset => 
+    asset && 
+    typeof asset === 'object' && 
+    asset.category && 
+    assetCategories.includes(asset.category)
+  );
 };
 
 /**
  * Process assets to add required properties
  */
 export const processAssets = (assets: Asset[]): Asset[] => {
-  if (!assets || !Array.isArray(assets)) return [];
+  // Validate assets is an array
+  if (!assets || !Array.isArray(assets)) {
+    console.log("No valid assets provided to processAssets");
+    return [];
+  }
   
+  // Process with validation
   return assets.map((asset) => {
-    if (!asset) return null;
+    if (!asset || typeof asset !== 'object') return null;
     
     // Generate default values for missing properties
     const costPerDay = typeof asset.cost_per_day === 'number' ? asset.cost_per_day : Math.floor(Math.random() * 15000) + 5000;
@@ -76,23 +103,25 @@ export const scoreAssets = (
   platformsData: PlatformDbRecord[], 
   campaignData: CampaignData
 ): AssetWithScoring[] => {
+  // Validate inputs
   if (!assets || !Array.isArray(assets) || assets.length === 0) {
-    console.log("No assets provided for scoring");
+    console.log("No valid assets provided for scoring");
     return [];
   }
   
   if (!platformsData || !Array.isArray(platformsData)) {
-    console.log("No platform data provided for scoring");
+    console.log("No valid platform data provided for scoring");
     return assets as AssetWithScoring[];
   }
   
-  if (!campaignData) {
-    console.log("No campaign data provided for scoring");
+  if (!campaignData || typeof campaignData !== 'object') {
+    console.log("No valid campaign data provided for scoring");
     return assets as AssetWithScoring[];
   }
 
+  // Score assets with validation
   return assets.map(asset => {
-    if (!asset) return null;
+    if (!asset || typeof asset !== 'object') return null;
     
     // Start with a base score
     let score = 1.0;
@@ -101,68 +130,58 @@ export const scoreAssets = (
     const platform = platformsData.find(p => p && p.id === asset.platform_id);
     
     // If we have audience data for the platform, use it for scoring
-    if (platform?.audience_data) {
+    if (platform && platform.audience_data) {
       // Process audience data to ensure correct type
       const audienceData = parseAudienceData(platform.audience_data);
       
-      if (audienceData) {
+      if (audienceData && typeof audienceData === 'object') {
         // Check demographic matches (age groups)
-        if (audienceData.demographic?.ageGroups && 
-            Array.isArray(audienceData.demographic.ageGroups) &&
-            campaignData.demographics?.ageGroups && 
-            Array.isArray(campaignData.demographics.ageGroups) && 
-            campaignData.demographics.ageGroups.length > 0) {
-          const ageGroupMatch = campaignData.demographics.ageGroups.some(
-            age => audienceData.demographic?.ageGroups?.includes(age)
-          );
+        const campaignAgeGroups = campaignData.demographics?.ageGroups;
+        const audienceAgeGroups = audienceData.demographic?.ageGroups;
+        
+        if (campaignAgeGroups && Array.isArray(campaignAgeGroups) && campaignAgeGroups.length > 0 &&
+            audienceAgeGroups && Array.isArray(audienceAgeGroups) && audienceAgeGroups.length > 0) {
+          const ageGroupMatch = campaignAgeGroups.some(age => audienceAgeGroups.includes(age));
           if (ageGroupMatch) score += 0.2;
         }
         
         // Check gender matches
-        if (audienceData.demographic?.gender && 
-            Array.isArray(audienceData.demographic.gender) &&
-            campaignData.demographics?.gender && 
-            Array.isArray(campaignData.demographics.gender) && 
-            campaignData.demographics.gender.length > 0) {
-          const genderMatch = campaignData.demographics.gender.some(
-            gender => audienceData.demographic?.gender?.includes(gender)
-          );
+        const campaignGenders = campaignData.demographics?.gender;
+        const audienceGenders = audienceData.demographic?.gender;
+        
+        if (campaignGenders && Array.isArray(campaignGenders) && campaignGenders.length > 0 &&
+            audienceGenders && Array.isArray(audienceGenders) && audienceGenders.length > 0) {
+          const genderMatch = campaignGenders.some(gender => audienceGenders.includes(gender));
           if (genderMatch) score += 0.2;
         }
         
         // Check interest matches
-        if (audienceData.demographic?.interests && 
-            Array.isArray(audienceData.demographic.interests) &&
-            campaignData.demographics?.interests && 
-            Array.isArray(campaignData.demographics.interests) && 
-            campaignData.demographics.interests.length > 0) {
-          const interestMatch = campaignData.demographics.interests.some(
-            interest => audienceData.demographic?.interests?.includes(interest)
-          );
+        const campaignInterests = campaignData.demographics?.interests;
+        const audienceInterests = audienceData.demographic?.interests;
+        
+        if (campaignInterests && Array.isArray(campaignInterests) && campaignInterests.length > 0 &&
+            audienceInterests && Array.isArray(audienceInterests) && audienceInterests.length > 0) {
+          const interestMatch = campaignInterests.some(interest => audienceInterests.includes(interest));
           if (interestMatch) score += 0.2;
         }
         
         // Check geographic matches (cities)
-        if (audienceData.geographic?.cities && 
-            Array.isArray(audienceData.geographic.cities) &&
-            campaignData.geographics?.cities && 
-            Array.isArray(campaignData.geographics.cities) && 
-            campaignData.geographics.cities.length > 0) {
-          const cityMatch = campaignData.geographics.cities.some(
-            city => audienceData.geographic?.cities?.includes(city)
-          );
+        const campaignCities = campaignData.geographics?.cities;
+        const audienceCities = audienceData.geographic?.cities;
+        
+        if (campaignCities && Array.isArray(campaignCities) && campaignCities.length > 0 &&
+            audienceCities && Array.isArray(audienceCities) && audienceCities.length > 0) {
+          const cityMatch = campaignCities.some(city => audienceCities.includes(city));
           if (cityMatch) score += 0.2;
         }
         
         // Check geographic matches (states)
-        if (audienceData.geographic?.states && 
-            Array.isArray(audienceData.geographic.states) &&
-            campaignData.geographics?.states && 
-            Array.isArray(campaignData.geographics.states) && 
-            campaignData.geographics.states.length > 0) {
-          const stateMatch = campaignData.geographics.states.some(
-            state => audienceData.geographic?.states?.includes(state)
-          );
+        const campaignStates = campaignData.geographics?.states;
+        const audienceStates = audienceData.geographic?.states;
+        
+        if (campaignStates && Array.isArray(campaignStates) && campaignStates.length > 0 &&
+            audienceStates && Array.isArray(audienceStates) && audienceStates.length > 0) {
+          const stateMatch = campaignStates.some(state => audienceStates.includes(state));
           if (stateMatch) score += 0.2;
         }
       }
@@ -182,16 +201,23 @@ export const filterAssetsBySelection = (
   assets: AssetWithScoring[], 
   selectedAssets: { [platformId: string]: string[] } | undefined
 ): AssetWithScoring[] => {
-  if (!assets || !Array.isArray(assets)) return [];
-  if (!selectedAssets || Object.keys(selectedAssets).length === 0) {
+  // Validate assets is an array
+  if (!assets || !Array.isArray(assets)) {
+    console.log("No valid assets provided to filterAssetsBySelection");
+    return [];
+  }
+  
+  // If no selection, return all assets
+  if (!selectedAssets || typeof selectedAssets !== 'object' || Object.keys(selectedAssets).length === 0) {
     return assets;
   }
   
+  // Filter with validation
   return assets.filter(asset => {
     if (!asset || !asset.platform_id) return false;
     
     const platformAssets = selectedAssets[asset.platform_id];
-    if (!platformAssets || !Array.isArray(platformAssets)) return false;
+    if (!platformAssets || !Array.isArray(platformAssets) || platformAssets.length === 0) return false;
     
     return platformAssets.includes(asset.id);
   });
@@ -205,28 +231,42 @@ export const allocateBudget = (
   budget: number,
   campaignDays: number
 ): AssetWithScoring[] => {
+  // Validate inputs
   if (!assets || !Array.isArray(assets) || assets.length === 0) {
-    console.log("No assets provided for budget allocation");
+    console.log("No valid assets provided for budget allocation");
     return [];
   }
   
+  // Validate budget and campaign days
+  const validBudget = typeof budget === 'number' && budget > 0 ? budget : 0;
+  const validCampaignDays = typeof campaignDays === 'number' && campaignDays > 0 ? campaignDays : 1;
+  
+  // Calculate total targeting score with validation
   const totalTargetingScore = assets.reduce(
-    (sum, asset) => asset ? sum + (asset.targeting_score || 1) : sum, 
+    (sum, asset) => {
+      const score = asset && typeof asset.targeting_score === 'number' ? asset.targeting_score : 0;
+      return sum + score;
+    }, 
     0
   );
   
-  if (totalTargetingScore === 0) {
-    console.log("Total targeting score is zero");
+  // If no score, return unmodified assets
+  if (totalTargetingScore <= 0) {
+    console.log("Total targeting score is zero or invalid");
     return assets;
   }
   
+  // Allocate budget with validation
   return assets.map(asset => {
-    if (!asset) return null;
+    if (!asset || typeof asset !== 'object') return null;
     
-    const proportion = (asset.targeting_score || 1) / totalTargetingScore;
+    const score = typeof asset.targeting_score === 'number' ? asset.targeting_score : 0;
+    const proportion = score / totalTargetingScore;
+    const costPerDay = typeof asset.cost_per_day === 'number' ? asset.cost_per_day : 0;
+    
     const allocatedBudget = Math.min(
-      (budget || 0) * proportion,
-      (asset.cost_per_day || 0) * (campaignDays || 1)
+      validBudget * proportion,
+      costPerDay * validCampaignDays
     );
     
     return {

@@ -27,8 +27,9 @@ export * from "./platformService";
 export const generateCampaignQuotation = async (
   data: CampaignData
 ): Promise<QuotationResult> => {
-  if (!data) {
-    console.log("No campaign data provided");
+  // Initial validation of campaign data
+  if (!data || typeof data !== 'object') {
+    console.error("Invalid campaign data provided:", data);
     return { 
       platforms: [], 
       totalCost: 0, 
@@ -37,12 +38,15 @@ export const generateCampaignQuotation = async (
     };
   }
 
-  // Get campaign days directly from the data
-  const campaignDays = data?.durationDays || 1;
+  // Get campaign days with fallback
+  const campaignDays = typeof data.durationDays === 'number' && data.durationDays > 0 
+    ? data.durationDays 
+    : 1;
 
-  // Ensure there are selected platforms
-  if (!data?.platformPreferences || !Array.isArray(data.platformPreferences) || data.platformPreferences.length === 0) {
-    console.log("No platform preferences found or invalid platform preferences");
+  // Validate platform preferences
+  const platformPreferences = data.platformPreferences || [];
+  if (!Array.isArray(platformPreferences) || platformPreferences.length === 0) {
+    console.log("No valid platform preferences found");
     return { 
       platforms: [], 
       totalCost: 0, 
@@ -52,11 +56,11 @@ export const generateCampaignQuotation = async (
   }
 
   try {
-    // Step 1: Fetch platforms and assets
-    const platformsData = await fetchPlatformsByIds(data.platformPreferences);
+    // Step 1: Fetch platforms and validate the result
+    const platformsData = await fetchPlatformsByIds(platformPreferences);
     
     if (!platformsData || !Array.isArray(platformsData) || platformsData.length === 0) {
-      console.log("No platforms data returned or invalid platforms data");
+      console.log("No platforms data returned from fetchPlatformsByIds");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -65,24 +69,53 @@ export const generateCampaignQuotation = async (
       };
     }
 
-    // Step 2: Fetch and process assets
-    const assets = await fetchAssets(data.platformPreferences);
+    // Step 2: Fetch and process assets with validation
+    const assets = await fetchAssets(platformPreferences);
     
-    // Make sure we have assetCategories to filter by
+    if (!assets || !Array.isArray(assets)) {
+      console.log("No assets returned from fetchAssets");
+      return { 
+        platforms: [], 
+        totalCost: 0, 
+        totalImpressions: 0,
+        campaignDays 
+      };
+    }
+    
+    // Ensure assetCategories is an array
     const assetCategories = Array.isArray(data.assetCategories) ? data.assetCategories : [];
     
-    // Filter assets by category if categories are provided
+    // Filter assets by category with validation
     const filteredAssets = filterAssetsByCategory(assets, assetCategories);
     
-    // Process the assets to add required properties
+    if (!filteredAssets || !Array.isArray(filteredAssets)) {
+      console.log("No filtered assets returned from filterAssetsByCategory");
+      return { 
+        platforms: [], 
+        totalCost: 0, 
+        totalImpressions: 0,
+        campaignDays 
+      };
+    }
+    
+    // Process the assets with validation
     const processedAssets = processAssets(filteredAssets);
+    
+    if (!processedAssets || !Array.isArray(processedAssets) || processedAssets.length === 0) {
+      console.log("No processed assets returned from processAssets");
+      return { 
+        platforms: [], 
+        totalCost: 0, 
+        totalImpressions: 0,
+        campaignDays 
+      };
+    }
 
-    // Step 3: Targeting-Based Scoring
+    // Step 3: Score assets with validation
     const scoredAssets = scoreAssets(processedAssets, platformsData, data);
-
-    // Ensure scoredAssets is not undefined
+    
     if (!scoredAssets || !Array.isArray(scoredAssets) || scoredAssets.length === 0) {
-      console.log("No scored assets returned or invalid scored assets");
+      console.log("No scored assets returned from scoreAssets");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -91,17 +124,22 @@ export const generateCampaignQuotation = async (
       };
     }
 
-    // Sort assets by targeting score (descending)
-    scoredAssets.sort((a, b) => 
-      ((b?.targeting_score || 0) - (a?.targeting_score || 0))
-    );
+    // Sort assets by targeting score (descending) with null checks
+    scoredAssets.sort((a, b) => {
+      const scoreA = a && typeof a.targeting_score === 'number' ? a.targeting_score : 0;
+      const scoreB = b && typeof b.targeting_score === 'number' ? b.targeting_score : 0;
+      return scoreB - scoreA;
+    });
 
-    // Step 4: Filter assets based on user selection if specified
-    const filteredBySelectionAssets = filterAssetsBySelection(scoredAssets, data.selectedAssets);
-
-    // Handle edge case where there are no assets after filtering
+    // Step 4: Filter assets based on user selection with validation
+    const selectedAssets = data.selectedAssets && typeof data.selectedAssets === 'object' 
+      ? data.selectedAssets 
+      : {};
+      
+    const filteredBySelectionAssets = filterAssetsBySelection(scoredAssets, selectedAssets);
+    
     if (!filteredBySelectionAssets || !Array.isArray(filteredBySelectionAssets) || filteredBySelectionAssets.length === 0) {
-      console.log("No assets after filtering by selection or invalid filtered assets");
+      console.log("No assets after filtering by selection");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -110,15 +148,17 @@ export const generateCampaignQuotation = async (
       };
     }
 
-    // Step 5: Budget Allocation
+    // Step 5: Budget Allocation with validation
+    const budget = typeof data.budget === 'number' && data.budget > 0 ? data.budget : 0;
+    
     const assetsWithBudget = allocateBudget(
       filteredBySelectionAssets, 
-      data.budget || 0,
+      budget,
       campaignDays
     );
-
+    
     if (!assetsWithBudget || !Array.isArray(assetsWithBudget) || assetsWithBudget.length === 0) {
-      console.log("No assets with budget or invalid assets with budget");
+      console.log("No assets after budget allocation");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -132,40 +172,53 @@ export const generateCampaignQuotation = async (
     let calculatedTotalCost = 0;
     let calculatedTotalImpressions = 0;
 
-    platformsData.forEach(platform => {
-      if (!platform || !platform.id) return;
-      
-      const platformAssets = assetsWithBudget.filter(
-        asset => asset && asset.platform_id === platform.id
-      );
-      
-      const platformTotalCost = platformAssets.reduce((sum, asset) => {
-        // Use the asset's calculated cost based on campaign days
-        return sum + ((asset?.cost_per_day || 0) * campaignDays);
-      }, 0);
+    // Ensure platformsData is iterable
+    if (Array.isArray(platformsData)) {
+      platformsData.forEach(platform => {
+        if (!platform || !platform.id) return;
+        
+        // Filter assets for this platform
+        const platformAssets = Array.isArray(assetsWithBudget) 
+          ? assetsWithBudget.filter(asset => asset && asset.platform_id === platform.id)
+          : [];
+        
+        if (!platformAssets.length) return;
+        
+        // Calculate platform totals with validation
+        const platformTotalCost = platformAssets.reduce((sum, asset) => {
+          const costPerDay = asset && typeof asset.cost_per_day === 'number' ? asset.cost_per_day : 0;
+          return sum + (costPerDay * campaignDays);
+        }, 0);
 
-      const platformTotalImpressions = platformAssets.reduce((sum, asset) => {
-        return sum + ((asset?.estimated_impressions || 0) * campaignDays);
-      }, 0);
+        const platformTotalImpressions = platformAssets.reduce((sum, asset) => {
+          const impressions = asset && typeof asset.estimated_impressions === 'number' ? asset.estimated_impressions : 0;
+          return sum + (impressions * campaignDays);
+        }, 0);
 
-      calculatedTotalCost += platformTotalCost;
-      calculatedTotalImpressions += platformTotalImpressions;
+        calculatedTotalCost += platformTotalCost;
+        calculatedTotalImpressions += platformTotalImpressions;
 
-      if (platformAssets.length > 0) {
-        // Convert the database platform to our Platform interface
+        // Convert platform and add to result
         const enhancedPlatform = enhancePlatform(platform as PlatformDbRecord);
+        
+        // Get selected assets for this platform
+        const platformSelectedAssets = data.selectedAssets && 
+          typeof data.selectedAssets === 'object' && 
+          platform.id && 
+          data.selectedAssets[platform.id] &&
+          Array.isArray(data.selectedAssets[platform.id])
+            ? data.selectedAssets[platform.id] 
+            : [];
         
         processedPlatforms.push({
           ...enhancedPlatform,
           assets: platformAssets,
           totalCost: platformTotalCost,
           totalImpressions: platformTotalImpressions,
-          selectedAssets: data.selectedAssets && platform.id && data.selectedAssets[platform.id] 
-            ? data.selectedAssets[platform.id] 
-            : []
+          selectedAssets: platformSelectedAssets
         });
-      }
-    });
+      });
+    }
 
     return {
       platforms: processedPlatforms,

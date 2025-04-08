@@ -23,6 +23,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
   const [campaignDays, setCampaignDays] = useState(1);
   const [totalCost, setTotalCost] = useState(0);
   const [totalImpressions, setTotalImpressions] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -34,10 +35,19 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Ensure data is properly defined and has required properties
-      if (!data || !data.platformPreferences || !Array.isArray(data.platformPreferences)) {
-        console.log("Campaign data is missing required properties or platformPreferences is not an array");
+      // Validate campaign data
+      if (!data || typeof data !== 'object') {
+        console.error("Invalid campaign data:", data);
+        setPlatforms([]);
+        setError("Invalid campaign data");
+        return;
+      }
+      
+      // Ensure platform preferences is a valid array
+      if (!data.platformPreferences || !Array.isArray(data.platformPreferences) || data.platformPreferences.length === 0) {
+        console.log("No platform preferences found or invalid platform preferences");
         setPlatforms([]);
         setLoading(false);
         return;
@@ -45,33 +55,42 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       
       const quotation = await generateCampaignQuotation(data);
       
-      // Ensure we have platforms from the quotation and it's a valid array
-      if (quotation && quotation.platforms && Array.isArray(quotation.platforms)) {
+      // Validate quotation result
+      if (!quotation) {
+        console.error("No quotation returned");
+        setPlatforms([]);
+        setError("Failed to generate quotation");
+        return;
+      }
+      
+      // Ensure platforms is a valid array
+      if (Array.isArray(quotation.platforms)) {
         setPlatforms(quotation.platforms);
         setTotalCost(quotation.totalCost || 0);
         setTotalImpressions(quotation.totalImpressions || 0);
         setCampaignDays(quotation.campaignDays || data.durationDays || 1);
       } else {
-        console.log("Invalid quotation result or platforms array");
+        console.error("Invalid platforms array in quotation:", quotation.platforms);
         setPlatforms([]);
+        setError("Invalid platforms data");
       }
     } catch (error: any) {
       console.error("Error generating quotation:", error);
+      setError(error.message || "An unexpected error occurred");
       toast({
         title: "Error generating quotation",
         description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
-      // Set platforms to empty array in case of error
       setPlatforms([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Ensure we have valid campaign data before rendering
-  if (!data) {
-    return <EmptyPlatforms message="Missing campaign data" />;
+  // Check for valid campaign data
+  if (!data || typeof data !== 'object') {
+    return <EmptyPlatforms message="Missing or invalid campaign data" error={true} />;
   }
 
   return (
@@ -92,6 +111,8 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
       {loading ? (
         <LoadingPlatforms />
+      ) : error ? (
+        <EmptyPlatforms message={`Error: ${error}`} error={true} />
       ) : Array.isArray(platforms) && platforms.length > 0 ? (
         <>
           {platforms.map((platform) => (
@@ -113,7 +134,11 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
           />
         </>
       ) : (
-        <EmptyPlatforms message="No platforms available for this campaign configuration" />
+        <EmptyPlatforms message={
+          data.platformPreferences && Array.isArray(data.platformPreferences) && data.platformPreferences.length > 0
+            ? "No platforms available for this campaign configuration"
+            : "No platforms selected for this campaign"
+        } />
       )}
     </div>
   );
