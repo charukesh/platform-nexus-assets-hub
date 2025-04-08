@@ -10,6 +10,7 @@ import CampaignDetails from "./CampaignDetails";
 import PlatformCard from "./PlatformCard";
 import CampaignSummary from "./CampaignSummary";
 import EmptyPlatforms from "./EmptyPlatforms";
+import LoadingPlatforms from "./LoadingPlatforms";
 import { formatUserCount } from "./platformSelectionUtils";
 
 interface QuotationPreviewProps {
@@ -70,9 +71,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       <CampaignDetails data={data} />
 
       {loading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+        <LoadingPlatforms />
       ) : platforms.length > 0 ? (
         <>
           {platforms.map((platform) => (

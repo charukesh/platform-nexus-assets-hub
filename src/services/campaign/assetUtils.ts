@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { enhanceAsset } from "@/utils/campaignUtils";
 import { Asset, AssetWithScoring, CampaignData, PlatformDbRecord } from "./types";
@@ -7,7 +8,7 @@ import { parseAudienceData } from "@/utils/campaignUtils";
  * Fetch assets for specified platforms
  */
 export const fetchAssets = async (platformIds: string[]): Promise<Asset[]> => {
-  if (!platformIds.length) return [];
+  if (!platformIds || platformIds.length === 0) return [];
   
   try {
     const { data, error } = await supabase

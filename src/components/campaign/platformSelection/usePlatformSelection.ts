@@ -16,7 +16,7 @@ export const usePlatformSelection = (
     data.platformPreferences || []
   );
   const [autoSuggestEnabled, setAutoSuggestEnabled] = useState(
-    data.platformPreferences.length === 0
+    data.platformPreferences ? data.platformPreferences.length === 0 : true
   );
   const [showAssetSelection, setShowAssetSelection] = useState(false);
   const { toast } = useToast();

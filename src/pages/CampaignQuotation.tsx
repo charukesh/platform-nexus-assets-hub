@@ -26,7 +26,7 @@ const initialCampaignData: CampaignData = {
   durationDays: 7, // Default to 7 days instead of start/end dates
   budget: 0,
   assetCategories: [],
-  platformPreferences: [],
+  platformPreferences: [], // Initialize as an empty array
   selectedAssets: {}, // Initialize empty object for selected assets
   premiumOnly: false,
   platformTypes: []

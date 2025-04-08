@@ -31,7 +31,7 @@ export const generateCampaignQuotation = async (
   const campaignDays = data?.durationDays || 1;
 
   // Ensure there are selected platforms
-  if (!data?.platformPreferences || !data.platformPreferences.length) {
+  if (!data?.platformPreferences || data.platformPreferences.length === 0) {
     return { 
       platforms: [], 
       totalCost: 0, 

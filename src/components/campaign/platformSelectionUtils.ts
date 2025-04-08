@@ -61,11 +61,11 @@ export const fetchPlatformsFromSupabase = async (
   // Filter platforms based on demographic and geographic match
   let filteredPlatforms = enhancedPlatforms;
   
-  if (data.demographics.ageGroups.length > 0 || 
-      data.demographics.gender.length > 0 || 
-      data.demographics.interests.length > 0 || 
-      data.geographics.cities.length > 0 || 
-      data.geographics.states.length > 0) {
+  if (data.demographics?.ageGroups?.length > 0 || 
+      data.demographics?.gender?.length > 0 || 
+      data.demographics?.interests?.length > 0 || 
+      data.geographics?.cities?.length > 0 || 
+      data.geographics?.states?.length > 0) {
     
     filteredPlatforms = enhancedPlatforms.filter(platform => {
       // Skip filtering if platform has no audience data
@@ -73,7 +73,7 @@ export const fetchPlatformsFromSupabase = async (
       
       // Check for demographic matches
       let demographicsMatch = true;
-      if (data.demographics.ageGroups.length > 0) {
+      if (data.demographics?.ageGroups?.length > 0) {
         // Check if any age group matches - use type guards
         if (hasAudienceDemographic(platform.audience_data as unknown as Json)) {
           const audienceData = platform.audience_data as { demographic: { ageGroups?: string[] } };
@@ -145,7 +145,7 @@ export const fetchPlatformsFromSupabase = async (
   }
   
   // Auto-suggest platforms if no manual selection and we have filtered platforms
-  if (autoSuggestEnabled && data.platformPreferences.length === 0) {
+  if (autoSuggestEnabled && (!data.platformPreferences || data.platformPreferences.length === 0)) {
     // Prioritize platforms that have better audience matches
     let suggestedPlatforms = filteredPlatforms
       .slice(0, Math.min(3, filteredPlatforms.length))
