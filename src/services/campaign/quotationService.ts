@@ -27,12 +27,22 @@ export * from "./platformService";
 export const generateCampaignQuotation = async (
   data: CampaignData
 ): Promise<QuotationResult> => {
+  if (!data) {
+    console.log("No campaign data provided");
+    return { 
+      platforms: [], 
+      totalCost: 0, 
+      totalImpressions: 0,
+      campaignDays: 1 
+    };
+  }
+
   // Get campaign days directly from the data
   const campaignDays = data?.durationDays || 1;
 
   // Ensure there are selected platforms
   if (!data?.platformPreferences || !Array.isArray(data.platformPreferences) || data.platformPreferences.length === 0) {
-    console.log("No platform preferences found");
+    console.log("No platform preferences found or invalid platform preferences");
     return { 
       platforms: [], 
       totalCost: 0, 
@@ -45,8 +55,8 @@ export const generateCampaignQuotation = async (
     // Step 1: Fetch platforms and assets
     const platformsData = await fetchPlatformsByIds(data.platformPreferences);
     
-    if (!platformsData || platformsData.length === 0) {
-      console.log("No platforms data returned");
+    if (!platformsData || !Array.isArray(platformsData) || platformsData.length === 0) {
+      console.log("No platforms data returned or invalid platforms data");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -59,7 +69,7 @@ export const generateCampaignQuotation = async (
     const assets = await fetchAssets(data.platformPreferences);
     
     // Make sure we have assetCategories to filter by
-    const assetCategories = data.assetCategories || [];
+    const assetCategories = Array.isArray(data.assetCategories) ? data.assetCategories : [];
     
     // Filter assets by category if categories are provided
     const filteredAssets = filterAssetsByCategory(assets, assetCategories);
@@ -71,8 +81,8 @@ export const generateCampaignQuotation = async (
     const scoredAssets = scoreAssets(processedAssets, platformsData, data);
 
     // Ensure scoredAssets is not undefined
-    if (!scoredAssets || !Array.isArray(scoredAssets)) {
-      console.log("No scored assets returned");
+    if (!scoredAssets || !Array.isArray(scoredAssets) || scoredAssets.length === 0) {
+      console.log("No scored assets returned or invalid scored assets");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -83,15 +93,15 @@ export const generateCampaignQuotation = async (
 
     // Sort assets by targeting score (descending)
     scoredAssets.sort((a, b) => 
-      (b.targeting_score || 0) - (a.targeting_score || 0)
+      ((b?.targeting_score || 0) - (a?.targeting_score || 0))
     );
 
     // Step 4: Filter assets based on user selection if specified
     const filteredBySelectionAssets = filterAssetsBySelection(scoredAssets, data.selectedAssets);
 
     // Handle edge case where there are no assets after filtering
-    if (!filteredBySelectionAssets || filteredBySelectionAssets.length === 0) {
-      console.log("No assets after filtering by selection");
+    if (!filteredBySelectionAssets || !Array.isArray(filteredBySelectionAssets) || filteredBySelectionAssets.length === 0) {
+      console.log("No assets after filtering by selection or invalid filtered assets");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -107,8 +117,8 @@ export const generateCampaignQuotation = async (
       campaignDays
     );
 
-    if (!assetsWithBudget || !Array.isArray(assetsWithBudget)) {
-      console.log("No assets with budget");
+    if (!assetsWithBudget || !Array.isArray(assetsWithBudget) || assetsWithBudget.length === 0) {
+      console.log("No assets with budget or invalid assets with budget");
       return { 
         platforms: [], 
         totalCost: 0, 
@@ -131,11 +141,11 @@ export const generateCampaignQuotation = async (
       
       const platformTotalCost = platformAssets.reduce((sum, asset) => {
         // Use the asset's calculated cost based on campaign days
-        return sum + (asset.cost_per_day || 0) * campaignDays;
+        return sum + ((asset?.cost_per_day || 0) * campaignDays);
       }, 0);
 
       const platformTotalImpressions = platformAssets.reduce((sum, asset) => {
-        return sum + (asset.estimated_impressions || 0) * campaignDays;
+        return sum + ((asset?.estimated_impressions || 0) * campaignDays);
       }, 0);
 
       calculatedTotalCost += platformTotalCost;
@@ -150,7 +160,9 @@ export const generateCampaignQuotation = async (
           assets: platformAssets,
           totalCost: platformTotalCost,
           totalImpressions: platformTotalImpressions,
-          selectedAssets: data.selectedAssets?.[platform.id] || []
+          selectedAssets: data.selectedAssets && platform.id && data.selectedAssets[platform.id] 
+            ? data.selectedAssets[platform.id] 
+            : []
         });
       }
     });

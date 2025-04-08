@@ -36,8 +36,8 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       setLoading(true);
       
       // Ensure data is properly defined and has required properties
-      if (!data || !data.platformPreferences) {
-        console.log("Campaign data is missing required properties");
+      if (!data || !data.platformPreferences || !Array.isArray(data.platformPreferences)) {
+        console.log("Campaign data is missing required properties or platformPreferences is not an array");
         setPlatforms([]);
         setLoading(false);
         return;
@@ -45,16 +45,21 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
       
       const quotation = await generateCampaignQuotation(data);
       
-      // Ensure we have platforms from the quotation
-      setPlatforms(quotation.platforms || []);
-      setTotalCost(quotation.totalCost || 0);
-      setTotalImpressions(quotation.totalImpressions || 0);
-      setCampaignDays(quotation.campaignDays || data.durationDays || 1);
+      // Ensure we have platforms from the quotation and it's a valid array
+      if (quotation && quotation.platforms && Array.isArray(quotation.platforms)) {
+        setPlatforms(quotation.platforms);
+        setTotalCost(quotation.totalCost || 0);
+        setTotalImpressions(quotation.totalImpressions || 0);
+        setCampaignDays(quotation.campaignDays || data.durationDays || 1);
+      } else {
+        console.log("Invalid quotation result or platforms array");
+        setPlatforms([]);
+      }
     } catch (error: any) {
       console.error("Error generating quotation:", error);
       toast({
         title: "Error generating quotation",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
       // Set platforms to empty array in case of error
@@ -66,7 +71,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
   // Ensure we have valid campaign data before rendering
   if (!data) {
-    return <EmptyPlatforms />;
+    return <EmptyPlatforms message="Missing campaign data" />;
   }
 
   return (
@@ -79,7 +84,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
           budget={data?.budget || 0}
           totalCost={totalCost}
           totalImpressions={totalImpressions}
-          platformCount={platforms?.length || 0}
+          platformCount={Array.isArray(platforms) ? platforms.length : 0}
         />
       </div>
 
@@ -87,7 +92,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
 
       {loading ? (
         <LoadingPlatforms />
-      ) : platforms && platforms.length > 0 ? (
+      ) : Array.isArray(platforms) && platforms.length > 0 ? (
         <>
           {platforms.map((platform) => (
             <PlatformCard 
@@ -108,7 +113,7 @@ const QuotationPreview: React.FC<QuotationPreviewProps> = ({ data }) => {
           />
         </>
       ) : (
-        <EmptyPlatforms />
+        <EmptyPlatforms message="No platforms available for this campaign configuration" />
       )}
     </div>
   );

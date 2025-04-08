@@ -22,7 +22,9 @@ export const fetchAssets = async (platformIds: string[]): Promise<Asset[]> => {
     if (error) throw error;
     
     // Use enhanceAsset to ensure all required properties are present
-    return (data || []).map(asset => enhanceAsset(asset));
+    return (data && Array.isArray(data)) 
+      ? data.map(asset => enhanceAsset(asset)).filter(Boolean) as Asset[]
+      : [];
   } catch (error) {
     console.error("Error fetching assets:", error);
     return [];
@@ -39,7 +41,7 @@ export const filterAssetsByCategory = (
   if (!assets || !Array.isArray(assets)) return [];
   if (!assetCategories || !Array.isArray(assetCategories) || assetCategories.length === 0) return assets;
   
-  return assets.filter(asset => asset && assetCategories.includes(asset.category || ''));
+  return assets.filter(asset => asset && asset.category && assetCategories.includes(asset.category));
 };
 
 /**
@@ -106,7 +108,10 @@ export const scoreAssets = (
       if (audienceData) {
         // Check demographic matches (age groups)
         if (audienceData.demographic?.ageGroups && 
-            campaignData.demographics?.ageGroups?.length > 0) {
+            Array.isArray(audienceData.demographic.ageGroups) &&
+            campaignData.demographics?.ageGroups && 
+            Array.isArray(campaignData.demographics.ageGroups) && 
+            campaignData.demographics.ageGroups.length > 0) {
           const ageGroupMatch = campaignData.demographics.ageGroups.some(
             age => audienceData.demographic?.ageGroups?.includes(age)
           );
@@ -115,7 +120,10 @@ export const scoreAssets = (
         
         // Check gender matches
         if (audienceData.demographic?.gender && 
-            campaignData.demographics?.gender?.length > 0) {
+            Array.isArray(audienceData.demographic.gender) &&
+            campaignData.demographics?.gender && 
+            Array.isArray(campaignData.demographics.gender) && 
+            campaignData.demographics.gender.length > 0) {
           const genderMatch = campaignData.demographics.gender.some(
             gender => audienceData.demographic?.gender?.includes(gender)
           );
@@ -124,7 +132,10 @@ export const scoreAssets = (
         
         // Check interest matches
         if (audienceData.demographic?.interests && 
-            campaignData.demographics?.interests?.length > 0) {
+            Array.isArray(audienceData.demographic.interests) &&
+            campaignData.demographics?.interests && 
+            Array.isArray(campaignData.demographics.interests) && 
+            campaignData.demographics.interests.length > 0) {
           const interestMatch = campaignData.demographics.interests.some(
             interest => audienceData.demographic?.interests?.includes(interest)
           );
@@ -133,7 +144,10 @@ export const scoreAssets = (
         
         // Check geographic matches (cities)
         if (audienceData.geographic?.cities && 
-            campaignData.geographics?.cities?.length > 0) {
+            Array.isArray(audienceData.geographic.cities) &&
+            campaignData.geographics?.cities && 
+            Array.isArray(campaignData.geographics.cities) && 
+            campaignData.geographics.cities.length > 0) {
           const cityMatch = campaignData.geographics.cities.some(
             city => audienceData.geographic?.cities?.includes(city)
           );
@@ -142,7 +156,10 @@ export const scoreAssets = (
         
         // Check geographic matches (states)
         if (audienceData.geographic?.states && 
-            campaignData.geographics?.states?.length > 0) {
+            Array.isArray(audienceData.geographic.states) &&
+            campaignData.geographics?.states && 
+            Array.isArray(campaignData.geographics.states) && 
+            campaignData.geographics.states.length > 0) {
           const stateMatch = campaignData.geographics.states.some(
             state => audienceData.geographic?.states?.includes(state)
           );
