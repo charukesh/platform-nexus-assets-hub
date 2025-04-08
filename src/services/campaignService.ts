@@ -73,13 +73,22 @@ export const generateCampaignQuotation = async (
       ? assets.filter(asset => assetCategories.includes(asset.category || ''))
       : assets;
     
-    // Apply cost and impressions to assets (simulated for now)
-    const processedAssets = filteredAssets.map(asset => enhanceAsset({
-      ...asset,
-      cost_per_day: asset.cost_per_day || Math.floor(Math.random() * 15000) + 5000,
-      estimated_impressions: asset.estimated_impressions || Math.floor(Math.random() * 90000) + 10000,
-      targeting_score: asset.targeting_score || 1.0,
-    }));
+    // Apply cost and impressions to assets - Since these properties might not exist in the database,
+    // we ensure they're added here with default values
+    const processedAssets = filteredAssets.map(asset => {
+      // Create a complete asset object with default values for missing properties
+      return enhanceAsset({
+        ...asset,
+        // Ensure these properties exist with default values if not present
+        cost_per_day: asset.cost_per_day || Math.floor(Math.random() * 15000) + 5000,
+        estimated_impressions: asset.estimated_impressions || Math.floor(Math.random() * 90000) + 10000,
+        targeting_score: asset.targeting_score || 1.0,
+        status: asset.status || "active",
+        allocated_budget: asset.allocated_budget || 0,
+        dimensions: asset.dimensions || null,
+        restrictions: asset.restrictions || null
+      });
+    });
 
     // Step 3: Targeting-Based Scoring
     // Calculate a matching score for each asset based on demographics, geographics, etc.
