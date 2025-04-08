@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   enhanceAsset, 
@@ -73,20 +72,23 @@ export const generateCampaignQuotation = async (
       ? assets.filter(asset => assetCategories.includes(asset.category || ''))
       : assets;
     
-    // Apply cost and impressions to assets - Since these properties might not exist in the database,
-    // we ensure they're added here with default values
-    const processedAssets = filteredAssets.map(asset => {
-      // Create a complete asset object with default values for missing properties
+    // Process the assets to add required properties
+    const processedAssets = filteredAssets.map((asset) => {
+      // Generate default values for missing properties
+      const costPerDay = Math.floor(Math.random() * 15000) + 5000;
+      const estimatedImpressions = Math.floor(Math.random() * 90000) + 10000;
+      
+      // Use enhanceAsset to transform the database asset to our Asset interface
       return enhanceAsset({
         ...asset,
-        // Ensure these properties exist with default values if not present
-        cost_per_day: asset.cost_per_day || Math.floor(Math.random() * 15000) + 5000,
-        estimated_impressions: asset.estimated_impressions || Math.floor(Math.random() * 90000) + 10000,
-        targeting_score: asset.targeting_score || 1.0,
-        status: asset.status || "active",
-        allocated_budget: asset.allocated_budget || 0,
-        dimensions: asset.dimensions || null,
-        restrictions: asset.restrictions || null
+        // Add these properties to the object before passing to enhanceAsset
+        cost_per_day: costPerDay,
+        estimated_impressions: estimatedImpressions,
+        targeting_score: 1.0,
+        status: "active",
+        allocated_budget: 0,
+        dimensions: null,
+        restrictions: null
       });
     });
 
