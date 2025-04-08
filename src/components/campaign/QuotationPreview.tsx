@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { CampaignData } from "@/types/campaign";
 import { useToast } from "@/hooks/use-toast";
-import { generateCampaignQuotation, PlatformWithAssets } from "@/services/campaignService";
+import { generateCampaignQuotation, PlatformWithAssets } from "@/services/campaign";
 import QuotationActions from "./QuotationActions";
 import QuotationHeader from "./QuotationHeader";
 import QuotationStats from "./QuotationStats";
