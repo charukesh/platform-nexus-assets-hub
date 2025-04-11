@@ -88,59 +88,6 @@ export interface PlatformWithAssets extends Platform {
   assets: Asset[];
   totalCost?: number;
   totalImpressions?: number;
-  selectedAssets?: string[]; // Add this field to track selected assets
-}
-
-export interface PlatformAllocation {
-  platform: Platform;
-  platformAssets: Asset[];
-  totalBudget: number;
-  days: number;
-  estimatedImpressions: number;
-}
-
-export interface QuotationSummary {
-  totalBudget: number;
-  totalPlatforms: number;
-  totalAssets: number;
-  estimatedImpressions: number;
-  campaignDuration: number;
-}
-
-export interface Quotation {
-  id: string;
-  name: string;
-  description: string;
-  campaignObjective: string;
-  targetAudience: string;
-  budget: number;
-  durationDays: number; // Changed from startDate/endDate
-  platformAllocations: PlatformAllocation[];
-  createdAt: Date;
-  updatedAt: Date;
-  summary: QuotationSummary;
-}
-
-export interface CampaignData {
-  industry: string;
-  demographics: {
-    ageGroups: string[];
-    gender: string[];
-    interests: string[];
-  };
-  geographics: {
-    cities: string[];
-    states: string[];
-    tierLevels: string[];
-  };
-  objectives: string[];
-  durationDays: number; // Changed from startDate/endDate object
-  budget: number;
-  assetCategories: string[];
-  platformPreferences: string[];
-  selectedAssets?: { [platformId: string]: string[] }; // To store selected assets by platform
-  premiumOnly?: boolean;
-  platformTypes?: string[];
 }
 
 export interface FormDataType {

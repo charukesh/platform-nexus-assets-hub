@@ -15,7 +15,6 @@ import AssetForm from "./pages/AssetForm";
 import AssetDetail from "./pages/AssetDetail";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
-import CampaignQuotation from "./pages/CampaignQuotation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,7 +37,6 @@ const App = () => (
               <Route path="/assets/new" element={<AssetForm />} />
               <Route path="/assets/:id" element={<AssetDetail />} />
               <Route path="/assets/:id/edit" element={<AssetForm />} />
-              <Route path="/campaigns/quotation" element={<CampaignQuotation />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/settings" element={<Settings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
