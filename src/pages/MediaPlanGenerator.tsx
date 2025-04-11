@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
@@ -8,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlanningOutlined, Brain, BarChart2, Calendar, Coins, Users, Zap } from "lucide-react";
+import { Clipboard, Brain, BarChart2, Calendar, Coins, Users, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +24,6 @@ const MediaPlanGenerator: React.FC = () => {
   const [includeAllAssets, setIncludeAllAssets] = useState(true);
   const [activeTab, setActiveTab] = useState("input");
 
-  // Fetch platforms and assets data
   const { data: platforms = [], isLoading: platformsLoading } = useQuery({
     queryKey: ["platforms"],
     queryFn: async () => {
@@ -104,11 +102,9 @@ const MediaPlanGenerator: React.FC = () => {
     }
   };
 
-  // Function to render markdown content
   const renderMarkdown = (content: string) => {
     if (!content) return null;
     
-    // Simple markdown renderer for preview
     return <div dangerouslySetInnerHTML={{ __html: 
       content
         .replace(/# (.*?)\n/g, '<h1 class="text-2xl font-bold my-3">$1</h1>')
