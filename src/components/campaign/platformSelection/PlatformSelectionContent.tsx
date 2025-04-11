@@ -1,7 +1,7 @@
 
 import React from "react";
-import PlatformList from "../PlatformList";
 import PlatformSearchBar from "../PlatformSearchBar";
+import PlatformList from "../PlatformList";
 import { PlatformWithAssets } from "@/types/campaign";
 
 interface PlatformSelectionContentProps {
@@ -32,31 +32,12 @@ const PlatformSelectionContent: React.FC<PlatformSelectionContentProps> = ({
   campaignDays
 }) => {
   return (
-    <>
-      {/* Search and Filter */}
-      {!autoSuggestEnabled && (
-        <div className="mb-6">
-          <PlatformSearchBar 
-            searchQuery={searchQuery} 
-            setSearchQuery={setSearchQuery} 
-          />
-        </div>
-      )}
-
-      {/* Platform Listing */}
-      <PlatformList
-        platforms={platforms}
-        selectedPlatforms={selectedPlatforms}
-        autoSuggestEnabled={autoSuggestEnabled}
-        togglePlatform={togglePlatform}
-        searchQuery={searchQuery}
-        loading={loading}
-        formatUserCount={formatUserCount}
-        showAssetSelection={showAssetSelection}
-        onAssetSelect={handleAssetSelect}
-        campaignDays={campaignDays}
-      />
-    </>
+    <div className="text-center p-6">
+      <h3 className="text-lg font-semibold mb-4">Platform Selection</h3>
+      <p className="text-muted-foreground">
+        The campaign feature has been removed. Please contact your administrator for more information.
+      </p>
+    </div>
   );
 };
 

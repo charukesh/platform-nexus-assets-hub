@@ -88,6 +88,28 @@ export interface PlatformWithAssets extends Platform {
   assets: Asset[];
   totalCost?: number;
   totalImpressions?: number;
+  selectedAssets?: string[]; // Keep this to maintain compatibility
+}
+
+// A simplified version of the removed CampaignData type for backward compatibility
+export interface CampaignData {
+  industry: string;
+  demographics: {
+    ageGroups: string[];
+    gender: string[];
+    interests: string[];
+  };
+  geographics: {
+    cities: string[];
+    states: string[];
+    tierLevels: string[];
+  };
+  objectives: string[];
+  durationDays: number;
+  budget: number;
+  assetCategories: string[];
+  platformPreferences: string[];
+  selectedAssets?: { [platformId: string]: string[] };
 }
 
 export interface FormDataType {
