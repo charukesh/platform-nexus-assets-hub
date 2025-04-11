@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
@@ -257,7 +258,7 @@ const MediaPlanGenerator: React.FC = () => {
               <div className="space-y-6">
                 <NeuCard>
                   <div className="flex items-center gap-3 mb-4">
-                    <PlanningOutlined className="text-primary" size={24} />
+                    <Clipboard className="text-primary" size={24} />
                     <h2 className="text-xl font-bold">Executive Summary</h2>
                   </div>
                   {renderMarkdown(mediaPlan.executiveSummary)}
