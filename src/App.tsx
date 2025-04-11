@@ -13,6 +13,7 @@ import AssetsManagement from "./pages/AssetsManagement";
 import AssetForm from "./pages/AssetForm";
 import AssetDetail from "./pages/AssetDetail";
 import Analytics from "./pages/Analytics";
+import MediaPlanGenerator from "./pages/MediaPlanGenerator";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/assets/:id" element={<AssetDetail />} />
             <Route path="/assets/:id/edit" element={<AssetForm />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/media-plan" element={<MediaPlanGenerator />} />
             <Route path="/settings" element={<Settings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
