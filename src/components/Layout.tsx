@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -5,7 +6,6 @@ import { Home, Database, FileImage, BarChart4, Settings, Menu, X } from "lucide-
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import TourGuide from "@/components/TourGuide";
 
 const navItems = [
   {
@@ -46,6 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { theme } = useTheme();
 
   React.useEffect(() => {
+    // Close sidebar on mobile when changing routes
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -65,6 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className={cn(
       "min-h-screen flex bg-neugray-100 dark:bg-gray-900 transition-colors duration-300",
     )}>
+      {/* Mobile menu toggle */}
       {isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -74,8 +76,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </button>
       )}
       
-      <TourGuide className="fixed bottom-6 right-6 z-50" />
-      
+      {/* Sidebar */}
       <aside
         className={cn(
           "w-64 p-6 transition-all duration-300 z-40 dark:bg-gray-900",
@@ -117,6 +118,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </aside>
 
+      {/* Main content */}
       <main
         className={cn(
           "flex-1 p-4 md:p-8 overflow-auto dark:bg-gray-900 dark:text-white",
@@ -124,6 +126,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           isMobile && !sidebarOpen ? "w-full" : ""
         )}
       >
+        {/* Mobile top spacing when menu is collapsed */}
         {isMobile && !sidebarOpen && <div className="h-12"></div>}
         {children}
       </main>

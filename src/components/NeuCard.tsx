@@ -6,27 +6,21 @@ interface NeuCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   variant?: "flat" | "pressed" | "convex";
   className?: string;
-  gradient?: "blue" | "green" | "purple" | "orange" | "none";
 }
 
 const NeuCard: React.FC<NeuCardProps> = ({ 
   children, 
   variant = "flat", 
-  gradient = "none",
   className, 
   ...props 
 }) => {
   return (
     <div 
       className={cn(
-        "p-5 transition-all", 
-        variant === "flat" && "neu-flat",
-        variant === "pressed" && "neu-pressed",
-        variant === "convex" && "neu-convex",
-        gradient === "blue" && "card-gradient-blue",
-        gradient === "green" && "card-gradient-green",
-        gradient === "purple" && "card-gradient-purple",
-        gradient === "orange" && "card-gradient-orange",
+        "p-5", 
+        variant === "flat" && "neu-flat dark:bg-gray-800 dark:shadow-none",
+        variant === "pressed" && "neu-pressed dark:bg-gray-800 dark:shadow-none",
+        variant === "convex" && "neu-convex dark:bg-gray-800 dark:shadow-none",
         className
       )} 
       {...props}

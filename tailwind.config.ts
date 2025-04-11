@@ -65,7 +65,6 @@ export default {
 				},
 				// Neumorphic color extensions
 				neugray: {
-					50: '#f7f8fa',  // Added the missing 50 shade
 					100: '#f0f2f5',
 					200: '#e6e9ed',
 					300: '#dde0e4',

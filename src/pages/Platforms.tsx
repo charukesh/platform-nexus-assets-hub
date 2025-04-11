@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import PageWrapper from "@/components/PageWrapper";
+import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
 import { Search, Filter, Server, PlusCircle, Users, Database, Globe } from "lucide-react";
@@ -69,16 +69,16 @@ const Platforms: React.FC = () => {
   });
 
   return (
-    <PageWrapper>
+    <Layout>
       <div className="animate-fade-in">
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold platforms-heading">Platforms</h1>
+            <h1 className="text-3xl font-bold">Platforms</h1>
             <p className="text-muted-foreground mt-1">Manage your platform integrations</p>
           </div>
           <div>
             <Link to="/platforms/new">
-              <NeuButton className="flex items-center gap-2 add-platform-button">
+              <NeuButton className="flex items-center gap-2">
                 <PlusCircle size={18} />
                 Add Platform
               </NeuButton>
@@ -198,7 +198,7 @@ const Platforms: React.FC = () => {
           </NeuCard>
         )}
       </div>
-    </PageWrapper>
+    </Layout>
   );
 };
 
