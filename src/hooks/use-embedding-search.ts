@@ -39,24 +39,14 @@ export function useEmbeddingSearch() {
     setError(null);
     
     try {
-      // Call the edge function to generate embedding
-      const { data: embeddingResponse, error: embeddingError } = await supabase.functions.invoke('create-embedding-search', {
+      const { data: searchResults, error: searchError } = await supabase.functions.invoke('create-embedding-search', {
         body: { text: searchBrief }
       });
 
-      if (embeddingError) throw embeddingError;
-
-      // Use the embedding to search assets
-      const { data, error } = await supabase.rpc('match_assets_by_embedding_only', {
-        query_embedding: embeddingResponse.embedding,
-        match_threshold: 0.5,
-        match_count: 10
-      });
-
-      if (error) throw error;
+      if (searchError) throw searchError;
       
-      setResults(data || []);
-      return data || [];
+      setResults(searchResults.results || []);
+      return searchResults.results || [];
     } catch (err: any) {
       console.error("Error in embedding search:", err);
       setError(err.message || "An error occurred during search");
