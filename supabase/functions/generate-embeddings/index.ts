@@ -34,12 +34,15 @@ serve(async (req) => {
     console.log('Received request to generate embeddings for asset:', id);
     console.log('Content for embedding:', content);
     
+    // Construct the full Azure OpenAI endpoint URL
+    const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
+    console.log('Using Azure OpenAI endpoint:', azureEndpoint);
+    
     // Initialize Azure OpenAI embeddings with correct configuration
     const embeddings = new AzureOpenAIEmbeddings({
       azureOpenAIApiKey: azureApiKey,
       azureOpenAIApiVersion: "2023-05-15",
-      azureOpenAIApiInstanceName: azureInstance,
-      azureOpenAIApiDeploymentName: azureDeployment,
+      azureOpenAIEndpoint: azureEndpoint,
       deploymentName: azureDeployment,
     });
 
