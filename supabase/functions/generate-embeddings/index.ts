@@ -40,34 +40,31 @@ serve(async (req) => {
     );
 
     // Fetch the asset with its platform details
-    const { data: asset } = await supabaseClient
+    const { data: asset, error: fetchError } = await supabaseClient
       .from('assets')
       .select('*, platform:platforms(*)')
       .eq('id', id)
       .single();
 
-    if (!asset) {
-      throw new Error('Asset not found');
-    }
+    if (fetchError) throw fetchError;
+    if (!asset) throw new Error('Asset not found');
 
     // Create a rich content string including platform context if available
     let fullContent = content;
     if (asset.platform) {
-      fullContent = `${content} ${asset.platform.name} ${asset.platform.industry} ${JSON.stringify(asset.platform.audience_data)} ${JSON.stringify(asset.platform.device_split)}`;
+      fullContent = `${content} Platform: ${asset.platform.name} Industry: ${asset.platform.industry} Audience: ${JSON.stringify(asset.platform.audience_data)} Devices: ${JSON.stringify(asset.platform.device_split)}`;
     }
 
     // Generate new embedding with platform context
     const [embeddingVector] = await embeddings.embedDocuments([fullContent]);
 
     // Update the asset with the new embedding
-    const { error } = await supabaseClient
+    const { error: updateError } = await supabaseClient
       .from('assets')
       .update({ embedding: embeddingVector })
       .eq('id', id);
 
-    if (error) {
-      throw error;
-    }
+    if (updateError) throw updateError;
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
