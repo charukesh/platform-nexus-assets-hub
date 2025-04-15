@@ -10,8 +10,11 @@ interface SearchResult {
   description: string | null;
   thumbnail_url: string | null;
   file_url: string | null;
+  type: string;
   tags: string[] | null;
   platform_id: string | null;
+  platform_name: string | null;
+  platform_industry: string | null;
   similarity: number;
 }
 
@@ -36,9 +39,16 @@ export function useEmbeddingSearch() {
     setError(null);
     
     try {
-      // Call the updated function that accepts a text query
-      const { data, error } = await supabase.rpc('match_assets', {
-        query_text: searchBrief,
+      // Call the edge function to generate embedding
+      const { data: embeddingResponse, error: embeddingError } = await supabase.functions.invoke('create-embedding-search', {
+        body: { text: searchBrief }
+      });
+
+      if (embeddingError) throw embeddingError;
+
+      // Use the embedding to search assets
+      const { data, error } = await supabase.rpc('match_assets_by_embedding_only', {
+        query_embedding: embeddingResponse.embedding,
         match_threshold: 0.5,
         match_count: 10
       });

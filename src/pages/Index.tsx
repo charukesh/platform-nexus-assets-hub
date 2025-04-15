@@ -140,19 +140,10 @@ const Dashboard: React.FC = () => {
     
     setSearchLoading(true);
     try {
-      const { data, error } = await supabase.rpc('match_assets', {
-        query_text: searchBrief,
-        match_threshold: 0.5,
-        match_count: 10
-      });
+      const results = await searchByEmbedding(searchBrief);
+      setSearchResults(results);
       
-      if (error) {
-        throw error;
-      }
-      
-      setSearchResults(data || []);
-      
-      if (data && data.length === 0) {
+      if (results.length === 0) {
         toast({
           title: "No results found",
           description: "Try a different search query",

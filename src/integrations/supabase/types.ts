@@ -121,7 +121,27 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_assets_by_embedding_only: {
+        Args: {
+          query_embedding: string
+          match_threshold: number
+          match_count: number
+        }
+        Returns: {
+          id: string
+          name: string
+          category: string
+          description: string
+          thumbnail_url: string
+          file_url: string
+          type: string
+          tags: string[]
+          platform_id: string
+          platform_name: string
+          platform_industry: string
+          similarity: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
