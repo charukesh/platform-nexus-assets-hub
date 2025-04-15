@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEmbeddingSearch } from "@/hooks/use-embedding-search";
 
 const Dashboard: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);
@@ -24,6 +25,7 @@ const Dashboard: React.FC = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const { toast } = useToast();
+  const { searchByEmbedding } = useEmbeddingSearch();
 
   useEffect(() => {
     fetchData();
