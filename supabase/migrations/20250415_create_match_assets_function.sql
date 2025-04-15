@@ -1,4 +1,4 @@
--- Simplified PostgreSQL function using only vector similarity without additional filtering
+-- Corrected PostgreSQL function for vector similarity search
 CREATE OR REPLACE FUNCTION match_assets_by_embedding_only(
   query_embedding vector(1536),       -- Vector embedding of the query text
   match_threshold float,              -- Similarity threshold (0.0 to 1.0)

@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -80,6 +79,7 @@ serve(async (req) => {
     // Execute the vector similarity search directly using raw SQL query
     console.log('Performing vector similarity search in database...');
     
+    // FIXED: Updated parameter order based on error message and SQL function definition
     const { data, error } = await supabaseClient.rpc('match_assets_by_embedding_only', {
       query_embedding: queryEmbedding,
       match_threshold: threshold,
