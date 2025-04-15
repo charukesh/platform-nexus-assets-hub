@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -292,7 +291,6 @@ const AssetForm: React.FC = () => {
       let thumbnail_url = formData.thumbnail_url;
       
       // For now, simulate file uploads by using the file previews
-      // In a real app, you would upload these to storage
       if (files.file) {
         file_url = files.filePreview;
       }
@@ -324,10 +322,23 @@ const AssetForm: React.FC = () => {
       } else {
         result = await supabase
           .from("assets")
-          .insert([{ ...assetData, created_at: new Date().toISOString() }]);
+          .insert([{ ...assetData, created_at: new Date().toISOString() }])
+          .select()
+          .single();
       }
       
       if (result.error) throw result.error;
+      
+      // Generate embedding for the asset
+      const content = `${assetData.name} ${assetData.description || ''} ${assetData.category} ${assetData.type} ${assetData.tags?.join(' ') || ''}`;
+      
+      await supabase.functions.invoke('generate-embeddings', {
+        body: {
+          type: 'asset',
+          id: isEdit ? id : result.data.id,
+          content
+        }
+      });
       
       toast({
         title: `Asset ${isEdit ? 'updated' : 'created'} successfully`,
