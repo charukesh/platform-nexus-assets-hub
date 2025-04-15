@@ -23,7 +23,7 @@ serve(async (req) => {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
 
-    const { type, id, content } = await req.json();
+    const { id, content } = await req.json();
 
     // Initialize Azure OpenAI embeddings
     const embeddings = new AzureOpenAIEmbeddings({
@@ -33,35 +33,35 @@ serve(async (req) => {
       apiVersion: "2023-05-15",
     });
 
-    // Generate embedding using Azure OpenAI
-    const [embeddingVector] = await embeddings.embedDocuments([content]);
-
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // If it's an asset, fetch the platform details first
-    let fullContent = content;
-    if (type === 'asset') {
-      const { data: asset } = await supabaseClient
-        .from('assets')
-        .select('*, platform:platforms(*)')
-        .eq('id', id)
-        .single();
+    // Fetch the asset with its platform details
+    const { data: asset } = await supabaseClient
+      .from('assets')
+      .select('*, platform:platforms(*)')
+      .eq('id', id)
+      .single();
 
-      if (asset?.platform) {
-        fullContent = `${content} ${asset.platform.name} ${asset.platform.industry} ${JSON.stringify(asset.platform.audience_data)} ${JSON.stringify(asset.platform.device_split)}`;
-        // Generate new embedding with platform context
-        [embeddingVector] = await embeddings.embedDocuments([fullContent]);
-      }
+    if (!asset) {
+      throw new Error('Asset not found');
     }
 
-    // Update the corresponding record in Supabase
-    const table = type === 'platform' ? 'platforms' : 'assets';
+    // Create a rich content string including platform context if available
+    let fullContent = content;
+    if (asset.platform) {
+      fullContent = `${content} ${asset.platform.name} ${asset.platform.industry} ${JSON.stringify(asset.platform.audience_data)} ${JSON.stringify(asset.platform.device_split)}`;
+    }
+
+    // Generate new embedding with platform context
+    const [embeddingVector] = await embeddings.embedDocuments([fullContent]);
+
+    // Update the asset with the new embedding
     const { error } = await supabaseClient
-      .from(table)
+      .from('assets')
       .update({ embedding: embeddingVector })
       .eq('id', id);
 
