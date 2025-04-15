@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -36,9 +37,9 @@ const PlatformForm = () => {
     premium_users: null,
   });
 
-  const { data: platformData, isLoading, error } = useQuery(
-    ['platform', id],
-    async () => {
+  const { data: platformData, isLoading, error } = useQuery({
+    queryKey: ['platform', id],
+    queryFn: async () => {
       if (!id) return null;
       const { data, error } = await supabase
         .from('platforms')
@@ -47,25 +48,10 @@ const PlatformForm = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Tables<'platforms'>;
     },
-    {
-      enabled: !!id,
-      onSuccess: (data) => {
-        if (data) {
-          setFormData({
-            name: data.name,
-            industry: data.industry,
-            audience_data: data.audience_data || {},
-            device_split: data.device_split || {},
-            mau: data.mau || '',
-            dau: data.dau || '',
-            premium_users: data.premium_users || null,
-          });
-        }
-      },
-    }
-  );
+    enabled: !!id,
+  });
 
   useEffect(() => {
     if (platformData) {
@@ -105,7 +91,7 @@ const PlatformForm = () => {
     }
   };
 
-  const generateEmbedding = async (platformData: any) => {
+  const generateEmbedding = async (platformData: Tables<'platforms'>) => {
     const content = `${platformData.name} ${platformData.industry} ${JSON.stringify(platformData.audience_data)} ${JSON.stringify(platformData.device_split)}`;
     
     try {
@@ -180,7 +166,7 @@ const PlatformForm = () => {
   };
 
   if (isLoading) return <Layout>Loading...</Layout>;
-  if (error) return <Layout>Error: {error.message}</Layout>;
+  if (error) return <Layout>Error: {(error as Error).message}</Layout>;
 
   return (
     <Layout>
