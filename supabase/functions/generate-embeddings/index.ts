@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -14,12 +15,12 @@ serve(async (req)=>{
   }
   try {
     const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
-    const azureInstance = Deno.env.get('AZURE_OPENAI_INSTANCE');
-    const azureDeployment = Deno.env.get('AZURE_OPENAI_DEPLOYMENT');
+    const azureInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
+    const azureDeployment = Deno.env.get('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME');
     // Log environment variable status (safely without exposing values)
     console.log('AZURE_OPENAI_API_KEY:', azureApiKey);
-    console.log('AZURE_OPENAI_INSTANCE:', azureInstance);
-    console.log('AZURE_OPENAI_DEPLOYMENT:', azureDeployment);
+    console.log('AZURE_OPENAI_API_INSTANCE_NAME:', azureInstance);
+    console.log('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:', azureDeployment);
     if (!azureApiKey || !azureInstance || !azureDeployment) {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
@@ -46,8 +47,8 @@ serve(async (req)=>{
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    console.log('SUPABASE_URL:', supabaseUrl);
-    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey);
+    console.log('SUPABASE_URL:', supabaseUrl ? '✓ Present' : '✗ Missing');
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Present' : '✗ Missing');
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase configuration is incomplete');
     }
