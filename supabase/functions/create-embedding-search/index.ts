@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -72,36 +73,30 @@ serve(async (req) => {
     
     // Generate embedding for query
     console.log('Generating embedding for query text...');
-    
     const [queryEmbedding] = await embeddings.embedDocuments([queryText]);
     console.log('Query embedding generated successfully');
     
-    // Execute the vector similarity search directly using raw SQL query
-    console.log('Performing vector similarity search in database...');
-    
-    // FIXED: Updated parameter order based on error message and SQL function definition
-    const { data, error } = await supabaseClient.rpc('match_assets_by_embedding_only', {
-      query_embedding: queryEmbedding,
-      match_threshold: threshold,
-      match_count: count
-    });
+    // Execute vector similarity search using the database function
+    console.log('Performing vector similarity search...');
+    const { data: results, error } = await supabaseClient.rpc(
+      'match_assets_by_embedding_only',
+      {
+        query_embedding: queryEmbedding,
+        match_threshold: threshold,
+        match_count: count
+      }
+    );
     
     if (error) {
       console.error('Error in vector similarity search:', error);
       throw error;
     }
     
-    console.log(`Found ${data?.length || 0} matching assets via vector search`);
-    
-    // Process results to match the expected format
-    const enhancedResults = data?.map(item => ({
-      ...item,
-      relevance_score: Math.round(item.similarity * 100) / 100
-    })) || [];
+    console.log(`Found ${results?.length || 0} matching assets`);
     
     // Return the results
     return new Response(JSON.stringify({ 
-      results: enhancedResults,
+      results: results || [],
       method: 'vector',
       query: queryText
     }), {
