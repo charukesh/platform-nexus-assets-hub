@@ -17,9 +17,9 @@ serve(async (req)=>{
     const azureInstance = Deno.env.get('AZURE_OPENAI_INSTANCE');
     const azureDeployment = Deno.env.get('AZURE_OPENAI_DEPLOYMENT');
     // Log environment variable status (safely without exposing values)
-    console.log('AZURE_OPENAI_API_KEY:', azureApiKey ? '✓ Present' : '✗ Missing');
-    console.log('AZURE_OPENAI_INSTANCE:', azureInstance ? '✓ Present' : '✗ Missing');
-    console.log('AZURE_OPENAI_DEPLOYMENT:', azureDeployment ? '✓ Present' : '✗ Missing');
+    console.log('AZURE_OPENAI_API_KEY:', azureApiKey);
+    console.log('AZURE_OPENAI_INSTANCE:', azureInstance);
+    console.log('AZURE_OPENAI_DEPLOYMENT:', azureDeployment);
     if (!azureApiKey || !azureInstance || !azureDeployment) {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
@@ -46,8 +46,8 @@ serve(async (req)=>{
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    console.log('SUPABASE_URL:', supabaseUrl ? '✓ Present' : '✗ Missing');
-    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Present' : '✗ Missing');
+    console.log('SUPABASE_URL:', supabaseUrl);
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey);
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Supabase configuration is incomplete');
     }
