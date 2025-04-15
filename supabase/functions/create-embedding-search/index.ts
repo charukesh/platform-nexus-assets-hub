@@ -44,17 +44,18 @@ serve(async (req) => {
     
     // Parse request data
     const requestData = await req.json();
-    const { 
-      query, 
-      threshold = 0.5, 
-      count = 10
-    } = requestData;
+    console.log('Received request data:', requestData);
     
-    if (!query || typeof query !== 'string' || query.trim() === '') {
-      throw new Error('A valid query is required');
+    // Accept either 'query' or 'text' parameter
+    const queryText = requestData.query || requestData.text;
+    const threshold = requestData.threshold || 0.5;
+    const count = requestData.count || 10;
+    
+    if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
+      throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
     
-    console.log('Processing query:', query);
+    console.log('Processing query:', queryText);
     
     // Set up Azure OpenAI embeddings
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
@@ -72,7 +73,7 @@ serve(async (req) => {
     // Generate embedding for query
     console.log('Generating embedding for query text...');
     
-    const [queryEmbedding] = await embeddings.embedDocuments([query]);
+    const [queryEmbedding] = await embeddings.embedDocuments([queryText]);
     console.log('Query embedding generated successfully');
     
     // Execute the vector similarity search
@@ -102,7 +103,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       results: enhancedResults,
       method: 'vector',
-      query: query
+      query: queryText
     }), {
       headers: {
         ...corsHeaders,
