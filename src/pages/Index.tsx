@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
-import { Search, Filter, BarChart2, ChevronRight, Users, PieChart, Layers, Database, FileImage } from "lucide-react";
+import NeuInput from "@/components/NeuInput";
+import { Search, Filter, BarChart2, ChevronRight, Users, PieChart, Layers, Database, FileImage, Bot, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,9 @@ const Dashboard: React.FC = () => {
   const [industryFilter, setIndustryFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [activeTab, setActiveTab] = useState("overview");
+  const [searchBrief, setSearchBrief] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,7 +50,6 @@ const Dashboard: React.FC = () => {
       if (data) {
         setPlatforms(data);
 
-        // Extract unique industries for filter
         const uniqueIndustries = Array.from(new Set(data.map(platform => platform.industry)));
         setIndustries(["All", ...uniqueIndustries]);
       }
@@ -73,7 +75,6 @@ const Dashboard: React.FC = () => {
       if (data) {
         setAssets(data);
         
-        // Extract unique categories for filter
         const uniqueCategories = Array.from(new Set(data.map(asset => asset.category)));
         setAssetCategories(["All", ...uniqueCategories]);
       }
@@ -125,6 +126,52 @@ const Dashboard: React.FC = () => {
     }))
   };
 
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!searchBrief.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a search brief",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setSearchLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('match_assets', {
+        query_embedding: searchBrief,
+        match_threshold: 0.5,
+        match_count: 10
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setSearchResults(data || []);
+      
+      if (data && data.length === 0) {
+        toast({
+          title: "No results found",
+          description: "Try a different search query",
+          variant: "default"
+        });
+      }
+    } catch (error: any) {
+      console.error("Error searching assets:", error);
+      toast({
+        title: "Search error",
+        description: error.message || "Failed to search assets",
+        variant: "destructive"
+      });
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="animate-fade-in">
@@ -143,7 +190,6 @@ const Dashboard: React.FC = () => {
           </div>
         </header>
 
-        {/* Tabs Navigation */}
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="neu-flat bg-white p-1">
             <TabsTrigger value="overview" className="data-[state=active]:neu-pressed">
@@ -155,9 +201,14 @@ const Dashboard: React.FC = () => {
             <TabsTrigger value="assets" className="data-[state=active]:neu-pressed">
               Assets
             </TabsTrigger>
+            <TabsTrigger value="ai" className="data-[state=active]:neu-pressed">
+              <span className="flex items-center gap-1">
+                <Sparkles size={14} />
+                AI Search
+              </span>
+            </TabsTrigger>
           </TabsList>
 
-          {/* Overview Tab */}
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <NeuCard>
@@ -275,7 +326,6 @@ const Dashboard: React.FC = () => {
             </NeuCard>
           </TabsContent>
 
-          {/* Platforms Tab */}
           <TabsContent value="platforms" className="mt-6">
             <NeuCard className="mb-8">
               <div className="flex flex-col md:flex-row gap-4">
@@ -386,7 +436,6 @@ const Dashboard: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Assets Tab */}
           <TabsContent value="assets" className="mt-6">
             <NeuCard className="mb-8">
               <div className="flex flex-col md:flex-row gap-4">
@@ -478,6 +527,121 @@ const Dashboard: React.FC = () => {
                 </Link>
               </NeuCard>
             )}
+          </TabsContent>
+
+          <TabsContent value="ai" className="mt-6">
+            <NeuCard className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Bot className="text-primary" size={24} />
+                <h2 className="text-xl font-bold">AI Asset Search</h2>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Enter a description or brief of what you're looking for, and our AI will find the most relevant assets.
+              </p>
+              
+              <form onSubmit={handleSearchSubmit} className="mb-6">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1">
+                    <NeuInput
+                      as="textarea"
+                      placeholder="Describe what you're looking for in detail..."
+                      value={searchBrief}
+                      onChange={(e) => setSearchBrief(e.target.value)}
+                      className="w-full"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <NeuButton 
+                      type="submit" 
+                      disabled={searchLoading}
+                      className="whitespace-nowrap"
+                    >
+                      {searchLoading ? (
+                        <span className="flex items-center gap-2">
+                          <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                          Searching...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Search size={16} />
+                          Search Assets
+                        </span>
+                      )}
+                    </NeuButton>
+                  </div>
+                </div>
+              </form>
+
+              {searchResults.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Search Results</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {searchResults.map(asset => (
+                      <Link key={asset.id} to={`/assets/${asset.id}`}>
+                        <NeuCard className="h-full neu-flat hover:shadow-neu-pressed transition-all cursor-pointer">
+                          <div className="w-full h-40 bg-neugray-200 mb-4 rounded-lg overflow-hidden">
+                            {asset.thumbnail_url ? (
+                              <img
+                                src={asset.thumbnail_url}
+                                alt={asset.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-neugray-200">
+                                <FileImage size={48} className="text-neugray-400" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="text-lg font-bold line-clamp-1">{asset.name}</h3>
+                              <span className={`text-xs py-1 px-2 rounded-full 
+                                ${asset.category === "Digital" ? "bg-neublue-100 text-neublue-500" : 
+                                  asset.category === "Physical" ? "bg-green-100 text-green-600" : 
+                                  "bg-purple-100 text-purple-600"}`}>
+                                {asset.category}
+                              </span>
+                            </div>
+                            
+                            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                              {asset.description || "No description"}
+                            </p>
+                            
+                            {asset.similarity && (
+                              <div className="mt-2">
+                                <p className="text-xs text-muted-foreground">
+                                  Relevance: {Math.round(asset.similarity * 100)}%
+                                </p>
+                                <div className="w-full h-1.5 bg-neugray-200 rounded-full overflow-hidden mt-1">
+                                  <div 
+                                    className="h-full bg-primary rounded-full" 
+                                    style={{ width: `${asset.similarity * 100}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </NeuCard>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {searchBrief.trim() && searchResults.length === 0 && !searchLoading && (
+                <div className="text-center py-8">
+                  <div className="text-muted-foreground mb-4">
+                    <Search size={48} className="mx-auto mb-2 opacity-40" />
+                    <p>No matching assets found for your search.</p>
+                  </div>
+                  <NeuButton variant="outline" onClick={() => setSearchBrief('')}>
+                    Clear search and try again
+                  </NeuButton>
+                </div>
+              )}
+            </NeuCard>
           </TabsContent>
         </Tabs>
       </div>
