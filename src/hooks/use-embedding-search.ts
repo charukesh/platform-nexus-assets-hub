@@ -36,8 +36,9 @@ export function useEmbeddingSearch() {
     setError(null);
     
     try {
+      // Call the updated function that accepts a text query
       const { data, error } = await supabase.rpc('match_assets', {
-        query_embedding: searchBrief,
+        query_text: searchBrief,
         match_threshold: 0.5,
         match_count: 10
       });

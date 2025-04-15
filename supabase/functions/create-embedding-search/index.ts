@@ -2,7 +2,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,20 +17,14 @@ serve(async (req) => {
 
   try {
     // Get environment variables
-    const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
-    const azureInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
-    const azureDeployment = Deno.env.get('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     // Validate configuration
-    console.log('AZURE_OPENAI_API_KEY:', azureApiKey ? '✓ Present' : '✗ Missing');
-    console.log('AZURE_OPENAI_API_INSTANCE_NAME:', azureInstance);
-    console.log('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:', azureDeployment);
     console.log('SUPABASE_URL:', supabaseUrl ? '✓ Present' : '✗ Missing');
     console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Present' : '✗ Missing');
 
-    if (!azureApiKey || !azureInstance || !azureDeployment || !supabaseUrl || !supabaseKey) {
+    if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing required configuration');
     }
 
@@ -44,42 +37,23 @@ serve(async (req) => {
 
     console.log('Processing query:', query);
 
-    // Construct the Azure OpenAI endpoint URL
-    const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
-    console.log('Using Azure OpenAI endpoint:', azureEndpoint);
-
-    // Initialize Azure OpenAI embeddings
-    const embeddings = new AzureOpenAIEmbeddings({
-      azureOpenAIApiKey: azureApiKey,
-      azureOpenAIApiVersion: "2023-05-15",
-      azureOpenAIApiInstanceName: azureInstance,
-      azureOpenAIEndpoint: azureEndpoint,
-      azureOpenAIApiDeploymentName: azureDeployment,
-      modelName: azureDeployment
-    });
-
-    // Generate embedding for the query
-    console.log('Generating embedding for query...');
-    const [queryEmbedding] = await embeddings.embedDocuments([query]);
-    console.log('Embedding generated successfully');
-
     // Initialize Supabase client
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    // Execute the vector similarity search
-    console.log('Performing similarity search in database...');
-    const { data, error } = await supabaseClient.rpc('match_documents', {
-      query_embedding: queryEmbedding,
+    // Execute the text similarity search
+    console.log('Performing text search in database...');
+    const { data, error } = await supabaseClient.rpc('match_assets', {
+      query_text: query,
       match_threshold: 0.5,
       match_count: 10
     });
 
     if (error) {
-      console.error('Error in similarity search:', error);
+      console.error('Error in text search:', error);
       throw error;
     }
 
-    console.log(`Found ${data?.length || 0} matching documents`);
+    console.log(`Found ${data?.length || 0} matching assets`);
 
     return new Response(JSON.stringify({ results: data }), {
       headers: {
