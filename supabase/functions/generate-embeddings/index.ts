@@ -44,6 +44,7 @@ serve(async (req) => {
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
     console.log('Using Azure OpenAI endpoint:', azureEndpoint);
     
+    
     // Initialize Azure OpenAI embeddings with correct configuration
     // Include both endpoint and instance name to ensure compatibility
     const embeddings = new AzureOpenAIEmbeddings({
