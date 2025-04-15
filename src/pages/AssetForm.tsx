@@ -334,7 +334,7 @@ const AssetForm: React.FC = () => {
         description: formData.description,
         category: formData.category,
         type: formData.type,
-        platform_id: formData.platform_id,
+        platform_id: formData.platform_id || null,
         tags: formData.tags,
         file_url,
         thumbnail_url,
@@ -345,7 +345,7 @@ const AssetForm: React.FC = () => {
       let result;
       let assetId;
       
-      if (isEdit) {
+      if (isEdit && id) {
         console.log('Updating asset:', id);
         result = await supabase
           .from("assets")
@@ -369,7 +369,11 @@ const AssetForm: React.FC = () => {
       console.log('Asset saved successfully, now generating embeddings');
       
       // Generate embeddings for the asset - this is a critical step
-      await generateEmbeddings(assetId!);
+      if (assetId) {
+        await generateEmbeddings(assetId);
+      } else {
+        console.error('Failed to get valid asset ID for embeddings generation');
+      }
       
       toast({
         title: `Asset ${isEdit ? 'updated' : 'created'} successfully`,

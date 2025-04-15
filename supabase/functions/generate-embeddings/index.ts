@@ -30,7 +30,14 @@ serve(async (req) => {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
     
-    const { id, content } = await req.json();
+    const requestData = await req.json();
+    const { id, content } = requestData;
+    
+    // Validate that we have a valid UUID
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      throw new Error('Invalid asset ID provided');
+    }
+    
     console.log('Received request to generate embeddings for asset:', id);
     console.log('Content for embedding:', content);
     
