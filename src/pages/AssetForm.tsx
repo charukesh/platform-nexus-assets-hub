@@ -281,8 +281,24 @@ const AssetForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const generateEmbeddings = async (assetId: string) => {
+    try {
+      // Create content string from asset data for embedding
+      const content = `${formData.name} ${formData.description || ''} ${formData.category} ${formData.type} ${formData.tags?.join(' ') || ''}`;
+      
+      await supabase.functions.invoke('generate-embeddings', {
+        body: {
+          id: assetId,
+          content
+        }
+      });
+    } catch (error) {
+      console.error('Error generating embeddings:', error);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     
     try {
       setLoading(true);
@@ -329,16 +345,8 @@ const AssetForm: React.FC = () => {
       
       if (result.error) throw result.error;
       
-      // Generate embedding for the asset
-      const content = `${assetData.name} ${assetData.description || ''} ${assetData.category} ${assetData.type} ${assetData.tags?.join(' ') || ''}`;
-      
-      await supabase.functions.invoke('generate-embeddings', {
-        body: {
-          type: 'asset',
-          id: isEdit ? id : result.data.id,
-          content
-        }
-      });
+      // Generate embeddings for the asset
+      await generateEmbeddings(isEdit ? id! : result.data.id);
       
       toast({
         title: `Asset ${isEdit ? 'updated' : 'created'} successfully`,
