@@ -14,6 +14,7 @@ export type Database = {
           category: string
           created_at: string | null
           description: string | null
+          embedding: string | null
           file_size: string | null
           file_url: string | null
           id: string
@@ -29,6 +30,7 @@ export type Database = {
           category: string
           created_at?: string | null
           description?: string | null
+          embedding?: string | null
           file_size?: string | null
           file_url?: string | null
           id?: string
@@ -44,6 +46,7 @@ export type Database = {
           category?: string
           created_at?: string | null
           description?: string | null
+          embedding?: string | null
           file_size?: string | null
           file_url?: string | null
           id?: string
@@ -72,6 +75,7 @@ export type Database = {
           created_at: string | null
           dau: string | null
           device_split: Json | null
+          embedding: string | null
           id: string
           industry: string
           mau: string | null
@@ -86,6 +90,7 @@ export type Database = {
           created_at?: string | null
           dau?: string | null
           device_split?: Json | null
+          embedding?: string | null
           id?: string
           industry: string
           mau?: string | null
@@ -100,6 +105,7 @@ export type Database = {
           created_at?: string | null
           dau?: string | null
           device_split?: Json | null
+          embedding?: string | null
           id?: string
           industry?: string
           mau?: string | null

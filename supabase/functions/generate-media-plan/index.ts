@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -16,7 +15,7 @@ serve(async (req) => {
   try {
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not set in the environment variables');
+      throw new Error('OPENAI_API_KEY is not set');
     }
 
     const { 
@@ -28,7 +27,7 @@ serve(async (req) => {
       timeframe 
     } = await req.json();
 
-    // Prepare the context for the AI
+    // Enhanced context with embedding information
     const platformsContext = platformsData.length 
       ? `Available platforms (${platformsData.length}): ${JSON.stringify(platformsData.map(p => ({
           name: p.name,
@@ -39,7 +38,8 @@ serve(async (req) => {
             dau: p.dau,
             premiumUsers: p.premium_users,
             deviceSplit: p.device_split
-          }
+          },
+          embedding: p.embedding // Include embedding for semantic understanding
         })))}`
       : "No platforms available.";
 
@@ -49,7 +49,8 @@ serve(async (req) => {
           type: a.type,
           category: a.category,
           description: a.description,
-          tags: a.tags
+          tags: a.tags,
+          embedding: a.embedding // Include embedding for semantic understanding
         })))}`
       : "No assets available.";
 
