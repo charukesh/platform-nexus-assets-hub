@@ -74,7 +74,6 @@ const AssetForm: React.FC = () => {
       
       if (data) {
         setPlatforms(data);
-        // Set first platform as default if creating new asset
         if (!id && data.length > 0) {
           setFormData(prev => ({ ...prev, platform_id: data[0].id }));
         }
@@ -114,7 +113,6 @@ const AssetForm: React.FC = () => {
           file_size: data.file_size || null
         });
         
-        // Set previews for existing files
         setFiles({
           file: null,
           thumbnail: null,
@@ -283,17 +281,33 @@ const AssetForm: React.FC = () => {
 
   const generateEmbeddings = async (assetId: string) => {
     try {
+      console.log('Generating embeddings for asset:', assetId);
+      
       // Create content string from asset data for embedding
       const content = `${formData.name} ${formData.description || ''} ${formData.category} ${formData.type} ${formData.tags?.join(' ') || ''}`;
+      console.log('Content for embedding:', content);
       
-      await supabase.functions.invoke('generate-embeddings', {
+      const { data, error } = await supabase.functions.invoke('generate-embeddings', {
         body: {
           id: assetId,
           content
         }
       });
+      
+      if (error) {
+        console.error('Error generating embeddings:', error);
+        throw error;
+      }
+      
+      console.log('Embeddings generated successfully:', data);
+      return data;
     } catch (error) {
       console.error('Error generating embeddings:', error);
+      toast({
+        title: "Error generating embeddings",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      });
     }
   };
 
@@ -329,24 +343,33 @@ const AssetForm: React.FC = () => {
       };
       
       let result;
+      let assetId;
       
       if (isEdit) {
+        console.log('Updating asset:', id);
         result = await supabase
           .from("assets")
           .update(assetData)
           .eq("id", id);
+          
+        if (result.error) throw result.error;
+        assetId = id;
       } else {
+        console.log('Creating new asset');
         result = await supabase
           .from("assets")
           .insert([{ ...assetData, created_at: new Date().toISOString() }])
           .select()
           .single();
+          
+        if (result.error) throw result.error;
+        assetId = result.data.id;
       }
       
-      if (result.error) throw result.error;
+      console.log('Asset saved successfully, now generating embeddings');
       
-      // Generate embeddings for the asset
-      await generateEmbeddings(isEdit ? id! : result.data.id);
+      // Generate embeddings for the asset - this is a critical step
+      await generateEmbeddings(assetId!);
       
       toast({
         title: `Asset ${isEdit ? 'updated' : 'created'} successfully`,
@@ -355,6 +378,7 @@ const AssetForm: React.FC = () => {
       
       navigate("/assets");
     } catch (error: any) {
+      console.error(`Error ${isEdit ? 'updating' : 'creating'} asset:`, error);
       toast({
         title: `Error ${isEdit ? 'updating' : 'creating'} asset`,
         description: error.message,
