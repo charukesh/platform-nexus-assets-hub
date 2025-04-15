@@ -80,24 +80,11 @@ serve(async (req) => {
     // Execute the vector similarity search directly using raw SQL query
     console.log('Performing vector similarity search in database...');
     
-    // Direct PostgreSQL query instead of using RPC function
-    const { data, error } = await supabaseClient.from('assets')
-      .select(`
-        id, 
-        name, 
-        category, 
-        description, 
-        thumbnail_url, 
-        file_url, 
-        type, 
-        tags,
-        platform_id,
-        platforms (name, industry)
-      `)
-      .filter('embedding', 'is not', null)
-      .order('embedding <=> $1::vector', { ascending: true, foreignTable: null })
-      .limit(count)
-      .bind(queryEmbedding);
+    const { data, error } = await supabaseClient.rpc('match_assets_by_embedding_only', {
+      query_embedding: queryEmbedding,
+      match_threshold: threshold,
+      match_count: count
+    });
     
     if (error) {
       console.error('Error in vector similarity search:', error);
@@ -108,18 +95,8 @@ serve(async (req) => {
     
     // Process results to match the expected format
     const enhancedResults = data?.map(item => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      description: item.description,
-      thumbnail_url: item.thumbnail_url,
-      file_url: item.file_url,
-      type: item.type,
-      tags: item.tags,
-      platform_id: item.platform_id,
-      platform_name: item.platforms?.name || null,
-      platform_industry: item.platforms?.industry || null,
-      similarity: 0.9 - (Math.random() * 0.3) // Approximation since we can't get exact score this way
+      ...item,
+      relevance_score: Math.round(item.similarity * 100) / 100
     })) || [];
     
     // Return the results
