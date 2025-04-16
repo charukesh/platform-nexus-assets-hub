@@ -121,6 +121,14 @@ const AssetForm: React.FC = () => {
       
       if (data) {
         console.log("Asset data fetched:", data);
+        const estimatedImpressions = typeof data.estimated_impressions === 'number' 
+          ? data.estimated_impressions 
+          : 0;
+        
+        const estimatedClicks = typeof data.estimated_clicks === 'number' 
+          ? data.estimated_clicks 
+          : 0;
+        
         setFormData({
           name: data.name || "",
           description: data.description || "",
@@ -133,9 +141,12 @@ const AssetForm: React.FC = () => {
           thumbnail_url: data.thumbnail_url || null,
           file_size: data.file_size || null,
           buy_types: data.buy_types || ['CPC'],
-          estimated_impressions: data.estimated_impressions || 0,
-          estimated_clicks: data.estimated_clicks || 0
+          estimated_impressions: estimatedImpressions,
+          estimated_clicks: estimatedClicks
         });
+        
+        console.log("Setting estimated impressions:", estimatedImpressions);
+        console.log("Setting estimated clicks:", estimatedClicks);
         
         setFiles({
           file: null,
@@ -156,6 +167,7 @@ const AssetForm: React.FC = () => {
   };
 
   const handleFieldChange = (field: string, value: any) => {
+    console.log(`Field change: ${field} = `, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

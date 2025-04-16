@@ -24,6 +24,12 @@ const BuyTypeSelector = ({
     onChange('buy_types', newBuyTypes);
   };
 
+  const handleNumericChange = (field: string, value: string) => {
+    // Parse the input value as a number, ensuring we don't pass NaN
+    const numericValue = value === '' ? 0 : parseInt(value, 10);
+    onChange(field, isNaN(numericValue) ? 0 : numericValue);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -58,7 +64,7 @@ const BuyTypeSelector = ({
           id="estimated_impressions"
           type="number"
           value={estimatedImpressions}
-          onChange={(e) => onChange('estimated_impressions', parseInt(e.target.value, 10) || 0)}
+          onChange={(e) => handleNumericChange('estimated_impressions', e.target.value)}
           className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
           required
         />
@@ -70,7 +76,7 @@ const BuyTypeSelector = ({
           id="estimated_clicks"
           type="number"
           value={estimatedClicks}
-          onChange={(e) => onChange('estimated_clicks', parseInt(e.target.value, 10) || 0)}
+          onChange={(e) => handleNumericChange('estimated_clicks', e.target.value)}
           className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
           required
         />
