@@ -1,4 +1,3 @@
-
 export interface PlatformFormData {
   name: string;
   industry: string;
@@ -10,6 +9,18 @@ export interface PlatformFormData {
   campaign_data: CampaignData;
   restrictions: Restrictions;
 }
+
+export const INDUSTRY_OPTIONS = [
+  'QSR',
+  'Ride Hailing',
+  'Finance & Payments',
+  'Travel & Bookings',
+  'Music',
+  'News & Info',
+  'Calling Assistant'
+] as const;
+
+export type Industry = typeof INDUSTRY_OPTIONS[number];
 
 export interface AudienceData {
   age_groups?: {

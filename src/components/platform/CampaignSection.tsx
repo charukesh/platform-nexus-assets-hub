@@ -1,4 +1,5 @@
 
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -35,44 +36,32 @@ export const CampaignSection = ({
     "CPS (Cost Per Scratch)",
   ];
 
-  const adFormats = [
-    "Static Masthead",
-    "Video Masthead",
-    "Shoppable Story",
-    "Scratch Card",
-    "Banner Ads",
-    "Native Ads",
-  ];
-
-  const specialInnovations = [
-    "Category Rail",
-    "Tap-to-Reveal",
-    "Shake-to-Redirect",
-    "Interactive Stories",
-    "AR Filters",
-  ];
+  const handleFunnelStageChange = (stage: string, checked: boolean) => {
+    const currentStages = campaignData.funnel_stage || [];
+    const updatedStages = checked
+      ? [...currentStages, stage]
+      : currentStages.filter((s: string) => s !== stage);
+    onCampaignDataChange("funnel_stage", updatedStages);
+  };
 
   return (
     <NeuCard>
       <h2 className="text-xl font-semibold mb-4">Campaign Settings</h2>
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div>
-          <Label>Campaign Funnel Stage</Label>
-          <Select 
-            value={campaignData.funnel_stage}
-            onValueChange={(value) => onCampaignDataChange("funnel_stage", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select funnel stage" />
-            </SelectTrigger>
-            <SelectContent>
-              {funnelStages.map((stage) => (
-                <SelectItem key={stage} value={stage}>
-                  {stage}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label className="text-base mb-3 block">Campaign Funnel Stages</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {funnelStages.map((stage) => (
+              <div key={stage} className="flex items-center space-x-2">
+                <Checkbox
+                  id={`stage-${stage}`}
+                  checked={campaignData.funnel_stage?.includes(stage)}
+                  onCheckedChange={(checked) => handleFunnelStageChange(stage, checked)}
+                />
+                <Label htmlFor={`stage-${stage}`}>{stage}</Label>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div>
@@ -101,15 +90,6 @@ export const CampaignSection = ({
             placeholder="e.g., 500000"
             value={campaignData.minimum_spend || ""}
             onChange={(e) => onCampaignDataChange("minimum_spend", e.target.value ? parseInt(e.target.value) : null)}
-          />
-        </div>
-
-        <div>
-          <Label>Platform Presence (Geography)</Label>
-          <NeuInput
-            placeholder="e.g., Pan-India"
-            value={campaignData.geography_presence || ""}
-            onChange={(e) => onCampaignDataChange("geography_presence", e.target.value)}
           />
         </div>
 

@@ -12,7 +12,16 @@ import { ArrowLeft } from 'lucide-react';
 import { CampaignSection } from '@/components/platform/CampaignSection';
 import { TargetingSection } from '@/components/platform/TargetingSection';
 import type { PlatformFormData } from '@/types/platform';
-import { Tables, Json } from '@/integrations/supabase/types';
+import { Tables } from '@/integrations/supabase/types';
+import { INDUSTRY_OPTIONS } from '@/types/platform';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const PlatformForm = () => {
   const { id } = useParams();
@@ -72,7 +81,6 @@ const PlatformForm = () => {
 
   useEffect(() => {
     if (platformData) {
-      // Create default audience data and device split structures
       const defaultAudienceData = {
         age_groups: {
           '13-17': 0,
@@ -115,7 +123,6 @@ const PlatformForm = () => {
         restricted_categories: [],
       };
 
-      // Parse the audience_data and device_split from the API response
       const audienceData = platformData.audience_data as Json;
       const deviceSplit = platformData.device_split as Json;
       const campaignData = platformData.campaign_data as Json;
@@ -271,12 +278,43 @@ const PlatformForm = () => {
 
               <div>
                 <Label htmlFor="industry">Industry*</Label>
-                <NeuInput
-                  id="industry"
+                <Select 
                   value={formData.industry}
-                  onChange={(e) => handleChange('industry', e.target.value)}
-                  required
-                />
+                  onValueChange={(value) => handleChange('industry', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDUSTRY_OPTIONS.map((industry) => (
+                      <SelectItem key={industry} value={industry}>
+                        {industry}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Category Blocks</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  {INDUSTRY_OPTIONS.map((category) => (
+                    <div key={category} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`category-${category}`}
+                        checked={formData.audience_data.platform_specific_targeting?.includes(category)}
+                        onCheckedChange={(checked) => {
+                          const current = formData.audience_data.platform_specific_targeting || [];
+                          const updated = checked
+                            ? [...current, category]
+                            : current.filter(c => c !== category);
+                          handleAudienceDataChange('platform_specific_targeting', updated);
+                        }}
+                      />
+                      <Label htmlFor={`category-${category}`}>{category}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div>
