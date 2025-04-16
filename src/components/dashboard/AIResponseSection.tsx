@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -41,12 +42,18 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             if (done) break;
 
             const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            console.log("Raw chunk:", chunk);
             
+            const lines = chunk.split('\n');
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 try {
-                  const data = JSON.parse(line.slice(6));
+                  const jsonStr = line.slice(6);
+                  console.log("JSON string:", jsonStr);
+                  
+                  const data = JSON.parse(jsonStr);
+                  console.log("Parsed data:", data);
+                  
                   if (data.content) {
                     setStreamedContent(prev => prev + data.content);
                   }
@@ -81,7 +88,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           rehypePlugins={[rehypeRaw]}
           className="prose prose-sm max-w-full"
         >
-          {streamedContent.trim()}
+          {streamedContent.trim() || "Waiting for response..."}
         </ReactMarkdown>
       </div>
     );
