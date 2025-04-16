@@ -11,12 +11,37 @@ import { useToast } from '@/components/ui/use-toast';
 import { Tables } from '@/integrations/supabase/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+interface AudienceData {
+  age_groups?: {
+    '13-17'?: number;
+    '18-24'?: number;
+    '25-34'?: number;
+    '35-44'?: number;
+    '45-54'?: number;
+    '55+'?: number;
+  };
+  gender?: {
+    male?: number;
+    female?: number;
+    other?: number;
+  };
+  interests?: string[];
+}
+
+interface DeviceSplit {
+  ios: number;
+  android: number;
+  web?: number;
+}
 
 interface FormData {
   name: string;
   industry: string;
-  audience_data: any;
-  device_split: any;
+  audience_data: AudienceData;
+  device_split: DeviceSplit;
   mau: string;
   dau: string;
   premium_users: number | null;
@@ -30,14 +55,33 @@ const PlatformForm = () => {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     industry: '',
-    audience_data: {},
-    device_split: {},
+    audience_data: {
+      age_groups: {
+        '13-17': 0,
+        '18-24': 0,
+        '25-34': 0,
+        '35-44': 0,
+        '45-54': 0,
+        '55+': 0
+      },
+      gender: {
+        male: 0,
+        female: 0,
+        other: 0
+      },
+      interests: []
+    },
+    device_split: {
+      ios: 50,
+      android: 50,
+      web: 0
+    },
     mau: '',
     dau: '',
     premium_users: null,
   });
 
-  const { data: platformData, isLoading, error } = useQuery({
+  const { data: platformData, isLoading } = useQuery({
     queryKey: ['platform', id],
     queryFn: async () => {
       if (!id) return null;
@@ -58,8 +102,16 @@ const PlatformForm = () => {
       setFormData({
         name: platformData.name,
         industry: platformData.industry,
-        audience_data: platformData.audience_data || {},
-        device_split: platformData.device_split || {},
+        audience_data: platformData.audience_data as AudienceData || {
+          age_groups: {},
+          gender: {},
+          interests: []
+        },
+        device_split: platformData.device_split as DeviceSplit || {
+          ios: 50,
+          android: 50,
+          web: 0
+        },
         mau: platformData.mau || '',
         dau: platformData.dau || '',
         premium_users: platformData.premium_users || null,
@@ -67,44 +119,74 @@ const PlatformForm = () => {
     }
   }, [platformData]);
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = event.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const handleJSONChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, field: string) => {
-    try {
-      const parsedValue = JSON.parse(event.target.value);
-      setFormData({
-        ...formData,
-        [field]: parsedValue,
-      });
-    } catch (e) {
-      toast({
-        title: "Invalid JSON",
-        description: "Please enter valid JSON format.",
-        variant: "destructive",
-      });
-    }
+  const handleDeviceSplitChange = (platform: keyof DeviceSplit, value: string) => {
+    const numValue = parseInt(value) || 0;
+    setFormData(prev => ({
+      ...prev,
+      device_split: {
+        ...prev.device_split,
+        [platform]: numValue
+      }
+    }));
   };
 
-  const generateEmbedding = async (platformData: Tables<'platforms'>) => {
-    const content = `${platformData.name} ${platformData.industry} ${JSON.stringify(platformData.audience_data)} ${JSON.stringify(platformData.device_split)}`;
-    
-    try {
-      await supabase.functions.invoke('generate-embeddings', {
-        body: {
-          type: 'platform',
-          id: platformData.id,
-          content
+  const handleAgeGroupChange = (group: string, value: string) => {
+    const numValue = parseInt(value) || 0;
+    setFormData(prev => ({
+      ...prev,
+      audience_data: {
+        ...prev.audience_data,
+        age_groups: {
+          ...prev.audience_data.age_groups,
+          [group]: numValue
         }
-      });
-    } catch (error) {
-      console.error('Error generating embedding:', error);
+      }
+    }));
+  };
+
+  const handleGenderChange = (gender: string, value: string) => {
+    const numValue = parseInt(value) || 0;
+    setFormData(prev => ({
+      ...prev,
+      audience_data: {
+        ...prev.audience_data,
+        gender: {
+          ...prev.audience_data.gender,
+          [gender]: numValue
+        }
+      }
+    }));
+  };
+
+  const handleInterestChange = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter' && event.currentTarget.value.trim()) {
+      const newInterest = event.currentTarget.value.trim();
+      setFormData(prev => ({
+        ...prev,
+        audience_data: {
+          ...prev.audience_data,
+          interests: [...(prev.audience_data.interests || []), newInterest]
+        }
+      }));
+      event.currentTarget.value = '';
     }
+  };
+
+  const removeInterest = (interest: string) => {
+    setFormData(prev => ({
+      ...prev,
+      audience_data: {
+        ...prev.audience_data,
+        interests: prev.audience_data.interests?.filter(i => i !== interest) || []
+      }
+    }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -113,7 +195,6 @@ const PlatformForm = () => {
     try {
       let result;
       if (id) {
-        // Update existing platform
         result = await supabase
           .from('platforms')
           .update({
@@ -129,7 +210,6 @@ const PlatformForm = () => {
           .select()
           .single();
       } else {
-        // Create new platform
         result = await supabase
           .from('platforms')
           .insert({
@@ -146,9 +226,6 @@ const PlatformForm = () => {
       }
 
       if (result.error) throw result.error;
-      
-      // Generate embedding for the platform
-      await generateEmbedding(result.data);
 
       toast({
         title: id ? "Platform Updated" : "Platform Created",
@@ -166,7 +243,6 @@ const PlatformForm = () => {
   };
 
   if (isLoading) return <Layout>Loading...</Layout>;
-  if (error) return <Layout>Error: {(error as Error).message}</Layout>;
 
   return (
     <Layout>
@@ -182,100 +258,181 @@ const PlatformForm = () => {
           </div>
         </header>
 
-        <NeuCard>
-          <form onSubmit={handleSubmit} className="grid gap-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <NeuInput
-                type="text"
-                name="name"
-                id="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="industry" className="block text-sm font-medium text-gray-700">
-                Industry
-              </label>
-              <NeuInput
-                type="text"
-                name="industry"
-                id="industry"
-                value={formData.industry}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="mau" className="block text-sm font-medium text-gray-700">
-                MAU (Monthly Active Users)
-              </label>
-              <NeuInput
-                type="text"
-                name="mau"
-                id="mau"
-                value={formData.mau}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="dau" className="block text-sm font-medium text-gray-700">
-                DAU (Daily Active Users)
-              </label>
-              <NeuInput
-                type="text"
-                name="dau"
-                id="dau"
-                value={formData.dau}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="premium_users" className="block text-sm font-medium text-gray-700">
-                Premium Users
-              </label>
-              <NeuInput
-                type="number"
-                name="premium_users"
-                id="premium_users"
-                value={formData.premium_users !== null ? formData.premium_users : ''}
-                onChange={(e) => setFormData({ ...formData, premium_users: e.target.value === '' ? null : parseInt(e.target.value) })}
-              />
-            </div>
-            <div>
-              <label htmlFor="audience_data" className="block text-sm font-medium text-gray-700">
-                Audience Data (JSON)
-              </label>
-              <NeuInput
-                as="textarea"
-                name="audience_data"
-                id="audience_data"
-                value={JSON.stringify(formData.audience_data)}
-                onChange={(e) => handleJSONChange(e, 'audience_data')}
-                rows={3}
-              />
-            </div>
-            <div>
-              <label htmlFor="device_split" className="block text-sm font-medium text-gray-700">
-                Device Split (JSON)
-              </label>
-              <NeuInput
-                as="textarea"
-                name="device_split"
-                id="device_split"
-                value={JSON.stringify(formData.device_split)}
-                onChange={(e) => handleJSONChange(e, 'device_split')}
-                rows={3}
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <NeuCard>
+            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Platform Name*</Label>
+                <NeuInput
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  required
+                />
+              </div>
 
-            <NeuButton type="submit">{id ? 'Update Platform' : 'Create Platform'}</NeuButton>
-          </form>
-        </NeuCard>
+              <div>
+                <Label htmlFor="industry">Industry*</Label>
+                <NeuInput
+                  id="industry"
+                  value={formData.industry}
+                  onChange={(e) => handleChange('industry', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="mau">Monthly Active Users (MAU)</Label>
+                <NeuInput
+                  id="mau"
+                  value={formData.mau}
+                  onChange={(e) => handleChange('mau', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="dau">Daily Active Users (DAU)</Label>
+                <NeuInput
+                  id="dau"
+                  value={formData.dau}
+                  onChange={(e) => handleChange('dau', e.target.value)}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="premium_users">Premium Users</Label>
+                <NeuInput
+                  id="premium_users"
+                  type="number"
+                  value={formData.premium_users || ''}
+                  onChange={(e) => handleChange('premium_users', e.target.value ? parseInt(e.target.value) : null)}
+                />
+              </div>
+            </div>
+          </NeuCard>
+
+          <NeuCard>
+            <h2 className="text-xl font-semibold mb-4">Device Distribution</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="ios">iOS (%)</Label>
+                <NeuInput
+                  id="ios"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.device_split.ios}
+                  onChange={(e) => handleDeviceSplitChange('ios', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="android">Android (%)</Label>
+                <NeuInput
+                  id="android"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.device_split.android}
+                  onChange={(e) => handleDeviceSplitChange('android', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="web">Web (%)</Label>
+                <NeuInput
+                  id="web"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.device_split.web || 0}
+                  onChange={(e) => handleDeviceSplitChange('web', e.target.value)}
+                />
+              </div>
+            </div>
+          </NeuCard>
+
+          <NeuCard>
+            <h2 className="text-xl font-semibold mb-4">Audience Demographics</h2>
+            
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium mb-3">Age Groups</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(formData.audience_data.age_groups || {}).map(([group, value]) => (
+                    <div key={group}>
+                      <Label htmlFor={`age-${group}`}>{group} (%)</Label>
+                      <NeuInput
+                        id={`age-${group}`}
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={value || 0}
+                        onChange={(e) => handleAgeGroupChange(group, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium mb-3">Gender Distribution</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {Object.entries(formData.audience_data.gender || {}).map(([gender, value]) => (
+                    <div key={gender}>
+                      <Label htmlFor={`gender-${gender}`}>{gender.charAt(0).toUpperCase() + gender.slice(1)} (%)</Label>
+                      <NeuInput
+                        id={`gender-${gender}`}
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={value || 0}
+                        onChange={(e) => handleGenderChange(gender, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium mb-3">Interests</h3>
+                <NeuInput
+                  placeholder="Type an interest and press Enter"
+                  onKeyDown={handleInterestChange}
+                />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.audience_data.interests?.map((interest) => (
+                    <span
+                      key={interest}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm bg-primary/10 text-primary"
+                    >
+                      {interest}
+                      <button
+                        type="button"
+                        onClick={() => removeInterest(interest)}
+                        className="ml-1.5 hover:text-primary/70"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </NeuCard>
+
+          <div className="flex justify-end gap-3">
+            <NeuButton
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/platforms")}
+            >
+              Cancel
+            </NeuButton>
+            <NeuButton type="submit">
+              {id ? "Update Platform" : "Create Platform"}
+            </NeuButton>
+          </div>
+        </form>
       </div>
     </Layout>
   );
