@@ -14,16 +14,22 @@ serve(async (req) => {
   }
 
   try {
+    // Get all Azure OpenAI configuration values
     const openAIApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
     const azureInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
     const azureDeployment = Deno.env.get('AZURE_OPENAI_API_DEPLOYMENT_NAME');
-    const azureApiVersion = Deno.env.get('AZURE_OPENAI_EMBEDDING_API_VERSION');
+    const azureApiVersion = Deno.env.get('AZURE_OPENAI_API_VERSION') || '2023-05-15';
 
-    if (!openAIApiKey || !azureInstance || !azureDeployment || !azureApiVersion) {
+    if (!openAIApiKey || !azureInstance || !azureDeployment) {
       throw new Error('Missing required Azure OpenAI configuration');
     }
 
-    const { prompt, includeAllPlatforms = true, includeAllAssets = true } = await req.json();
+    const requestData = await req.json();
+    const { prompt } = requestData;
+
+    if (!prompt) {
+      throw new Error('A prompt is required for generating a media plan');
+    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -59,14 +65,22 @@ serve(async (req) => {
       throw assetsError;
     }
 
+    // Ensure assets exists and is an array before proceeding
+    if (!assets || !Array.isArray(assets)) {
+      console.log('No assets found or invalid response format');
+      throw new Error('No assets found or invalid response format');
+    }
+
+    console.log(`Successfully fetched ${assets.length} assets with platform data`);
+
     // Prepare detailed asset and platform information for the prompt
     const detailedAssets = assets.map(asset => ({
       id: asset.id,
       name: asset.name,
       category: asset.category,
       type: asset.type,
-      description: asset.description,
-      tags: asset.tags,
+      description: asset.description || '',
+      tags: asset.tags || [],
       platform: asset.platforms ? {
         name: asset.platforms.name,
         industry: asset.platforms.industry,
@@ -108,7 +122,16 @@ Create a detailed media plan that includes:
 6. Platform-Specific Recommendations
 7. Technical Requirements & Restrictions
 
-Format the response as JSON with these sections as properties. Include specific metrics and targeting recommendations based on the platform data.`;
+Format the response as JSON with these sections as properties. Include specific metrics and targeting recommendations based on the platform data.
+For the JSON structure, use these exact property names:
+{
+  "executiveSummary": "...",
+  "targetAudienceAnalysis": "...",
+  "platformSelectionRationale": "...",
+  "assetUtilizationStrategy": "...",
+  "budgetAllocation": "...",
+  "measurementStrategy": "..."
+}`;
 
     console.log('Calling Azure OpenAI with enhanced prompt...');
     const response = await fetch(
@@ -147,8 +170,11 @@ Format the response as JSON with these sections as properties. Include specific 
       };
     } catch (error) {
       console.error('Error parsing AI response:', error);
+      console.log('Raw AI response:', openaiResponse?.choices?.[0]?.message?.content);
       throw new Error('Failed to parse media plan from AI response');
     }
+
+    console.log('Successfully generated media plan');
 
     return new Response(
       JSON.stringify({ 

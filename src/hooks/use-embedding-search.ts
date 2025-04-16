@@ -39,19 +39,39 @@ export function useEmbeddingSearch() {
     setError(null);
     
     try {
-      // Instead of embedding search, we call our new function
+      console.log('Calling generate-media-plan function with brief:', searchBrief);
+      
       const { data: searchResults, error: searchError } = await supabase.functions.invoke('generate-media-plan', {
         body: { 
           prompt: searchBrief,
-          includeAllAssets: true,
-          includeAllPlatforms: true
         }
       });
 
-      if (searchError) throw searchError;
+      if (searchError) {
+        console.error('Search error details:', searchError);
+        throw searchError;
+      }
       
-      setResults(searchResults.results || []);
-      return searchResults.results || [];
+      if (!searchResults) {
+        throw new Error('No results returned from search function');
+      }
+
+      console.log('Search function returned results:', searchResults);
+      
+      // If there are results, process them
+      if (searchResults.assets && Array.isArray(searchResults.assets)) {
+        setResults(searchResults.assets.map(asset => ({
+          ...asset,
+          platform_name: asset.platform?.name || null,
+          platform_industry: asset.platform?.industry || null,
+          similarity: 1 // Default similarity since we're not using embeddings
+        })));
+        return searchResults.assets;
+      } else {
+        console.log('No assets property in search results');
+        setResults([]);
+        return [];
+      }
     } catch (err: any) {
       console.error("Error in search:", err);
       setError(err.message || "An error occurred during search");
