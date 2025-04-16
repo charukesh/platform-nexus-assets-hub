@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
-import { Search, Filter, Server, PlusCircle, Users, Database, Globe } from "lucide-react";
+import { Search, Filter, Server, PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import PlatformList from "@/components/dashboard/PlatformList";
 
 const Platforms: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);
@@ -35,7 +37,12 @@ const Platforms: React.FC = () => {
       if (data) {
         setPlatforms(data);
         
-        const uniqueIndustries = Array.from(new Set(data.map((platform) => platform.industry)));
+        // Make sure we handle potential empty industry values
+        const uniqueIndustries = Array.from(
+          new Set(
+            data.map((platform) => platform.industry || "Uncategorized")
+          )
+        );
         setIndustries(["All", ...uniqueIndustries]);
       }
     } catch (error: any) {
@@ -60,8 +67,8 @@ const Platforms: React.FC = () => {
 
   const filteredPlatforms = platforms.filter((platform) => {
     const matchesIndustry = industryFilter === "All" || platform.industry === industryFilter;
-    const matchesSearch = platform.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          platform.industry.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (platform.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (platform.industry || "").toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesIndustry && matchesSearch;
   });
@@ -105,8 +112,8 @@ const Platforms: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {industries.map((industry) => (
-                    <SelectItem key={industry} value={industry}>
-                      {industry}
+                    <SelectItem key={industry} value={industry || "uncategorized-industry"}>
+                      {industry || "Uncategorized"}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -127,86 +134,11 @@ const Platforms: React.FC = () => {
           </div>
         </NeuCard>
 
-        {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          </div>
-        ) : filteredPlatforms.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {filteredPlatforms.map((platform) => (
-              <Link key={platform.id} to={`/platforms/${platform.id}`}>
-                <NeuCard className="h-full hover:shadow-neu-pressed transition-all cursor-pointer animate-scale-in">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-neugray-200 rounded-lg flex-shrink-0 overflow-hidden">
-                        {platform.logo_url ? (
-                          <img
-                            src={platform.logo_url}
-                            alt={platform.name}
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Server size={24} className="text-primary" />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold">{platform.name}</h3>
-                        <span className="inline-block text-xs bg-neugray-200 py-0.5 px-2 rounded-full mt-1">
-                          {platform.industry}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <div className="neu-pressed p-2 rounded-lg">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                        <Users size={12} />
-                        <span>MAU/DAU</span>
-                      </div>
-                      <div className="font-medium">
-                        {formatUserCount(platform.mau)}/{formatUserCount(platform.dau)}
-                      </div>
-                    </div>
-                    <div className="neu-pressed p-2 rounded-lg">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                        <Database size={12} />
-                        <span>Premium</span>
-                      </div>
-                      <div className="font-medium">
-                        {platform.premium_users || 0}%
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3">
-                    <p className="text-xs text-muted-foreground mb-1">Device Split</p>
-                    <div className="w-full h-2 bg-neugray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full"
-                        style={{ width: `${platform.device_split?.ios || 50}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-xs mt-1">
-                      <span>iOS: {platform.device_split?.ios || 50}%</span>
-                      <span>Android: {platform.device_split?.android || 50}%</span>
-                    </div>
-                  </div>
-                </NeuCard>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <NeuCard className="py-10 text-center mb-8">
-            <p className="text-lg font-medium mb-4">No platforms found</p>
-            <p className="text-muted-foreground mb-6">Add your first platform to get started</p>
-            <Link to="/platforms/new">
-              <NeuButton>Add New Platform</NeuButton>
-            </Link>
-          </NeuCard>
-        )}
+        <PlatformList
+          loading={loading}
+          filteredPlatforms={filteredPlatforms}
+          formatUserCount={formatUserCount}
+        />
       </div>
     </Layout>
   );
