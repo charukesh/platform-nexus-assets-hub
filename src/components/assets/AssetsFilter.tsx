@@ -60,8 +60,8 @@ const AssetsFilter: React.FC<AssetsFilterProps> = ({
             </SelectTrigger>
             <SelectContent>
               {categories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
+                <SelectItem key={category} value={category || "no-category"}>
+                  {category || "Uncategorized"}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -76,8 +76,8 @@ const AssetsFilter: React.FC<AssetsFilterProps> = ({
             </SelectTrigger>
             <SelectContent>
               {platforms.map((platform) => (
-                <SelectItem key={platform.id} value={platform.id}>
-                  {platform.name}
+                <SelectItem key={platform.id} value={platform.id || "no-platform"}>
+                  {platform.name || "Unnamed Platform"}
                 </SelectItem>
               ))}
             </SelectContent>

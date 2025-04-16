@@ -79,7 +79,7 @@ export const CampaignSection = ({
         <div>
           <Label>Buying Model</Label>
           <Select
-            value={campaignData.buying_model}
+            value={campaignData.buying_model || "undefined-model"}
             onValueChange={(value) => onCampaignDataChange("buying_model", value)}
           >
             <SelectTrigger>
