@@ -11,15 +11,18 @@ export type Database = {
     Tables: {
       assets: {
         Row: {
+          buy_types: string[]
           category: string
           created_at: string | null
           description: string | null
           embedding: string | null
+          estimated_clicks: number
+          estimated_impressions: number
           file_size: string | null
           file_url: string | null
           id: string
           name: string
-          platform_id: string | null
+          platform_id: string
           tags: string[] | null
           thumbnail_url: string | null
           type: string
@@ -27,15 +30,18 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
+          buy_types?: string[]
           category: string
           created_at?: string | null
           description?: string | null
           embedding?: string | null
+          estimated_clicks?: number
+          estimated_impressions?: number
           file_size?: string | null
           file_url?: string | null
           id?: string
           name: string
-          platform_id?: string | null
+          platform_id: string
           tags?: string[] | null
           thumbnail_url?: string | null
           type: string
@@ -43,15 +49,18 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
+          buy_types?: string[]
           category?: string
           created_at?: string | null
           description?: string | null
           embedding?: string | null
+          estimated_clicks?: number
+          estimated_impressions?: number
           file_size?: string | null
           file_url?: string | null
           id?: string
           name?: string
-          platform_id?: string | null
+          platform_id?: string
           tags?: string[] | null
           thumbnail_url?: string | null
           type?: string
@@ -141,6 +150,10 @@ export type Database = {
           platform_industry: string
           similarity: number
         }[]
+      }
+      validate_buy_types: {
+        Args: { buy_types: string[] }
+        Returns: boolean
       }
     }
     Enums: {

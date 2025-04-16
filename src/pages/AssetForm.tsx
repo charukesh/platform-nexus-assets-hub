@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, FileIcon, Image } from "lucide-react";
+import BuyTypeSelector from "@/components/asset/BuyTypeSelector";
 
 interface Platform {
   id: string;
@@ -18,6 +19,22 @@ interface Platform {
 
 const assetCategories = ["Digital", "Physical", "Phygital"];
 const assetTypes = ["Image", "Video", "Document", "3D Model", "Audio", "Other"];
+
+interface FormData {
+  name: string;
+  description: string;
+  category: string;
+  type: string;
+  platform_id: string;
+  tags: string[];
+  tagInput: string;
+  file_url: string | null;
+  thumbnail_url: string | null;
+  file_size: string | null;
+  buy_types: string[];
+  estimated_impressions: number;
+  estimated_clicks: number;
+}
 
 const AssetForm: React.FC = () => {
   const { id } = useParams();
@@ -30,7 +47,7 @@ const AssetForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     description: "",
     category: "Digital" as string,
@@ -40,7 +57,10 @@ const AssetForm: React.FC = () => {
     tagInput: "",
     file_url: "" as string | null,
     thumbnail_url: "" as string | null,
-    file_size: "" as string | null
+    file_size: "" as string | null,
+    buy_types: ['CPC'],
+    estimated_impressions: 0,
+    estimated_clicks: 0
   });
   
   const [files, setFiles] = useState<{
@@ -110,7 +130,10 @@ const AssetForm: React.FC = () => {
           tagInput: "",
           file_url: data.file_url || null,
           thumbnail_url: data.thumbnail_url || null,
-          file_size: data.file_size || null
+          file_size: data.file_size || null,
+          buy_types: data.buy_types || [],
+          estimated_impressions: data.estimated_impressions || 0,
+          estimated_clicks: data.estimated_clicks || 0
         });
         
         setFiles({
@@ -334,12 +357,15 @@ const AssetForm: React.FC = () => {
         description: formData.description,
         category: formData.category,
         type: formData.type,
-        platform_id: formData.platform_id || null,
+        platform_id: formData.platform_id || platforms[0]?.id,
         tags: formData.tags,
         file_url,
         thumbnail_url,
         file_size: formData.file_size,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        buy_types: formData.buy_types,
+        estimated_impressions: formData.estimated_impressions,
+        estimated_clicks: formData.estimated_clicks
       };
       
       let result;
@@ -461,10 +487,11 @@ const AssetForm: React.FC = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="platform">Platform</Label>
+                  <Label htmlFor="platform">Platform*</Label>
                   <Select
                     value={formData.platform_id}
                     onValueChange={(value) => handleSelectChange("platform_id", value)}
+                    required
                   >
                     <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
                       <SelectValue placeholder="Select platform" />
