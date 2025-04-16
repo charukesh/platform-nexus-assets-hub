@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
@@ -8,77 +7,51 @@ import NeuCard from '@/components/NeuCard';
 import NeuButton from '@/components/NeuButton';
 import NeuInput from '@/components/NeuInput';
 import { useToast } from '@/components/ui/use-toast';
-import { Tables, Json } from '@/integrations/supabase/types';
-import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-interface AudienceData {
-  age_groups?: {
-    '13-17'?: number;
-    '18-24'?: number;
-    '25-34'?: number;
-    '35-44'?: number;
-    '45-54'?: number;
-    '55+'?: number;
-  };
-  gender?: {
-    male?: number;
-    female?: number;
-    other?: number;
-  };
-  interests?: string[];
-}
-
-interface DeviceSplit {
-  ios: number;
-  android: number;
-  web?: number;
-}
-
-interface FormData {
-  name: string;
-  industry: string;
-  audience_data: AudienceData;
-  device_split: DeviceSplit;
-  mau: string;
-  dau: string;
-  premium_users: number | null;
-}
+import { ArrowLeft } from 'lucide-react';
+import { CampaignSection } from '@/components/platform/CampaignSection';
+import { TargetingSection } from '@/components/platform/TargetingSection';
+import type { PlatformFormData } from '@/types/platform';
+import { Tables, Json } from '@/integrations/supabase/types';
 
 const PlatformForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<PlatformFormData>({
     name: '',
     industry: '',
+    mau: '',
+    dau: '',
+    premium_users: null,
     audience_data: {
-      age_groups: {
-        '13-17': 0,
-        '18-24': 0,
-        '25-34': 0,
-        '35-44': 0,
-        '45-54': 0,
-        '55+': 0
-      },
-      gender: {
-        male: 0,
-        female: 0,
-        other: 0
-      },
-      interests: []
+      age_groups: {},
+      gender: {},
+      interests: [],
+      age_targeting_available: false,
+      gender_targeting_available: false,
+      state_level_targeting: false,
+      city_level_targeting: false,
+      platform_specific_targeting: [],
     },
     device_split: {
       ios: 50,
       android: 50,
-      web: 0
+      web: 0,
     },
-    mau: '',
-    dau: '',
-    premium_users: null,
+    campaign_data: {
+      funnel_stage: '',
+      buying_model: '',
+      ad_formats: [],
+      special_innovations: [],
+      cta_support: false,
+      minimum_spend: 0,
+      geography_presence: '',
+    },
+    restrictions: {
+      restricted_categories: [],
+    },
   });
 
   const { data: platformData, isLoading } = useQuery({
@@ -100,7 +73,7 @@ const PlatformForm = () => {
   useEffect(() => {
     if (platformData) {
       // Create default audience data and device split structures
-      const defaultAudienceData: AudienceData = {
+      const defaultAudienceData = {
         age_groups: {
           '13-17': 0,
           '18-24': 0,
@@ -114,34 +87,74 @@ const PlatformForm = () => {
           female: 0,
           other: 0
         },
-        interests: []
+        interests: [],
+        age_targeting_available: false,
+        gender_targeting_available: false,
+        state_level_targeting: false,
+        city_level_targeting: false,
+        platform_specific_targeting: [],
       };
 
-      const defaultDeviceSplit: DeviceSplit = {
+      const defaultDeviceSplit = {
         ios: 50,
         android: 50,
         web: 0
       };
 
+      const defaultCampaignData = {
+        funnel_stage: '',
+        buying_model: '',
+        ad_formats: [],
+        special_innovations: [],
+        cta_support: false,
+        minimum_spend: 0,
+        geography_presence: '',
+      };
+
+      const defaultRestrictions = {
+        restricted_categories: [],
+      };
+
       // Parse the audience_data and device_split from the API response
       const audienceData = platformData.audience_data as Json;
       const deviceSplit = platformData.device_split as Json;
+      const campaignData = platformData.campaign_data as Json;
+      const restrictions = platformData.restrictions as Json;
 
       setFormData({
         name: platformData.name,
         industry: platformData.industry,
-        audience_data: audienceData ? 
+        audience_data: audienceData ?
           {
             age_groups: (audienceData as any)?.age_groups || defaultAudienceData.age_groups,
             gender: (audienceData as any)?.gender || defaultAudienceData.gender,
-            interests: (audienceData as any)?.interests || defaultAudienceData.interests
+            interests: (audienceData as any)?.interests || defaultAudienceData.interests,
+            age_targeting_available: (audienceData as any)?.age_targeting_available || defaultAudienceData.age_targeting_available,
+            gender_targeting_available: (audienceData as any)?.gender_targeting_available || defaultAudienceData.gender_targeting_available,
+            state_level_targeting: (audienceData as any)?.state_level_targeting || defaultAudienceData.state_level_targeting,
+            city_level_targeting: (audienceData as any)?.city_level_targeting || defaultAudienceData.city_level_targeting,
+            platform_specific_targeting: (audienceData as any)?.platform_specific_targeting || defaultAudienceData.platform_specific_targeting,
           } : defaultAudienceData,
-        device_split: deviceSplit ? 
+        device_split: deviceSplit ?
           {
             ios: (deviceSplit as any)?.ios || defaultDeviceSplit.ios,
             android: (deviceSplit as any)?.android || defaultDeviceSplit.android,
             web: (deviceSplit as any)?.web || defaultDeviceSplit.web
           } : defaultDeviceSplit,
+        campaign_data: campaignData ?
+          {
+            funnel_stage: (campaignData as any)?.funnel_stage || defaultCampaignData.funnel_stage,
+            buying_model: (campaignData as any)?.buying_model || defaultCampaignData.buying_model,
+            ad_formats: (campaignData as any)?.ad_formats || defaultCampaignData.ad_formats,
+            special_innovations: (campaignData as any)?.special_innovations || defaultCampaignData.special_innovations,
+            cta_support: (campaignData as any)?.cta_support || defaultCampaignData.cta_support,
+            minimum_spend: (campaignData as any)?.minimum_spend || defaultCampaignData.minimum_spend,
+            geography_presence: (campaignData as any)?.geography_presence || defaultCampaignData.geography_presence,
+          } : defaultCampaignData,
+        restrictions: restrictions ?
+          {
+            restricted_categories: (restrictions as any)?.restricted_categories || defaultRestrictions.restricted_categories,
+          } : defaultRestrictions,
         mau: platformData.mau || '',
         dau: platformData.dau || '',
         premium_users: platformData.premium_users || null,
@@ -156,65 +169,22 @@ const PlatformForm = () => {
     }));
   };
 
-  const handleDeviceSplitChange = (platform: keyof DeviceSplit, value: string) => {
-    const numValue = parseInt(value) || 0;
-    setFormData(prev => ({
-      ...prev,
-      device_split: {
-        ...prev.device_split,
-        [platform]: numValue
-      }
-    }));
-  };
-
-  const handleAgeGroupChange = (group: string, value: string) => {
-    const numValue = parseInt(value) || 0;
+  const handleAudienceDataChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       audience_data: {
         ...prev.audience_data,
-        age_groups: {
-          ...prev.audience_data.age_groups,
-          [group]: numValue
-        }
+        [field]: value
       }
     }));
   };
 
-  const handleGenderChange = (gender: string, value: string) => {
-    const numValue = parseInt(value) || 0;
+  const handleCampaignDataChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      audience_data: {
-        ...prev.audience_data,
-        gender: {
-          ...prev.audience_data.gender,
-          [gender]: numValue
-        }
-      }
-    }));
-  };
-
-  const handleInterestChange = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && event.currentTarget.value.trim()) {
-      const newInterest = event.currentTarget.value.trim();
-      setFormData(prev => ({
-        ...prev,
-        audience_data: {
-          ...prev.audience_data,
-          interests: [...(prev.audience_data.interests || []), newInterest]
-        }
-      }));
-      event.currentTarget.value = '';
-    }
-  };
-
-  const removeInterest = (interest: string) => {
-    setFormData(prev => ({
-      ...prev,
-      audience_data: {
-        ...prev.audience_data,
-        interests: prev.audience_data.interests?.filter(i => i !== interest) || []
+      campaign_data: {
+        ...prev.campaign_data,
+        [field]: value
       }
     }));
   };
@@ -223,18 +193,19 @@ const PlatformForm = () => {
     event.preventDefault();
     
     try {
-      let result;
-      
-      // Cast our typed structures back to Json for Supabase
       const supabaseData = {
         name: formData.name,
         industry: formData.industry,
-        audience_data: formData.audience_data as unknown as Json,
-        device_split: formData.device_split as unknown as Json,
+        audience_data: formData.audience_data as any,
+        device_split: formData.device_split as any,
+        campaign_data: formData.campaign_data as any,
+        restrictions: formData.restrictions as any,
         mau: formData.mau,
         dau: formData.dau,
         premium_users: formData.premium_users,
       };
+      
+      let result;
       
       if (id) {
         result = await supabase
@@ -309,11 +280,25 @@ const PlatformForm = () => {
               </div>
 
               <div>
+                <Label htmlFor="premium_users">Premium Users (%)</Label>
+                <NeuInput
+                  id="premium_users"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.premium_users || ''}
+                  onChange={(e) => handleChange('premium_users', e.target.value ? parseInt(e.target.value) : null)}
+                />
+              </div>
+
+              <div>
                 <Label htmlFor="mau">Monthly Active Users (MAU)</Label>
                 <NeuInput
                   id="mau"
+                  type="text"
                   value={formData.mau}
                   onChange={(e) => handleChange('mau', e.target.value)}
+                  placeholder="e.g., 22,000,000"
                 />
               </div>
 
@@ -321,22 +306,24 @@ const PlatformForm = () => {
                 <Label htmlFor="dau">Daily Active Users (DAU)</Label>
                 <NeuInput
                   id="dau"
+                  type="text"
                   value={formData.dau}
                   onChange={(e) => handleChange('dau', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="premium_users">Premium Users</Label>
-                <NeuInput
-                  id="premium_users"
-                  type="number"
-                  value={formData.premium_users || ''}
-                  onChange={(e) => handleChange('premium_users', e.target.value ? parseInt(e.target.value) : null)}
+                  placeholder="e.g., 10,000,000"
                 />
               </div>
             </div>
           </NeuCard>
+
+          <TargetingSection
+            audienceData={formData.audience_data}
+            onAudienceDataChange={handleAudienceDataChange}
+          />
+
+          <CampaignSection
+            campaignData={formData.campaign_data}
+            onCampaignDataChange={handleCampaignDataChange}
+          />
 
           <NeuCard>
             <h2 className="text-xl font-semibold mb-4">Device Distribution</h2>
@@ -349,7 +336,10 @@ const PlatformForm = () => {
                   min="0"
                   max="100"
                   value={formData.device_split.ios}
-                  onChange={(e) => handleDeviceSplitChange('ios', e.target.value)}
+                  onChange={(e) => handleChange('device_split', {
+                    ...formData.device_split,
+                    ios: parseInt(e.target.value) || 0
+                  })}
                 />
               </div>
               <div>
@@ -360,7 +350,10 @@ const PlatformForm = () => {
                   min="0"
                   max="100"
                   value={formData.device_split.android}
-                  onChange={(e) => handleDeviceSplitChange('android', e.target.value)}
+                  onChange={(e) => handleChange('device_split', {
+                    ...formData.device_split,
+                    android: parseInt(e.target.value) || 0
+                  })}
                 />
               </div>
               <div>
@@ -371,77 +364,11 @@ const PlatformForm = () => {
                   min="0"
                   max="100"
                   value={formData.device_split.web || 0}
-                  onChange={(e) => handleDeviceSplitChange('web', e.target.value)}
+                  onChange={(e) => handleChange('device_split', {
+                    ...formData.device_split,
+                    web: parseInt(e.target.value) || 0
+                  })}
                 />
-              </div>
-            </div>
-          </NeuCard>
-
-          <NeuCard>
-            <h2 className="text-xl font-semibold mb-4">Audience Demographics</h2>
-            
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-3">Age Groups</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(formData.audience_data.age_groups || {}).map(([group, value]) => (
-                    <div key={group}>
-                      <Label htmlFor={`age-${group}`}>{group} (%)</Label>
-                      <NeuInput
-                        id={`age-${group}`}
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={value || 0}
-                        onChange={(e) => handleAgeGroupChange(group, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-medium mb-3">Gender Distribution</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {Object.entries(formData.audience_data.gender || {}).map(([gender, value]) => (
-                    <div key={gender}>
-                      <Label htmlFor={`gender-${gender}`}>{gender.charAt(0).toUpperCase() + gender.slice(1)} (%)</Label>
-                      <NeuInput
-                        id={`gender-${gender}`}
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={value || 0}
-                        onChange={(e) => handleGenderChange(gender, e.target.value)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-medium mb-3">Interests</h3>
-                <NeuInput
-                  placeholder="Type an interest and press Enter"
-                  onKeyDown={handleInterestChange}
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.audience_data.interests?.map((interest) => (
-                    <span
-                      key={interest}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm bg-primary/10 text-primary"
-                    >
-                      {interest}
-                      <button
-                        type="button"
-                        onClick={() => removeInterest(interest)}
-                        className="ml-1.5 hover:text-primary/70"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
               </div>
             </div>
           </NeuCard>
