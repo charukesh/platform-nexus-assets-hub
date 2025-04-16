@@ -14,7 +14,7 @@ serve(async (req) => {
       headers: corsHeaders
     });
   }
-  
+
   try {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -49,55 +49,128 @@ serve(async (req) => {
     
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
-    
     console.log('Processing query:', queryText);
     
-    // Fetch all assets with platform data instead of using embeddings
-    console.log('Fetching all assets with platform data...');
+    // UPDATED APPROACH:
+    // First fetch all platforms
+    console.log('Fetching all platforms...');
+    const { data: platforms, error: platformsError } = await supabaseClient
+      .from('platforms')
+      .select('*');
+    
+    if (platformsError) {
+      console.error('Error fetching platforms:', platformsError);
+      throw platformsError;
+    }
+    console.log(`Fetched ${platforms?.length || 0} platforms`);
+    
+    // Then fetch all assets
+    console.log('Fetching all assets...');
     const { data: assets, error: assetsError } = await supabaseClient
       .from('assets')
-      .select('*, platforms(*)');
+      .select('*');
     
     if (assetsError) {
       console.error('Error fetching assets:', assetsError);
       throw assetsError;
     }
+    console.log(`Fetched ${assets?.length || 0} assets`);
     
-    console.log(`Fetched ${assets?.length || 0} assets with platform data`);
+    // Create a map of platform ID to platform data for quick lookup
+    const platformMap = new Map();
+    platforms.forEach(platform => {
+      platformMap.set(platform.id, platform);
+    });
+    
+    // Group assets by platform_id
+    const assetsByPlatform = new Map();
+    
+    assets.forEach(asset => {
+      if (asset.platform_id) {
+        if (!assetsByPlatform.has(asset.platform_id)) {
+          assetsByPlatform.set(asset.platform_id, []);
+        }
+        assetsByPlatform.get(asset.platform_id).push(asset);
+      }
+    });
+    
+    // Create a more comprehensive data structure for the prompt
+    const platformsWithAssets = platforms.map(platform => {
+      const platformAssets = assetsByPlatform.get(platform.id) || [];
+      
+      return {
+        platform: {
+          id: platform.id,
+          name: platform.name,
+          industry: platform.industry,
+          dau: platform.dau,
+          mau: platform.mau,
+          premium_users: platform.premium_users,
+          audience_data: platform.audience_data,
+          device_split: platform.device_split,
+          restrictions: platform.restrictions
+        },
+        assets: platformAssets.map(asset => ({
+          id: asset.id,
+          name: asset.name,
+          category: asset.category,
+          description: asset.description,
+          type: asset.type,
+          tags: asset.tags,
+          file_url: asset.file_url,
+          thumbnail_url: asset.thumbnail_url,
+          file_size: asset.file_size
+        }))
+      };
+    });
+    
+    // We also want to prepare a flat list of all assets with their platform information
+    // This will be useful for the search functionality
+    const allAssetsWithPlatformInfo = assets.map(asset => {
+      const platform = asset.platform_id ? platformMap.get(asset.platform_id) : null;
+      
+      return {
+        id: asset.id,
+        name: asset.name,
+        category: asset.category,
+        description: asset.description,
+        type: asset.type,
+        tags: asset.tags,
+        file_url: asset.file_url,
+        thumbnail_url: asset.thumbnail_url,
+        file_size: asset.file_size,
+        platform_id: asset.platform_id,
+        platform_name: platform ? platform.name : null,
+        platform_industry: platform ? platform.industry : null
+      };
+    });
     
     // Azure OpenAI setup for chat completion
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
     console.log('Using Azure OpenAI endpoint:', azureEndpoint);
     
-    // Prepare simplified asset data for the prompt
-    const simplifiedAssets = assets.map(asset => ({
-      id: asset.id,
-      name: asset.name,
-      category: asset.category,
-      description: asset.description,
-      type: asset.type,
-      tags: asset.tags,
-      platform_name: asset.platforms?.name,
-      platform_industry: asset.platforms?.industry
-    }));
-    
-    // Modified prompt to instruct AI to respond in a more conversational, GPT-like manner
+    // Updated prompt with more comprehensive data structure
     const prompt = `
-      I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
-      please identify the most relevant assets for this query from the list below and respond in a conversational manner.
+      I have a collection of marketing platforms and their associated assets. 
+      Given the following search query: "${queryText}",
+      please identify the most relevant assets for this query from the collection below and respond in a conversational manner.
+      
       Consider the asset name, category, description, type, tags, and the platform it belongs to.
       
-      Available assets: ${JSON.stringify(simplifiedAssets)}
+      Available platforms with their assets: ${JSON.stringify(platformsWithAssets)}
+      
+      Alternatively, you can also use this flat list of all assets with platform information:
+      ${JSON.stringify(allAssetsWithPlatformInfo)}
       
       Respond like an AI chat assistant would:
       1. Start with a natural, conversational response addressing the user's query directly
       2. Provide the top 5-10 most relevant assets based on their query
       3. For each asset, explain why it's relevant and how it might help
-      4. End with a helpful conclusion or follow-up question
+      4. Group assets by platform when applicable
+      5. End with a helpful conclusion or follow-up question
       
       DO NOT include any separate JSON object in your response. The entire response should be 
       natural language that a user would read.
@@ -115,11 +188,14 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         messages: [
-          { 
-            role: 'system', 
-            content: 'You are a helpful marketing asset assistant. Respond in a conversational and helpful tone, similar to ChatGPT. Your job is to help users find the perfect marketing assets for their needs.' 
+          {
+            role: 'system',
+            content: 'You are a helpful marketing asset assistant. Respond in a conversational and helpful tone, similar to ChatGPT. Your job is to help users find the perfect marketing assets for their needs.'
           },
-          { role: 'user', content: prompt }
+          {
+            role: 'user',
+            content: prompt
+          }
         ],
         temperature: 0.7,
         max_tokens: 2000
@@ -137,9 +213,7 @@ serve(async (req) => {
     
     // We're going to return the complete OpenAI response with our metadata
     // This keeps the full conversational response intact
-    
-    // Return the combined response - a full chat completion with results as JSON
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       id: openaiResponse.id,
       object: "chat.completion",
       created: openaiResponse.created,
@@ -148,7 +222,9 @@ serve(async (req) => {
       usage: openaiResponse.usage,
       metadata: {
         method: 'azure-openai-gpt-style',
-        query: queryText
+        query: queryText,
+        platforms_count: platforms.length,
+        assets_count: assets.length
       }
     }), {
       headers: {
@@ -156,7 +232,6 @@ serve(async (req) => {
         'Content-Type': 'application/json'
       }
     });
-    
   } catch (error) {
     console.error('Error in asset search function:', error);
     console.error('Error details:', error.stack || 'No stack trace available');
