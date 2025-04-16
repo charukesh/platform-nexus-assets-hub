@@ -26,11 +26,13 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   onClear
 }) => {
   const [streamedContent, setStreamedContent] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
 
   useEffect(() => {
     if (searchResults instanceof ReadableStream) {
       // Reset content when new stream arrives
       setStreamedContent('');
+      setIsStreaming(true);
       
       const reader = searchResults.getReader();
       const decoder = new TextDecoder();
@@ -39,32 +41,34 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         try {
           while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+              setIsStreaming(false);
+              break;
+            }
 
             const chunk = decoder.decode(value);
-            console.log("Raw chunk:", chunk);
             
+            // Process each line in the chunk
             const lines = chunk.split('\n');
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 try {
                   const jsonStr = line.slice(6);
-                  console.log("JSON string:", jsonStr);
-                  
-                  const data = JSON.parse(jsonStr);
-                  console.log("Parsed data:", data);
-                  
-                  if (data.content) {
-                    setStreamedContent(prev => prev + data.content);
+                  if (jsonStr.trim()) {
+                    const data = JSON.parse(jsonStr);
+                    if (data.content !== undefined) {
+                      setStreamedContent(prev => prev + data.content);
+                    }
                   }
                 } catch (e) {
-                  console.error('Error parsing SSE data:', e);
+                  console.error('Error parsing SSE data:', e, 'Raw line:', line);
                 }
               }
             }
           }
         } catch (error) {
           console.error('Error reading stream:', error);
+          setIsStreaming(false);
         } finally {
           reader.releaseLock();
         }
@@ -73,6 +77,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       processStream();
     } else if (searchResults) {
       // Handle non-streaming response (fallback)
+      setIsStreaming(false);
       const content = searchResults.choices?.[0]?.message?.content || '';
       setStreamedContent(content);
     }
@@ -86,9 +91,9 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw]}
-          className="prose prose-sm max-w-full"
+          className="prose prose-sm max-w-full dark:prose-invert"
         >
-          {streamedContent.trim() || "Waiting for response..."}
+          {streamedContent || (isStreaming ? "Waiting for response..." : "No content received")}
         </ReactMarkdown>
       </div>
     );

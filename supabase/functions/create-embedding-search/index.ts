@@ -195,15 +195,16 @@ serve(async (req) => {
       try {
         for await (const chunk of runStream) {
           if (chunk.content) {
-            // Send a proper SSE formatted message
-            const message = `data: ${JSON.stringify({ content: chunk.content })}\n\n`;
-            console.log("Sending chunk:", message);
+            // Send a proper SSE formatted message with valid JSON
+            const data = { content: chunk.content };
+            const message = `data: ${JSON.stringify(data)}\n\n`;
             await writer.write(encoder.encode(message));
           }
         }
       } catch (error) {
         console.error('Streaming error:', error);
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ error: 'Streaming error occurred' })}\n\n`));
+        const errorMessage = `data: ${JSON.stringify({ error: 'Streaming error occurred' })}\n\n`;
+        await writer.write(encoder.encode(errorMessage));
       } finally {
         await writer.close();
       }
