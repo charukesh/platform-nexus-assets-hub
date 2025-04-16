@@ -154,9 +154,8 @@ const AssetForm: React.FC = () => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -561,6 +560,16 @@ const AssetForm: React.FC = () => {
                 </div>
               </div>
             </div>
+          </NeuCard>
+          
+          <NeuCard>
+            <h2 className="text-xl font-bold mb-4">Buy Type Information</h2>
+            <BuyTypeSelector
+              buyTypes={formData.buy_types}
+              estimatedImpressions={formData.estimated_impressions}
+              estimatedClicks={formData.estimated_clicks}
+              onChange={handleChange}
+            />
           </NeuCard>
           
           <NeuCard>
