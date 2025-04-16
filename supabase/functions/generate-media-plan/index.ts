@@ -1,6 +1,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,147 +14,163 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not set');
+    const openAIApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
+    const azureInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
+    const azureDeployment = Deno.env.get('AZURE_OPENAI_API_DEPLOYMENT_NAME');
+    const azureApiVersion = Deno.env.get('AZURE_OPENAI_EMBEDDING_API_VERSION');
+
+    if (!openAIApiKey || !azureInstance || !azureDeployment || !azureApiVersion) {
+      throw new Error('Missing required Azure OpenAI configuration');
     }
 
-    const { 
-      prompt, 
-      platformsData, 
-      assetsData, 
-      advertiserInfo, 
-      budget, 
-      timeframe 
-    } = await req.json();
+    const { prompt, includeAllPlatforms = true, includeAllAssets = true } = await req.json();
 
-    // Enhanced context with embedding information
-    const platformsContext = platformsData.length 
-      ? `Available platforms (${platformsData.length}): ${JSON.stringify(platformsData.map(p => ({
-          name: p.name,
-          industry: p.industry,
-          audience: p.audience_data,
-          userMetrics: {
-            mau: p.mau,
-            dau: p.dau,
-            premiumUsers: p.premium_users,
-            deviceSplit: p.device_split
-          },
-          embedding: p.embedding // Include embedding for semantic understanding
-        })))}`
-      : "No platforms available.";
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    const assetsContext = assetsData.length
-      ? `Available assets (${assetsData.length}): ${JSON.stringify(assetsData.map(a => ({
-          name: a.name,
-          type: a.type,
-          category: a.category,
-          description: a.description,
-          tags: a.tags,
-          embedding: a.embedding // Include embedding for semantic understanding
-        })))}`
-      : "No assets available.";
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing Supabase configuration');
+    }
 
-    const fullPrompt = `
-      You are an expert media planning AI assistant. Create a comprehensive media plan based on the following information:
-      
-      ADVERTISER INFORMATION:
-      ${advertiserInfo || "No specific advertiser information provided."}
-      
-      BUDGET:
-      ${budget || "Budget not specified."}
-      
-      TIMEFRAME:
-      ${timeframe || "Timeframe not specified."}
-      
-      USER'S REQUEST:
-      ${prompt}
-      
-      ${platformsContext}
-      
-      ${assetsContext}
-      
-      Create a detailed, strategic media plan with the following sections:
-      1. Executive Summary
-      2. Target Audience Analysis
-      3. Platform Selection & Rationale
-      4. Budget Allocation
-      5. Asset Utilization Strategy
-      6. Expected KPIs & Measurement Strategy
-      
-      Format the response as JSON with these sections as properties. Each section should be formatted text with proper markdown that can be rendered directly.
-    `;
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    console.log("Sending prompt to OpenAI:", fullPrompt.substring(0, 200) + "...");
+    // Fetch all assets with their associated platform details
+    console.log('Fetching assets and platforms data...');
+    const { data: assets, error: assetsError } = await supabaseClient
+      .from('assets')
+      .select(`
+        *,
+        platforms (
+          id,
+          name,
+          industry,
+          audience_data,
+          device_split,
+          mau,
+          dau,
+          premium_users,
+          restrictions
+        )
+      `);
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: 'You are a media planning expert with years of experience in digital advertising.' },
-          { role: 'user', content: fullPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 4000,
-      }),
-    });
+    if (assetsError) {
+      console.error('Error fetching assets:', assetsError);
+      throw assetsError;
+    }
+
+    // Prepare detailed asset and platform information for the prompt
+    const detailedAssets = assets.map(asset => ({
+      id: asset.id,
+      name: asset.name,
+      category: asset.category,
+      type: asset.type,
+      description: asset.description,
+      tags: asset.tags,
+      platform: asset.platforms ? {
+        name: asset.platforms.name,
+        industry: asset.platforms.industry,
+        audience: asset.platforms.audience_data,
+        deviceSplit: asset.platforms.device_split,
+        metrics: {
+          mau: asset.platforms.mau,
+          dau: asset.platforms.dau,
+          premiumUsers: asset.platforms.premium_users
+        },
+        restrictions: asset.platforms.restrictions
+      } : null
+    }));
+
+    // Azure OpenAI setup for chat completion
+    const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
+    console.log('Using Azure OpenAI endpoint:', azureEndpoint);
+
+    const systemPrompt = `You are an expert media planner. Based on the user's brief and available assets/platforms, create a comprehensive media plan. Consider:
+- Platform audience data and device splits
+- Asset relevance and platform fit
+- Target audience overlap
+- Device targeting opportunities
+- Asset performance potential based on platform metrics (MAU/DAU)
+- Platform restrictions and requirements`;
+
+    const userPrompt = `
+Given this brief: "${prompt}"
+
+Available assets and platforms:
+${JSON.stringify(detailedAssets, null, 2)}
+
+Create a detailed media plan that includes:
+1. Executive Summary
+2. Target Audience Analysis (using platform audience data)
+3. Platform Selection & Device Strategy (using device split data)
+4. Asset Utilization Strategy (considering tags and platform fit)
+5. Budget Allocation & Estimated Performance
+6. Platform-Specific Recommendations
+7. Technical Requirements & Restrictions
+
+Format the response as JSON with these sections as properties. Include specific metrics and targeting recommendations based on the platform data.`;
+
+    console.log('Calling Azure OpenAI with enhanced prompt...');
+    const response = await fetch(
+      `${azureEndpoint}/openai/deployments/${azureDeployment}/chat/completions?api-version=${azureApiVersion}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': openAIApiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      }
+    );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("OpenAI API error:", errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || "Unknown error"}`);
+      const errorText = await response.text();
+      console.error('Azure OpenAI API error:', errorText);
+      throw new Error(`Azure OpenAI API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    const mediaPlan = data.choices[0].message.content;
-
-    // Parse JSON from the response if it's in JSON format
+    const openaiResponse = await response.json();
     let parsedPlan;
+
     try {
-      // Attempt to parse if the returned content is JSON
-      const jsonStartIdx = mediaPlan.indexOf('{');
-      const jsonEndIdx = mediaPlan.lastIndexOf('}');
-      
-      if (jsonStartIdx >= 0 && jsonEndIdx > jsonStartIdx) {
-        const jsonStr = mediaPlan.substring(jsonStartIdx, jsonEndIdx + 1);
-        parsedPlan = JSON.parse(jsonStr);
-      } else {
-        // If not valid JSON format, create a structured format
-        parsedPlan = {
-          executiveSummary: mediaPlan,
-          targetAudienceAnalysis: "",
-          platformSelectionRationale: "",
-          budgetAllocation: "",
-          assetUtilizationStrategy: "",
-          measurementStrategy: ""
-        };
-      }
-    } catch (error) {
-      console.warn("Error parsing OpenAI response as JSON:", error);
-      // Fallback to unstructured format
-      parsedPlan = {
-        executiveSummary: mediaPlan,
-        targetAudienceAnalysis: "",
-        platformSelectionRationale: "",
-        budgetAllocation: "",
-        assetUtilizationStrategy: "",
-        measurementStrategy: ""
+      const content = openaiResponse.choices[0].message.content;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      parsedPlan = jsonMatch ? JSON.parse(jsonMatch[0]) : {
+        error: 'Failed to parse AI response into JSON format'
       };
+    } catch (error) {
+      console.error('Error parsing AI response:', error);
+      throw new Error('Failed to parse media plan from AI response');
     }
 
-    return new Response(JSON.stringify({ mediaPlan: parsedPlan }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        mediaPlan: parsedPlan,
+        assets: detailedAssets 
+      }), 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+
   } catch (error) {
     console.error('Error in generate-media-plan function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        stack: Deno.env.get('NODE_ENV') === 'development' ? error.stack : undefined
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });
