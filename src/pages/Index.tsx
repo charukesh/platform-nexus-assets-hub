@@ -568,17 +568,8 @@ const Dashboard: React.FC = () => {
 
               {searchResults.length > 0 && (
                 <div className="space-y-4">
-                  <div className="font-mono bg-neugray-100 p-4 rounded-lg whitespace-pre-wrap">
-                    {searchResults.map((result: any) => (
-                      `${result.name}
-
-${result.relevance}
-
-Match: ${Math.round(result.similarity * 100)}%
-
--------------------
-`
-                    ))}
+                  <div className="font-mono bg-neugray-100 p-4 rounded-lg whitespace-pre-wrap break-words overflow-x-auto">
+                    {JSON.stringify(searchResults, null, 2)}
                   </div>
                 </div>
               )}
