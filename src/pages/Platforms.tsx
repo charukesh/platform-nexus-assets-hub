@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -36,7 +35,6 @@ const Platforms: React.FC = () => {
       if (data) {
         setPlatforms(data);
         
-        // Extract unique industries for filter
         const uniqueIndustries = Array.from(new Set(data.map((platform) => platform.industry)));
         setIndustries(["All", ...uniqueIndustries]);
       }
@@ -86,7 +84,6 @@ const Platforms: React.FC = () => {
           </div>
         </header>
 
-        {/* Search and filter section */}
         <NeuCard className="mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex-1">
@@ -130,7 +127,6 @@ const Platforms: React.FC = () => {
           </div>
         </NeuCard>
 
-        {/* Platforms grid */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -140,14 +136,28 @@ const Platforms: React.FC = () => {
             {filteredPlatforms.map((platform) => (
               <Link key={platform.id} to={`/platforms/${platform.id}`}>
                 <NeuCard className="h-full hover:shadow-neu-pressed transition-all cursor-pointer animate-scale-in">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-bold">{platform.name}</h3>
-                      <span className="inline-block text-xs bg-neugray-200 py-0.5 px-2 rounded-full mt-1">
-                        {platform.industry}
-                      </span>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-neugray-200 rounded-lg flex-shrink-0 overflow-hidden">
+                        {platform.logo_url ? (
+                          <img
+                            src={platform.logo_url}
+                            alt={platform.name}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Server size={24} className="text-primary" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold">{platform.name}</h3>
+                        <span className="inline-block text-xs bg-neugray-200 py-0.5 px-2 rounded-full mt-1">
+                          {platform.industry}
+                        </span>
+                      </div>
                     </div>
-                    <Server size={18} className="text-primary" />
                   </div>
                   
                   <div className="mt-4 grid grid-cols-2 gap-2">

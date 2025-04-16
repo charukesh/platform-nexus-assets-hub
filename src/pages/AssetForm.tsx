@@ -627,141 +627,68 @@ const AssetForm: React.FC = () => {
           
           <NeuCard>
             <h2 className="text-xl font-bold mb-4">Asset Files</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label>Asset File</Label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={(e) => handleFileChange(e, 'file')}
-                  className="hidden"
-                />
-                
-                <div
-                  className={`mt-1.5 border-2 border-dashed rounded-lg p-6 text-center ${
-                    files.filePreview ? 'border-primary' : 'border-gray-300'
-                  }`}
-                  onDrop={(e) => handleFileDrop(e, 'file')}
-                  onDragOver={handleDragOver}
-                >
-                  {files.filePreview ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-center">
-                        <div className="w-full max-h-48 overflow-hidden flex items-center justify-center bg-neugray-200 rounded-lg">
-                          {formData.type === 'Image' ? (
-                            <img
-                              src={files.filePreview}
-                              alt="File preview"
-                              className="max-w-full max-h-48 object-contain"
-                            />
-                          ) : (
-                            <div className="p-8">
-                              <FileIcon size={60} className="mx-auto text-neugray-400" />
-                              <p className="mt-2 text-sm text-muted-foreground truncate max-w-xs">
-                                {files.file?.name || 'File'}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-muted-foreground">
-                          {formData.file_size || 'Unknown size'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeFile('file')}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <Upload className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium mb-1">
-                        Drag and drop your file here
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        Supports images, documents, videos, and audio files
-                      </p>
-                      <NeuButton
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleBrowseClick('file')}
-                      >
-                        Browse Files
-                      </NeuButton>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div>
-                <Label>Thumbnail Image</Label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={thumbnailInputRef}
-                  onChange={(e) => handleFileChange(e, 'thumbnail')}
-                  className="hidden"
-                />
-                
-                <div
-                  className={`mt-1.5 border-2 border-dashed rounded-lg p-6 text-center ${
-                    files.thumbnailPreview ? 'border-primary' : 'border-gray-300'
-                  }`}
-                  onDrop={(e) => handleFileDrop(e, 'thumbnail')}
-                  onDragOver={handleDragOver}
-                >
-                  {files.thumbnailPreview ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-center">
-                        <div className="w-full h-40 overflow-hidden flex items-center justify-center bg-neugray-200 rounded-lg">
-                          <img
-                            src={files.thumbnailPreview}
-                            alt="Thumbnail preview"
-                            className="max-w-full max-h-40 object-contain"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => removeFile('thumbnail')}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium mb-1">
-                        Add a thumbnail image
-                      </p>
-                      <p className="text-xs text-muted-foreground mb-3">
-                        This will be displayed in the asset list
-                      </p>
-                      <NeuButton
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleBrowseClick('thumbnail')}
-                      >
-                        Browse Images
-                      </NeuButton>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </NeuCard>
           
+          <div>
+            <Label>Thumbnail Image</Label>
+            <input
+              type="file"
+              accept="image/*"
+              ref={thumbnailInputRef}
+              onChange={(e) => handleFileChange(e, 'thumbnail')}
+              className="hidden"
+            />
+            
+            <div
+              className={`mt-1.5 border-2 border-dashed rounded-lg p-6 text-center ${
+                files.thumbnailPreview ? 'border-primary' : 'border-gray-300'
+              }`}
+              onDrop={(e) => handleFileDrop(e, 'thumbnail')}
+              onDragOver={handleDragOver}
+            >
+              {files.thumbnailPreview ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center">
+                    <div className="w-full h-40 overflow-hidden flex items-center justify-center bg-neugray-200 rounded-lg">
+                      <img
+                        src={files.thumbnailPreview}
+                        alt="Thumbnail preview"
+                        className="max-w-full max-h-40 object-contain"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => removeFile('thumbnail')}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <Image className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm font-medium mb-1">
+                    Add a thumbnail image
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    This will be displayed in the asset list
+                  </p>
+                  <NeuButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBrowseClick('thumbnail')}
+                  >
+                    Browse Images
+                  </NeuButton>
+                </div>
+              )}
+            </div>
+          </div>
+        </NeuCard>
+        
           <div className="flex justify-end gap-3">
             <NeuButton
               type="button"
