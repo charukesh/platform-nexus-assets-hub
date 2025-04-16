@@ -3,10 +3,9 @@ import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
-import NeuButton from "@/components/NeuButton";
-import NeuInput from "@/components/NeuInput";
-import { Brain } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import PromptInput from "@/components/media-plan/PromptInput";
+import ResponseDisplay from "@/components/media-plan/ResponseDisplay";
 
 const MediaPlanGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -35,7 +34,6 @@ const MediaPlanGenerator: React.FC = () => {
       if (error) throw error;
 
       if (data?.mediaPlan) {
-        // Convert the media plan object into a formatted string
         const plan = data.mediaPlan;
         const formattedResponse = Object.entries(plan)
           .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').toLowerCase()}\n${value}`)
@@ -68,48 +66,15 @@ const MediaPlanGenerator: React.FC = () => {
         </header>
 
         <NeuCard>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                What kind of media plan would you like to generate?
-              </label>
-              <NeuInput
-                as="textarea"
-                placeholder="e.g., Create a media plan for a new fitness app launch targeting young professionals in urban areas"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                className="w-full"
-              />
-            </div>
-
-            <NeuButton
-              onClick={generatePlan}
-              disabled={isGenerating || !prompt}
-              className="w-full"
-            >
-              {isGenerating ? (
-                <>
-                  <span className="animate-spin mr-2">⟳</span>
-                  Generating Plan...
-                </>
-              ) : (
-                <>
-                  <Brain className="mr-2" size={20} />
-                  Generate Plan
-                </>
-              )}
-            </NeuButton>
-          </div>
+          <PromptInput
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            onGenerate={generatePlan}
+            isGenerating={isGenerating}
+          />
         </NeuCard>
 
-        {response && (
-          <NeuCard className="prose max-w-none">
-            <div className="whitespace-pre-wrap font-mono text-sm">
-              {response}
-            </div>
-          </NeuCard>
-        )}
+        <ResponseDisplay response={response} />
       </div>
     </Layout>
   );
