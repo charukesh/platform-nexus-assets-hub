@@ -8,7 +8,7 @@ import NeuCard from '@/components/NeuCard';
 import NeuButton from '@/components/NeuButton';
 import NeuInput from '@/components/NeuInput';
 import { useToast } from '@/components/ui/use-toast';
-import { Tables } from '@/integrations/supabase/types';
+import { Tables, Json } from '@/integrations/supabase/types';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
@@ -99,19 +99,49 @@ const PlatformForm = () => {
 
   useEffect(() => {
     if (platformData) {
+      // Create default audience data and device split structures
+      const defaultAudienceData: AudienceData = {
+        age_groups: {
+          '13-17': 0,
+          '18-24': 0,
+          '25-34': 0,
+          '35-44': 0,
+          '45-54': 0,
+          '55+': 0
+        },
+        gender: {
+          male: 0,
+          female: 0,
+          other: 0
+        },
+        interests: []
+      };
+
+      const defaultDeviceSplit: DeviceSplit = {
+        ios: 50,
+        android: 50,
+        web: 0
+      };
+
+      // Parse the audience_data and device_split from the API response
+      const audienceData = platformData.audience_data as Json;
+      const deviceSplit = platformData.device_split as Json;
+
       setFormData({
         name: platformData.name,
         industry: platformData.industry,
-        audience_data: platformData.audience_data as AudienceData || {
-          age_groups: {},
-          gender: {},
-          interests: []
-        },
-        device_split: platformData.device_split as DeviceSplit || {
-          ios: 50,
-          android: 50,
-          web: 0
-        },
+        audience_data: audienceData ? 
+          {
+            age_groups: (audienceData as any)?.age_groups || defaultAudienceData.age_groups,
+            gender: (audienceData as any)?.gender || defaultAudienceData.gender,
+            interests: (audienceData as any)?.interests || defaultAudienceData.interests
+          } : defaultAudienceData,
+        device_split: deviceSplit ? 
+          {
+            ios: (deviceSplit as any)?.ios || defaultDeviceSplit.ios,
+            android: (deviceSplit as any)?.android || defaultDeviceSplit.android,
+            web: (deviceSplit as any)?.web || defaultDeviceSplit.web
+          } : defaultDeviceSplit,
         mau: platformData.mau || '',
         dau: platformData.dau || '',
         premium_users: platformData.premium_users || null,
@@ -194,33 +224,29 @@ const PlatformForm = () => {
     
     try {
       let result;
+      
+      // Cast our typed structures back to Json for Supabase
+      const supabaseData = {
+        name: formData.name,
+        industry: formData.industry,
+        audience_data: formData.audience_data as unknown as Json,
+        device_split: formData.device_split as unknown as Json,
+        mau: formData.mau,
+        dau: formData.dau,
+        premium_users: formData.premium_users,
+      };
+      
       if (id) {
         result = await supabase
           .from('platforms')
-          .update({
-            name: formData.name,
-            industry: formData.industry,
-            audience_data: formData.audience_data,
-            device_split: formData.device_split,
-            mau: formData.mau,
-            dau: formData.dau,
-            premium_users: formData.premium_users,
-          })
+          .update(supabaseData)
           .eq('id', id)
           .select()
           .single();
       } else {
         result = await supabase
           .from('platforms')
-          .insert({
-            name: formData.name,
-            industry: formData.industry,
-            audience_data: formData.audience_data,
-            device_split: formData.device_split,
-            mau: formData.mau,
-            dau: formData.dau,
-            premium_users: formData.premium_users,
-          })
+          .insert(supabaseData)
           .select()
           .single();
       }
