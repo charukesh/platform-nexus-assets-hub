@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -28,25 +27,47 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const [streamedContent, setStreamedContent] = useState<string>('');
 
   useEffect(() => {
-    if (searchResults) {
-      // Reset content when new results arrive
+    if (searchResults instanceof ReadableStream) {
+      // Reset content when new stream arrives
       setStreamedContent('');
       
-      // Simulate streaming by splitting content into characters
-      const content = searchResults.choices?.[0]?.message?.content || '';
-      const characters = content.split('');
-      
-      let currentIndex = 0;
-      const streamInterval = setInterval(() => {
-        if (currentIndex < characters.length) {
-          setStreamedContent(prev => prev + characters[currentIndex]);
-          currentIndex++;
-        } else {
-          clearInterval(streamInterval);
-        }
-      }, 10); // Adjust speed as needed
+      const reader = searchResults.getReader();
+      const decoder = new TextDecoder();
 
-      return () => clearInterval(streamInterval);
+      const processStream = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  if (data.content) {
+                    setStreamedContent(prev => prev + data.content);
+                  }
+                } catch (e) {
+                  console.error('Error parsing SSE data:', e);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error reading stream:', error);
+        } finally {
+          reader.releaseLock();
+        }
+      };
+
+      processStream();
+    } else if (searchResults) {
+      // Handle non-streaming response (fallback)
+      const content = searchResults.choices?.[0]?.message?.content || '';
+      setStreamedContent(content);
     }
   }, [searchResults]);
 

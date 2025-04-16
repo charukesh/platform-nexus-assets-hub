@@ -20,6 +20,18 @@ serve(async (req) => {
     });
   }
 
+  const encoder = new TextEncoder();
+  const respondWithStream = (stream: ReadableStream) => {
+    return new Response(stream, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
+  };
+
   try {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -47,23 +59,16 @@ serve(async (req) => {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
 
-    // Initialize Supabase client
+    // Initialize clients and process request data
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
-    // Parse request data
     const requestData = await req.json();
-    console.log('Received request data:', requestData);
-
-    // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = requestData.matchCount || 3; // Default to top 3 assets
-    const matchThreshold = requestData.matchThreshold || 0.75; // Threshold for similarity
+    const matchCount = requestData.matchCount || 3;
+    const matchThreshold = requestData.matchThreshold || 0.75;
 
-        if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
-      throw new Error('A valid query is required (use either "query" or "text" parameter)');
+    if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
+      throw new Error('A valid query is required');
     }
-
-    console.log('Processing query:', queryText);
 
     // Azure OpenAI setup for embeddings and endpoint
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
@@ -86,32 +91,18 @@ serve(async (req) => {
     ]);
     console.log('Query embeddings generated successfully with length:', queryEmbedding.length);
 
-    // Query database for similar assets using vector search
-    console.log('Performing vector similarity search with parameters:');
-    console.log('- match_threshold:', matchThreshold, 'type:', typeof matchThreshold);
-    console.log('- match_count:', matchCount, 'type:', typeof matchCount);
-
-    // Ensure parameters have the correct types for PostgreSQL
-    const rpcParams = {
+    const { data: matchResults, error: matchError } = await supabaseClient.rpc('match_assets_by_embedding_only', {
       query_embedding: queryEmbedding,
       match_threshold: parseFloat(matchThreshold.toString()),
-      match_count: parseInt(matchCount.toString(), 10) // Ensure this is an integer
-    };
-
-    console.log('Calling match_assets_by_embedding_only with properly typed parameters');
-    const { data: matchResults, error: matchError } = await supabaseClient.rpc('match_assets_by_embedding_only', rpcParams);
+      match_count: parseInt(matchCount.toString(), 10)
+    });
 
     if (matchError) {
-      console.error('Error in vector similarity search:', matchError);
       throw matchError;
     }
 
-    // Process the results to ensure correct data types
     const matchedAssets = matchResults || [];
-    console.log(`Found ${matchedAssets.length} assets via vector similarity`);
-
-    // Process the assets to include only essential fields and ensure correct types
-    const processedAssets = matchedAssets.map((asset) => ({
+    const processedAssets = matchedAssets.map(asset => ({
       id: asset.id,
       name: asset.name,
       platform: asset.platform,
@@ -120,7 +111,7 @@ serve(async (req) => {
       amount: asset.amount !== null ? Number(asset.amount) : null,
       estimated_impressions: Number(asset.estimated_impressions),
       estimated_clicks: Number(asset.estimated_clicks),
-      similarity: Number(asset.similarity).toFixed(2) // Reduce decimal precision
+      similarity: Number(asset.similarity).toFixed(2)
     }));
 
     // Determine prompt type based only on whether we have results
@@ -168,21 +159,18 @@ serve(async (req) => {
         break;
     }
 
-    console.log(`Using ${promptType} prompt for Azure OpenAI...`);
-
-    // Initialize the Azure OpenAI chat model using LangChain
     const chatModel = new AzureChatOpenAI({
       azureOpenAIApiKey: azureApiKey,
       azureOpenAIApiVersion: azureApiVersion,
       azureOpenAIApiInstanceName: azureInstance,
       azureOpenAIApiDeploymentName: azureDeployment,
-      azureOpenAIEndpoint: azureEndpoint,
+      azureOpenAIEndpoint: `https://${azureInstance}.openai.azure.com`,
       temperature: 0.5,
-      maxTokens: 1000
+      maxTokens: 1000,
+      streaming: true
     });
 
-    // Create the chat prompt
-    const systemTemplate = "You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations. When a user provides a query, extract any budget information mentioned. If no budget is specified, assume a default budget of 5-8 lakhs.";
+    const systemTemplate = "You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.";
     const humanTemplate = "{prompt}";
 
     const chatPrompt = ChatPromptTemplate.fromMessages([
@@ -190,62 +178,40 @@ serve(async (req) => {
       HumanMessagePromptTemplate.fromTemplate(humanTemplate)
     ]);
 
-    // Generate the full prompt with input variables
     const formattedPrompt = await chatPrompt.formatMessages({
       prompt: promptContent
     });
 
-    // Invoke the model
-    const result = await chatModel.invoke(formattedPrompt);
-    const conversationalContent = result.content;
+    // Create a TransformStream for handling the streamed response
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
 
-    // Extract the asset IDs mentioned in the response for metadata
-    const mentionedAssetIds = processedAssets
-      .filter((asset) => conversationalContent.includes(asset.id) || conversationalContent.includes(asset.name))
-      .map((asset) => asset.id);
+    // Start streaming response
+    const runStream = await chatModel.stream(formattedPrompt);
 
-    // Return the combined response with metadata
-    return new Response(JSON.stringify({
-      id: Date.now().toString(), // Since we don't have the direct OpenAI response ID
-      object: "chat.completion",
-      created: Date.now(),
-      model: `${azureInstance}/${azureDeployment}`,
-      choices: [{
-        message: {
-          role: "assistant",
-          content: conversationalContent
-        },
-        finish_reason: "stop",
-        index: 0
-      }],
-      metadata: {
-        method: 'asset-search-with-plan',
-        query: queryText,
-        vector_results_count: processedAssets.length,
-        mentioned_asset_ids: mentionedAssetIds,
-        threshold_used: matchThreshold,
-        prompt_type: promptType
+    // Process the stream
+    (async () => {
+      try {
+        for await (const chunk of runStream) {
+          if (chunk.content) {
+            await writer.write(encoder.encode(`data: ${JSON.stringify({ content: chunk.content })}\n\n`));
+          }
+        }
+      } catch (error) {
+        console.error('Streaming error:', error);
+        await writer.write(encoder.encode(`data: ${JSON.stringify({ error: 'Streaming error occurred' })}\n\n`));
+      } finally {
+        await writer.close();
       }
-    }), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
-    });
+    })();
+
+    return respondWithStream(stream.readable);
+
   } catch (error) {
     console.error('Error in asset search function:', error);
-    console.error('Error details:', error.stack || 'No stack trace available');
-    return new Response(JSON.stringify({
-      error: error.message,
-      stack: Deno.env.get('NODE_ENV') === 'development' ? error.stack : undefined
-    }), {
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
-
-// Function removed as we're now having the AI extract the budget
