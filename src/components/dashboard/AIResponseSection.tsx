@@ -2,6 +2,8 @@
 import React from "react";
 import { Bot, Search } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
 import NeuInput from "@/components/NeuInput";
@@ -70,7 +72,17 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       {searchResults && (
         <div className="space-y-4">
           <div className="prose prose-sm max-w-none bg-neugray-100 p-6 rounded-lg">
-            <ReactMarkdown className="whitespace-pre-wrap [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+              className="whitespace-pre-wrap [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+              components={{
+                p: ({node, ...props}) => <p {...props} className="mb-2 last:mb-0" />,
+                ul: ({node, ...props}) => <ul {...props} className="list-disc list-inside" />,
+                ol: ({node, ...props}) => <ol {...props} className="list-decimal list-inside" />,
+                code: ({node, ...props}) => <code {...props} className="bg-neugray-200 px-1 py-0.5 rounded text-sm" />,
+              }}
+            >
               {searchResults.choices && searchResults.choices[0]?.message?.content || 
                "No response content available"}
             </ReactMarkdown>
