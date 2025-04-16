@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import LogoUpload from "@/components/platform/LogoUpload";
 
 const PlatformForm = () => {
   const { id } = useParams();
@@ -61,6 +62,7 @@ const PlatformForm = () => {
     restrictions: {
       restricted_categories: [],
     },
+    logo_url: '',
   });
 
   const { data: platformData, isLoading } = useQuery({
@@ -165,6 +167,7 @@ const PlatformForm = () => {
         mau: platformData.mau || '',
         dau: platformData.dau || '',
         premium_users: platformData.premium_users || null,
+        logo_url: platformData.logo_url || '',
       });
     }
   }, [platformData]);
@@ -210,6 +213,7 @@ const PlatformForm = () => {
         mau: formData.mau,
         dau: formData.dau,
         premium_users: formData.premium_users,
+        logo_url: formData.logo_url,
       };
       
       let result;
@@ -266,6 +270,12 @@ const PlatformForm = () => {
           <NeuCard>
             <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
             <div className="space-y-4">
+              <LogoUpload
+                currentLogoUrl={formData.logo_url}
+                onUpload={(url) => handleChange('logo_url', url)}
+                platformId={id || 'new'}
+              />
+              
               <div>
                 <Label htmlFor="name">Platform Name*</Label>
                 <NeuInput

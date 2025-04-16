@@ -93,6 +93,7 @@ export type Database = {
           embedding: string | null
           id: string
           industry: string
+          logo_url: string | null
           mau: string | null
           name: string
           premium_users: number | null
@@ -108,6 +109,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           industry: string
+          logo_url?: string | null
           mau?: string | null
           name: string
           premium_users?: number | null
@@ -123,6 +125,7 @@ export type Database = {
           embedding?: string | null
           id?: string
           industry?: string
+          logo_url?: string | null
           mau?: string | null
           name?: string
           premium_users?: number | null

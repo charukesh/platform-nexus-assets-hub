@@ -9,15 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { BarChart, Users, Smartphone, Pencil, Trash2, ExternalLink, Clock, RefreshCw, Tag } from "lucide-react";
 import EditHistoryComponent from "@/components/EditHistoryComponent";
-
-// Interface for demographic data structure
-interface DemographicData {
-  name: string;
-  percentage: number;
-}
-
-import { DeviceSplitDisplay } from "@/components/platform/DeviceSplitDisplay";
-import { CampaignDisplay } from "@/components/platform/CampaignDisplay";
+import { AudienceDataDisplay } from "@/components/platform/AudienceDataDisplay";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const PlatformDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +41,6 @@ const PlatformDetail: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        // Ensure the audience_data structure is properly formatted
         const formattedData = {
           ...data,
           audience_data: formatAudienceData(data.audience_data)
@@ -68,7 +60,6 @@ const PlatformDetail: React.FC = () => {
     }
   };
 
-  // Helper function to ensure audience_data has the expected structure
   const formatAudienceData = (audienceData: any) => {
     if (!audienceData) {
       return {
@@ -115,11 +106,9 @@ const PlatformDetail: React.FC = () => {
       };
     }
 
-    // Convert string arrays to objects with name and percentage if necessary
     const demographic = audienceData.demographic || {};
     const geographic = audienceData.geographic || {};
     
-    // Format ageGroups array
     const ageGroups = Array.isArray(demographic.ageGroups) 
       ? formatDataIfNeeded(demographic.ageGroups)
       : [
@@ -129,7 +118,6 @@ const PlatformDetail: React.FC = () => {
           { name: "45+", percentage: 20 }
         ];
     
-    // Format gender array
     const gender = Array.isArray(demographic.gender)
       ? formatDataIfNeeded(demographic.gender)
       : [
@@ -138,7 +126,6 @@ const PlatformDetail: React.FC = () => {
           { name: "Other", percentage: 3 }
         ];
     
-    // Format interests array
     const interests = Array.isArray(demographic.interests)
       ? formatDataIfNeeded(demographic.interests)
       : [
@@ -149,7 +136,6 @@ const PlatformDetail: React.FC = () => {
           { name: "Fitness", percentage: 32 }
         ];
     
-    // Format cities array
     const cities = Array.isArray(geographic.cities)
       ? formatDataIfNeeded(geographic.cities)
       : [
@@ -159,7 +145,6 @@ const PlatformDetail: React.FC = () => {
           { name: "Houston", percentage: 6 }
         ];
     
-    // Format states array
     const states = Array.isArray(geographic.states)
       ? formatDataIfNeeded(geographic.states)
       : [
@@ -169,7 +154,6 @@ const PlatformDetail: React.FC = () => {
           { name: "Florida", percentage: 8 }
         ];
     
-    // Format regions array
     const regions = Array.isArray(geographic.regions)
       ? formatDataIfNeeded(geographic.regions)
       : [
@@ -193,27 +177,21 @@ const PlatformDetail: React.FC = () => {
     };
   };
 
-  // Helper function to convert simple string arrays to formatted objects
   const formatDataIfNeeded = (dataArray: any[]): DemographicData[] => {
-    // If the array already contains objects with name and percentage, return as is
     if (dataArray.length > 0 && typeof dataArray[0] === 'object' && 'name' in dataArray[0] && 'percentage' in dataArray[0]) {
       return dataArray;
     }
     
-    // If it's a string array, convert to objects with random percentages
     if (dataArray.length > 0 && typeof dataArray[0] === 'string') {
       let total = 100;
       let result: DemographicData[] = [];
       
-      // For all items except the last one, assign a percentage
       for (let i = 0; i < dataArray.length - 1; i++) {
-        // Generate a random percentage between 5 and 25, or the remaining total if it's less
         const percentage = Math.min(Math.floor(Math.random() * 20) + 5, total - 5);
         result.push({ name: dataArray[i], percentage });
         total -= percentage;
       }
       
-      // Assign the remaining percentage to the last item
       if (dataArray.length > 0) {
         result.push({ name: dataArray[dataArray.length - 1], percentage: total });
       }
@@ -221,7 +199,6 @@ const PlatformDetail: React.FC = () => {
       return result;
     }
     
-    // Default empty return
     return [];
   };
 
@@ -263,7 +240,6 @@ const PlatformDetail: React.FC = () => {
     try {
       setLoading(true);
       
-      // First check if there are associated assets
       if (assets.length > 0) {
         toast({
           title: "Cannot delete platform",
@@ -310,14 +286,20 @@ const PlatformDetail: React.FC = () => {
     <Layout>
       <div className="animate-fade-in">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold">{platform?.name}</h1>
-              <span className="inline-block text-sm bg-neugray-200 py-0.5 px-2 rounded-full dark:bg-gray-700">
-                {platform?.industry}
-              </span>
+          <div className="flex items-center gap-4">
+            <Avatar className="w-16 h-16">
+              <AvatarImage src={platform?.logo_url || ''} alt={platform?.name} />
+              <AvatarFallback>{platform?.name?.[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold">{platform?.name}</h1>
+                <span className="inline-block text-sm bg-neugray-200 py-0.5 px-2 rounded-full dark:bg-gray-700">
+                  {platform?.industry}
+                </span>
+              </div>
+              <p className="text-muted-foreground mt-1">Platform Details and Management</p>
             </div>
-            <p className="text-muted-foreground mt-1">Platform Details and Management</p>
           </div>
           <div className="flex gap-2">
             <Link to={`/platforms/${id}/edit`}>
@@ -424,6 +406,9 @@ const PlatformDetail: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="audience" className="space-y-6">
+            {platform?.audience_data && (
+              <AudienceDataDisplay audienceData={platform.audience_data as any} />
+            )}
             <NeuCard>
               <h3 className="text-lg font-bold mb-4">Demographics</h3>
               {platform?.audience_data?.demographic ? (
