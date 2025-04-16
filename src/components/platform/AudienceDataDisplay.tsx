@@ -63,6 +63,13 @@ export const AudienceDataDisplay = ({ audienceData }: AudienceDataDisplayProps) 
                 audienceData.city_targeting_values
               )}
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground w-24">Pincode Level:</span>
+              {renderTargetingStatus(
+                audienceData.pincode_level_targeting,
+                audienceData.pincode_targeting_values
+              )}
+            </div>
           </div>
         </div>
 

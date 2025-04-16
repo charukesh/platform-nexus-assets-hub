@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -106,9 +105,27 @@ const PlatformDetail: React.FC = () => {
             { name: "Asia", percentage: 10 },
             { name: "Other", percentage: 5 }
           ]
-        }
+        },
+        age_targeting_available: false,
+        gender_targeting_available: false,
+        state_level_targeting: false,
+        city_level_targeting: false,
+        pincode_level_targeting: false
       };
     }
+
+    const ageTargetingAvailable = audienceData.age_targeting_available || false;
+    const ageTargetingValues = audienceData.age_targeting_values || '';
+    const genderTargetingAvailable = audienceData.gender_targeting_available || false;
+    const genderTargetingValues = audienceData.gender_targeting_values || '';
+    const stateLevelTargeting = audienceData.state_level_targeting || false;
+    const stateTargetingValues = audienceData.state_targeting_values || '';
+    const cityLevelTargeting = audienceData.city_level_targeting || false;
+    const cityTargetingValues = audienceData.city_targeting_values || '';
+    const pincodeLevelTargeting = audienceData.pincode_level_targeting || false;
+    const pincodeTargetingValues = audienceData.pincode_targeting_values || '';
+    const platformSpecificTargeting = audienceData.platform_specific_targeting || [];
+    const interests = audienceData.interests || [];
 
     const demographic = audienceData.demographic || {};
     const geographic = audienceData.geographic || {};
@@ -130,7 +147,7 @@ const PlatformDetail: React.FC = () => {
           { name: "Other", percentage: 3 }
         ];
     
-    const interests = Array.isArray(demographic.interests)
+    const formattedInterests = Array.isArray(demographic.interests)
       ? formatDataIfNeeded(demographic.interests)
       : [
           { name: "Technology", percentage: 78 },
@@ -171,13 +188,25 @@ const PlatformDetail: React.FC = () => {
       demographic: {
         ageGroups,
         gender,
-        interests
+        interests: formattedInterests
       },
       geographic: {
         cities,
         states,
         regions
-      }
+      },
+      age_targeting_available: ageTargetingAvailable,
+      age_targeting_values: ageTargetingValues,
+      gender_targeting_available: genderTargetingAvailable,
+      gender_targeting_values: genderTargetingValues,
+      state_level_targeting: stateLevelTargeting,
+      state_targeting_values: stateTargetingValues,
+      city_level_targeting: cityLevelTargeting,
+      city_targeting_values: cityTargetingValues,
+      pincode_level_targeting: pincodeLevelTargeting,
+      pincode_targeting_values: pincodeTargetingValues,
+      platform_specific_targeting: platformSpecificTargeting,
+      interests: interests
     };
   };
 

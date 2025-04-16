@@ -1,4 +1,3 @@
-
 export interface PlatformFormData {
   name: string;
   industry: string;
@@ -50,6 +49,16 @@ export interface AudienceData {
   pincode_level_targeting?: boolean;
   pincode_targeting_values?: string;
   platform_specific_targeting?: string[];
+  demographic?: {
+    ageGroups?: DemographicData[];
+    gender?: DemographicData[];
+    interests?: DemographicData[];
+  };
+  geographic?: {
+    cities?: DemographicData[];
+    states?: DemographicData[];
+    regions?: DemographicData[];
+  };
 }
 
 export interface DeviceSplit {
