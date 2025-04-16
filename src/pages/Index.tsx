@@ -22,7 +22,7 @@ const Dashboard: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [activeTab, setActiveTab] = useState("overview");
   const [searchBrief, setSearchBrief] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const { toast } = useToast();
   const { searchByEmbedding } = useEmbeddingSearch();
@@ -145,7 +145,7 @@ const Dashboard: React.FC = () => {
       const results = await searchByEmbedding(searchBrief);
       setSearchResults(results);
       
-      if (results.length === 0) {
+      if (!results) {
         toast({
           title: "No results found",
           description: "Try a different search query",
@@ -159,7 +159,7 @@ const Dashboard: React.FC = () => {
         description: error.message || "Failed to search assets",
         variant: "destructive"
       });
-      setSearchResults([]);
+      setSearchResults(null);
     } finally {
       setSearchLoading(false);
     }
@@ -569,7 +569,8 @@ const Dashboard: React.FC = () => {
               {searchResults && (
                 <div className="space-y-4">
                   <div className="prose prose-sm max-w-none bg-neugray-100 p-6 rounded-lg whitespace-pre-wrap">
-                    {searchResults.choices?.[0]?.message?.content || "No response content available"}
+                    {searchResults.choices && searchResults.choices[0]?.message?.content || 
+                     "No response content available"}
                   </div>
                 </div>
               )}

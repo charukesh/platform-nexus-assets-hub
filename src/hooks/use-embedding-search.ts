@@ -9,7 +9,7 @@ export const useEmbeddingSearch = () => {
 
   const searchByEmbedding = async (query: string) => {
     if (!query.trim()) {
-      return [];
+      return null;
     }
 
     setLoading(true);
@@ -20,7 +20,7 @@ export const useEmbeddingSearch = () => {
 
       if (error) throw error;
 
-      return data?.matches || [];
+      return data || null;
     } catch (err: any) {
       console.error('Error searching by embedding:', err);
       toast({
@@ -28,7 +28,7 @@ export const useEmbeddingSearch = () => {
         description: err.message || 'Failed to perform embedding search',
         variant: 'destructive',
       });
-      return [];
+      return null;
     } finally {
       setLoading(false);
     }
