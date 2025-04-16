@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEmbeddingSearch } from "@/hooks/use-embedding-search";
+import ReactMarkdown from 'react-markdown';
 
 const Dashboard: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);
@@ -568,9 +569,11 @@ const Dashboard: React.FC = () => {
 
               {searchResults && (
                 <div className="space-y-4">
-                  <div className="prose prose-sm max-w-none bg-neugray-100 p-6 rounded-lg whitespace-pre-wrap">
-                    {searchResults.choices && searchResults.choices[0]?.message?.content || 
-                     "No response content available"}
+                  <div className="prose prose-sm max-w-none bg-neugray-100 p-6 rounded-lg">
+                    <ReactMarkdown className="whitespace-pre-wrap [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                      {searchResults.choices && searchResults.choices[0]?.message?.content || 
+                       "No response content available"}
+                    </ReactMarkdown>
                   </div>
                 </div>
               )}

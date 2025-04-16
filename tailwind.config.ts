@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -139,8 +138,30 @@ export default {
 				'neu-flat': '5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff',
 				'neu-pressed': 'inset 2px 2px 5px #d1d9e6, inset -2px -2px 5px #ffffff',
 				'neu-convex': '5px 5px 10px #d1d9e6, -5px -5px 10px #ffffff, inset 1px 1px 2px #ffffff, inset -1px -1px 2px #d1d9e6',
-			}
+			},
+			typography: {
+				DEFAULT: {
+					css: {
+						'code::before': {
+							content: '""'
+						},
+						'code::after': {
+							content: '""'
+						},
+						'blockquote p:first-of-type::before': {
+							content: '""'
+						},
+						'blockquote p:last-of-type::after': {
+							content: '""'
+						},
+						maxWidth: 'none',
+					},
+				},
+			},
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [
+		require("tailwindcss-animate"),
+		require("@tailwindcss/typography")
+	],
 } satisfies Config;
