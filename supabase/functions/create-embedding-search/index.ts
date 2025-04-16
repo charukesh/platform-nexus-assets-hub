@@ -91,11 +91,21 @@ serve(async (req) => {
     console.log('- match_threshold:', matchThreshold, 'type:', typeof matchThreshold);
     console.log('- match_count:', matchCount, 'type:', typeof matchCount);
 
+    // Check if the user requested a specific number of assets
+    const assetCountMatch = queryText.match(/(\d+)\s*(?:asset|platform)s?\s*(?:required|needed|requested|only)/i);
+    const requestedAssetCount = assetCountMatch ? parseInt(assetCountMatch[1], 10) : matchCount;
+    
+    // Use the higher of the requested count or default matchCount
+    const finalMatchCount = Math.max(requestedAssetCount, matchCount);
+    
+    console.log('Requested asset count detected:', requestedAssetCount);
+    console.log('Final match count to use:', finalMatchCount);
+
     // Ensure parameters have the correct types for PostgreSQL
     const rpcParams = {
       query_embedding: queryEmbedding,
       match_threshold: parseFloat(matchThreshold.toString()),
-      match_count: parseInt(matchCount.toString(), 10) // Ensure this is an integer
+      match_count: finalMatchCount // Use the potentially increased match count
     };
 
     console.log('Calling match_assets_by_embedding_only with properly typed parameters');
@@ -144,17 +154,18 @@ serve(async (req) => {
       default:
         promptContent = `
           Given search query: "${queryText}", carefully analyze it to understand the user's specific marketing needs including:
-          - Product or service they want to promote
+          - Product or service they want to promote (e.g., "Britain biscuits")
           - Any specific platform preferences mentioned
-          - Budget amount and any allocation instructions
-          - Number of platforms they want to use (if specified)
+          - Budget amount and any allocation instructions (e.g., "10 lakh budget")
+          - Number of assets requested (e.g., "5 assets required")
+          - Number of platforms requested (e.g., "2 platforms only" or "2 assets from 1 platform")
           
-          Provide a marketing plan based on these assets that were found through semantic search:
-          ${JSON.stringify(processedAssets.slice(0, 3))}
+          We found ${processedAssets.length} matching assets through semantic search:
+          ${JSON.stringify(processedAssets)}
           
           Include:
-          1. Brief response to query (2-3 sentences)
-          2. For each asset, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset)
+          1. Brief response to query (2-3 sentences). If the user requested more assets or specific platform counts that you can't fulfill, clearly state this.
+          2. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset)
           3. Marketing plan as:
           
           MARKETING PLAN:
@@ -163,7 +174,10 @@ serve(async (req) => {
           
           Rules:
           - Extract any budget information from the query text; if none is specified, use a default of 5-8 lakhs
-          - If a specific number of platforms is requested (e.g., "choose only 2 platforms"), limit your recommendation to exactly that number
+          - If user requested specific asset count (e.g., "2 assets"), use exactly that number if possible
+          - If user requested specific platform count (e.g., "1 platform"), select assets from exactly that many unique platforms
+          - If user requested a combination (e.g., "2 assets from 1 platform"), prioritize this requirement
+          - If you don't have enough assets or platforms, use what you have and explain the limitation
           - If specific budget allocation is mentioned (e.g., "split equally"), follow those instructions precisely
           - Use amount as base cost
           - Ensure % totals 100%
@@ -171,6 +185,7 @@ serve(async (req) => {
           - Include the buy type for each asset (e.g., CPM, CPC, CPA, etc.)
           - Adjust impressions/clicks proportionally to budget
           - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
+          - Never include placeholder or "not specified" assets in your plan
           
           4. Brief next steps (1-2 points)
         `;
@@ -195,12 +210,20 @@ serve(async (req) => {
 
 When a user provides a query:
 1. Extract any budget information mentioned. If no budget is specified, assume a default budget of 5-8 lakhs.
-2. Look for specific requirements like number of platforms (e.g., "use 2 platforms", "choose 3 assets").
+2. Look for specific requirements regarding asset and platform combinations:
+   - "X assets" - They want exactly X assets total
+   - "Y platforms" - They want assets from exactly Y platforms
+   - "X assets from Y platforms" - They want X assets distributed across Y platforms
 3. Check for budget allocation instructions (e.g., "split equally", "70% to Facebook").
 4. Identify any specific product, brand or campaign needs.
 5. Pay attention to the buy type for each asset (CPM, CPC, CPA, etc.) as this is important for the marketing plan.
 
-Always provide exact amounts in the marketing plan, not just percentages. If a user asks for specific platforms or a specific number of platforms, strictly follow those requirements.`;
+Important:
+- If the user requests more assets or platforms than you found, clearly state this limitation in your response
+- If they request "X assets from Y platforms", prioritize fulfilling both requirements if possible
+- Never include placeholder or "Not specified" assets in your plan
+- Always provide exact amounts in the marketing plan, not just percentages
+- If specific platforms are mentioned by name, prioritize those platforms in your plan`;
     const humanTemplate = "{prompt}";
 
     const chatPrompt = ChatPromptTemplate.fromMessages([
