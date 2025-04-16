@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -55,9 +54,9 @@ serve(async (req) => {
     
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = requestData.matchCount || 15; // Default to top 15 assets
-    const matchThreshold = requestData.matchThreshold || 0.7; // Default similarity threshold
-    const budget = requestData.budget; // Extract budget if provided
+    const matchCount = requestData.matchCount || 3; // Default to top 3 assets (reduced from 15)
+    const matchThreshold = requestData.matchThreshold || 0.75; // Increased threshold from 0.7
+    const budget = "5-8 lakhs"; // Always assume a budget plan is needed
     
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
@@ -123,47 +122,62 @@ serve(async (req) => {
         Number(asset.platform_premium_users) : null
     }));
     
-    // Comprehensive prompt that handles both normal search and budget planning
-    const prompt = `
-      I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
-      please provide a helpful response that includes both asset recommendations and a marketing plan.
-      
-      ${processedAssets.length === 0 ? 
-        `Unfortunately, no assets matched your query closely enough. Please suggest 3-5 alternative queries that might yield better results. 
-        Explain why the original query might not have matched and what types of marketing assets the user might be looking for.` :
-        `Consider these assets that matched your query (higher similarity scores are better matches):
-        ${JSON.stringify(processedAssets)}`
-      }
-      
-      Your response should include:
-      
-      1. A conversational response addressing the query directly
-      2. ${processedAssets.length > 0 ? 
-          `A list of the most relevant assets (up to 5) with brief explanations of why each is suitable` : 
-          `Suggested alternative queries that might yield better results`
-        }
-      3. ${processedAssets.length > 0 ? 
-          `A marketing plan in CSV-like format:
+    // Determine prompt type based only on whether we have results
+    let promptType = processedAssets.length === 0 ? "no_results" : "budget_planning";
+    
+    // Create appropriate prompt based on type
+    let prompt;
+    
+    switch (promptType) {
+      case "no_results":
+        prompt = `
+          I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
+          no assets matched closely enough. 
+          
+          Please provide:
+          
+          1. A conversational response explaining why the search might not have found matching assets
+          2. 3 specific alternative queries that might yield better results
+          3. Brief explanation of what types of marketing assets would likely help the user
+          4. A helpful suggestion for next steps
+          
+          Keep your response concise and actionable.
+        `;
+        break;
+        
+      default: // Always use budget planning
+        prompt = `
+          I have a collection of marketing assets and platforms. Given the following search query: "${queryText}" with a budget of ${budget},
+          please provide an optimized marketing plan.
+          
+          Consider these assets that matched the query (higher similarity scores are better matches):
+          ${JSON.stringify(processedAssets.slice(0, 3))}
+          
+          Your response should include:
+          
+          1. A brief conversational response addressing the query directly
+          2. A marketing plan formatted as:
           
           MARKETING PLAN:
-          Asset,Platform,Description,Estimated Impressions,Estimated Clicks,Budget Allocation,Estimated Cost
-          [asset name],[platform name],[brief description],[estimated impressions],[estimated clicks],[% of budget],[calculated cost]
+          Asset,Platform,Description,Budget Allocation,Estimated Cost,Estimated Impressions,Estimated Clicks
+          [asset name],[platform name],[brief description],[% of budget],[calculated cost],[estimated impressions],[estimated clicks]
           
           For this plan:
-          - Include the 3-5 most impactful assets
+          - Include only the most impactful assets (up to 3)
           - Use the asset's amount field as the base cost
-          - If no budget is mentioned in the query, suggest a budget of 5-8 lakhs (₹500,000-800,000) and create a plan with that range
-          - Calculate estimated costs based on budget allocations
-          - Make sure percentages add up to 100%` : 
-          `A brief explanation of what types of marketing assets would be helpful based on the user's apparent needs`
-        }
-      
-      4. A helpful conclusion with next steps or questions
-      
-      Be conversational and helpful throughout. Format the marketing plan as a neat table. If the query mentions a specific budget, use that budget in your plan instead of the default range.
-    `;
+          - Calculate costs based on budget allocations
+          - Make sure percentages add up to 100%
+          
+          3. A brief conclusion with 1-2 specific next steps
+          
+          Be concise and precise. Format the marketing plan as a neat table.
+        `;
+        break;
+    }
     
-    console.log('Calling Azure OpenAI with prompt...');
+    console.log(`Using ${promptType} prompt for Azure OpenAI...`);
+    
+    // Optimize token usage by setting temperature and max_tokens appropriately
     const response = await fetch(`${azureEndpoint}/openai/deployments/${azureDeployment}/chat/completions?api-version=${azureApiVersion}`, {
       method: 'POST',
       headers: {
@@ -174,15 +188,15 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Provide detailed asset recommendations and structured budget allocations based on the query.'
+            content: 'You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 2000
+        temperature: 0.5, // Reduced from 0.7 for more focused responses
+        max_tokens: 1000 // Reduced from 2000 to limit token usage
       })
     });
     
@@ -217,7 +231,8 @@ serve(async (req) => {
         budget: budget,
         vector_results_count: processedAssets.length,
         mentioned_asset_ids: mentionedAssetIds,
-        threshold_used: matchThreshold
+        threshold_used: matchThreshold,
+        prompt_type: promptType
       }
     }), {
       headers: {
