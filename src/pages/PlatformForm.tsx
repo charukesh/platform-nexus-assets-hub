@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
 import { CampaignSection } from '@/components/platform/CampaignSection';
 import { TargetingSection } from '@/components/platform/TargetingSection';
-import type { PlatformFormData } from '@/types/platform';
+import type { PlatformFormData, Json } from '@/types/platform';
 import { Tables } from '@/integrations/supabase/types';
 import { INDUSTRY_OPTIONS } from '@/types/platform';
 import {
@@ -50,7 +50,7 @@ const PlatformForm = () => {
       web: 0,
     },
     campaign_data: {
-      funnel_stage: '',
+      funnel_stage: [],
       buying_model: '',
       ad_formats: [],
       special_innovations: [],
@@ -110,7 +110,7 @@ const PlatformForm = () => {
       };
 
       const defaultCampaignData = {
-        funnel_stage: '',
+        funnel_stage: [],
         buying_model: '',
         ad_formats: [],
         special_innovations: [],
@@ -203,10 +203,10 @@ const PlatformForm = () => {
       const supabaseData = {
         name: formData.name,
         industry: formData.industry,
-        audience_data: formData.audience_data as any,
-        device_split: formData.device_split as any,
-        campaign_data: formData.campaign_data as any,
-        restrictions: formData.restrictions as any,
+        audience_data: formData.audience_data as unknown as Json,
+        device_split: formData.device_split as unknown as Json,
+        campaign_data: formData.campaign_data as unknown as Json,
+        restrictions: formData.restrictions as unknown as Json,
         mau: formData.mau,
         dau: formData.dau,
         premium_users: formData.premium_users,
@@ -224,7 +224,7 @@ const PlatformForm = () => {
       } else {
         result = await supabase
           .from('platforms')
-          .insert(supabaseData)
+          .insert([supabaseData])
           .select()
           .single();
       }

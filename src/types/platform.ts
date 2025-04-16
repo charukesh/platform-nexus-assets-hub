@@ -1,3 +1,4 @@
+
 export interface PlatformFormData {
   name: string;
   industry: string;
@@ -51,7 +52,7 @@ export interface DeviceSplit {
 }
 
 export interface CampaignData {
-  funnel_stage?: string;
+  funnel_stage?: string | string[];
   buying_model?: string;
   ad_formats?: string[];
   special_innovations?: string[];
@@ -63,3 +64,12 @@ export interface CampaignData {
 export interface Restrictions {
   restricted_categories?: string[];
 }
+
+// This is for Supabase JSON compatibility
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];

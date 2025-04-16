@@ -12,9 +12,10 @@ import {
 import NeuInput from "@/components/NeuInput";
 import { Switch } from "@/components/ui/switch";
 import NeuCard from "@/components/NeuCard";
+import { CampaignData } from "@/types/platform";
 
 interface CampaignSectionProps {
-  campaignData: any;
+  campaignData: CampaignData;
   onCampaignDataChange: (field: string, value: any) => void;
 }
 
@@ -37,10 +38,14 @@ export const CampaignSection = ({
   ];
 
   const handleFunnelStageChange = (stage: string, checked: boolean) => {
-    const currentStages = campaignData.funnel_stage || [];
+    const currentStages = campaignData.funnel_stage ? 
+      (typeof campaignData.funnel_stage === 'string' ? [campaignData.funnel_stage] : campaignData.funnel_stage) : 
+      [];
+    
     const updatedStages = checked
       ? [...currentStages, stage]
       : currentStages.filter((s: string) => s !== stage);
+    
     onCampaignDataChange("funnel_stage", updatedStages);
   };
 
@@ -51,16 +56,23 @@ export const CampaignSection = ({
         <div>
           <Label className="text-base mb-3 block">Campaign Funnel Stages</Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {funnelStages.map((stage) => (
-              <div key={stage} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`stage-${stage}`}
-                  checked={campaignData.funnel_stage?.includes(stage)}
-                  onCheckedChange={(checked) => handleFunnelStageChange(stage, checked)}
-                />
-                <Label htmlFor={`stage-${stage}`}>{stage}</Label>
-              </div>
-            ))}
+            {funnelStages.map((stage) => {
+              const isChecked = Array.isArray(campaignData.funnel_stage) && 
+                campaignData.funnel_stage.includes(stage);
+                
+              return (
+                <div key={stage} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`stage-${stage}`}
+                    checked={isChecked}
+                    onCheckedChange={(checked) => 
+                      handleFunnelStageChange(stage, checked === true)
+                    }
+                  />
+                  <Label htmlFor={`stage-${stage}`}>{stage}</Label>
+                </div>
+              );
+            })}
           </div>
         </div>
 

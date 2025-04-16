@@ -16,36 +16,42 @@ import Analytics from "./pages/Analytics";
 import MediaPlanGenerator from "./pages/MediaPlanGenerator";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import React from "react";
 
+// Create the query client outside the component
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="system" storageKey="mobistack-theme">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/platforms" element={<Platforms />} />
-            <Route path="/platforms/new" element={<PlatformForm />} />
-            <Route path="/platforms/:id" element={<PlatformDetail />} />
-            <Route path="/platforms/:id/edit" element={<PlatformForm />} />
-            <Route path="/assets" element={<AssetsManagement />} />
-            <Route path="/assets/new" element={<AssetForm />} />
-            <Route path="/assets/:id" element={<AssetDetail />} />
-            <Route path="/assets/:id/edit" element={<AssetForm />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/media-plan" element={<MediaPlanGenerator />} />
-            <Route path="/settings" element={<Settings />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider defaultTheme="system" storageKey="mobistack-theme">
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/platforms" element={<Platforms />} />
+                <Route path="/platforms/new" element={<PlatformForm />} />
+                <Route path="/platforms/:id" element={<PlatformDetail />} />
+                <Route path="/platforms/:id/edit" element={<PlatformForm />} />
+                <Route path="/assets" element={<AssetsManagement />} />
+                <Route path="/assets/new" element={<AssetForm />} />
+                <Route path="/assets/:id" element={<AssetDetail />} />
+                <Route path="/assets/:id/edit" element={<AssetForm />} />
+                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/media-plan" element={<MediaPlanGenerator />} />
+                <Route path="/settings" element={<Settings />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+};
 
 export default App;
