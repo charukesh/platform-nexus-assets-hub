@@ -138,6 +138,10 @@ const AssetForm: React.FC = () => {
           ? data.amount
           : 0;
         
+        const placement = typeof data.placement === 'string' 
+          ? data.placement 
+          : PLACEMENT_OPTIONS[0];
+        
         setFormData({
           name: data.name || "",
           description: data.description || "",
@@ -153,7 +157,7 @@ const AssetForm: React.FC = () => {
           amount: amount,
           estimated_impressions: estimatedImpressions,
           estimated_clicks: estimatedClicks,
-          placement: data.placement || PLACEMENT_OPTIONS[0],
+          placement: placement
         });
         
         setFiles({
