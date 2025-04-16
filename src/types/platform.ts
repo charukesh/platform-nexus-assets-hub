@@ -1,3 +1,4 @@
+
 export interface PlatformFormData {
   name: string;
   industry: string;
@@ -8,6 +9,7 @@ export interface PlatformFormData {
   device_split: DeviceSplit;
   campaign_data: CampaignData;
   restrictions: Restrictions;
+  logo_url?: string | null;
 }
 
 export const INDUSTRY_OPTIONS = [
@@ -88,3 +90,9 @@ export const PLACEMENT_OPTIONS = [
 ] as const;
 
 export type Placement = typeof PLACEMENT_OPTIONS[number];
+
+// Interface for demographic data used in PlatformDetail.tsx
+export interface DemographicData {
+  name: string;
+  percentage: number;
+}

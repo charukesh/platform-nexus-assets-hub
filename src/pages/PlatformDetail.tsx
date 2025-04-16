@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { BarChart, Users, Smartphone, Pencil, Trash2, ExternalLink, Clock, RefreshCw, Tag } from "lucide-react";
 import EditHistoryComponent from "@/components/EditHistoryComponent";
 import { AudienceDataDisplay } from "@/components/platform/AudienceDataDisplay";
+import { DeviceSplitDisplay } from "@/components/platform/DeviceSplitDisplay";
+import { CampaignDisplay } from "@/components/platform/CampaignDisplay";
+import { DemographicData } from "@/types/platform";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const PlatformDetail: React.FC = () => {
