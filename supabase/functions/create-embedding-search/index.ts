@@ -120,6 +120,7 @@ serve(async (req) => {
       amount: asset.amount !== null ? Number(asset.amount) : null,
       estimated_impressions: Number(asset.estimated_impressions),
       estimated_clicks: Number(asset.estimated_clicks),
+      buy_type: asset.buy_type || "Unknown",
       similarity: Number(asset.similarity).toFixed(2) // Reduce decimal precision
     }));
 
@@ -157,8 +158,8 @@ serve(async (req) => {
           3. Marketing plan as:
           
           MARKETING PLAN:
-          Asset,Platform,Platform Description,Budget %,Cost,Adj. Impressions,Adj. Clicks
-          [name],[platform_name],[platform_description],[%],[exact cost amount],[proportional impressions],[proportional clicks]
+          Asset,Platform,Platform Description,Buy Type,Budget %,Cost,Adj. Impressions,Adj. Clicks
+          [name],[platform_name],[platform_description],[buy_type],[%],[exact cost amount],[proportional impressions],[proportional clicks]
           
           Rules:
           - Extract any budget information from the query text; if none is specified, use a default of 5-8 lakhs
@@ -167,6 +168,7 @@ serve(async (req) => {
           - Use amount as base cost
           - Ensure % totals 100%
           - Provide EXACT cost amounts for each platform (not percentages)
+          - Include the buy type for each asset (e.g., CPM, CPC, CPA, etc.)
           - Adjust impressions/clicks proportionally to budget
           - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
           
@@ -196,6 +198,7 @@ When a user provides a query:
 2. Look for specific requirements like number of platforms (e.g., "use 2 platforms", "choose 3 assets").
 3. Check for budget allocation instructions (e.g., "split equally", "70% to Facebook").
 4. Identify any specific product, brand or campaign needs.
+5. Pay attention to the buy type for each asset (CPM, CPC, CPA, etc.) as this is important for the marketing plan.
 
 Always provide exact amounts in the marketing plan, not just percentages. If a user asks for specific platforms or a specific number of platforms, strictly follow those requirements.`;
     const humanTemplate = "{prompt}";
