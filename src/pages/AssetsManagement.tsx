@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
@@ -247,6 +246,29 @@ const AssetsManagement: React.FC = () => {
                     
                     <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{asset.description || "No description"}</p>
                     
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-medium">Buy Types:</span>
+                        <div className="flex gap-1">
+                          {asset.buy_types.map((type, idx) => (
+                            <span key={idx} className="bg-neugray-200 px-1.5 py-0.5 rounded">
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-neugray-100 p-2 rounded">
+                          <div className="text-xs text-muted-foreground">Impressions</div>
+                          <div className="font-medium">{asset.estimated_impressions.toLocaleString()}</div>
+                        </div>
+                        <div className="bg-neugray-100 p-2 rounded">
+                          <div className="text-xs text-muted-foreground">Clicks</div>
+                          <div className="font-medium">{asset.estimated_clicks.toLocaleString()}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div className="flex items-center text-xs text-muted-foreground mb-2">
                       <Info size={12} className="mr-1" />
                       <span className="mr-3">{asset.type}</span>
@@ -315,6 +337,28 @@ const AssetsManagement: React.FC = () => {
                   
                   <div className="md:col-span-2">
                     <p className="text-sm text-muted-foreground mb-2">{asset.description || "No description"}</p>
+                    <div className="space-y-2 mb-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-medium">Buy Types:</span>
+                        <div className="flex gap-1">
+                          {asset.buy_types.map((type, idx) => (
+                            <span key={idx} className="bg-neugray-200 px-1.5 py-0.5 rounded">
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Impressions:</span>{' '}
+                          <span className="font-medium">{asset.estimated_impressions.toLocaleString()}</span>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Clicks:</span>{' '}
+                          <span className="font-medium">{asset.estimated_clicks.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {asset.tags && asset.tags.map((tag: string, idx: number) => (
                         <span key={idx} className="text-xs bg-neugray-200 py-0.5 px-1.5 rounded">
