@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -110,16 +111,17 @@ serve(async (req) => {
     const matchedAssets = matchResults || [];
     console.log(`Found ${matchedAssets.length} assets via vector similarity`);
     
-    // Process the assets to ensure consistent types (especially numeric fields)
+    // Process the assets to include only essential fields and ensure correct types
     const processedAssets = matchedAssets.map(asset => ({
-      ...asset,
-      // Convert all numeric fields to appropriate JavaScript types
+      id: asset.id,
+      name: asset.name,
+      platform: asset.platform,
+      platform_name: asset.platform_name,
+      platform_description: asset.platform_description,
       amount: asset.amount !== null ? Number(asset.amount) : null,
       estimated_impressions: Number(asset.estimated_impressions),
       estimated_clicks: Number(asset.estimated_clicks),
-      similarity: Number(asset.similarity),
-      platform_premium_users: asset.platform_premium_users !== null ? 
-        Number(asset.platform_premium_users) : null
+      similarity: Number(asset.similarity).toFixed(2) // Reduce decimal precision
     }));
     
     // Determine prompt type based only on whether we have results
@@ -131,48 +133,36 @@ serve(async (req) => {
     switch (promptType) {
       case "no_results":
         prompt = `
-          I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
-          no assets matched closely enough. 
+          Search query: "${queryText}" returned no matching assets.
           
-          Please provide:
-          
-          1. A conversational response explaining why the search might not have found matching assets
-          2. 3 specific alternative queries that might yield better results
-          3. Brief explanation of what types of marketing assets would likely help the user
-          4. A helpful suggestion for next steps
-          
-          Keep your response concise and actionable.
+          Provide:
+          1. Brief explanation why (1-2 sentences)
+          2. 3 alternative queries that might work better
+          3. What marketing assets might help (2-3 sentences)
+          4. A next step suggestion (1 sentence)
         `;
         break;
         
       default: // Always use budget planning
         prompt = `
-          I have a collection of marketing assets and platforms. Given the following search query: "${queryText}" with a budget of ${budget},
-          please provide an optimized marketing plan.
-          
-          Consider these assets that matched the query (higher similarity scores are better matches):
+          Given search query: "${queryText}" with budget ${budget}, provide a marketing plan based on these assets:
           ${JSON.stringify(processedAssets.slice(0, 3))}
           
-          Your response should include:
-          
-          1. A brief conversational response addressing the query directly
-          2. A marketing plan formatted as:
+          Include:
+          1. Brief response to query (2-3 sentences)
+          2. Marketing plan as:
           
           MARKETING PLAN:
-          Asset,Platform,Description,Budget Allocation,Estimated Cost,Estimated Impressions,Estimated Clicks
-          [asset name],[platform name],[brief description],[% of budget],[calculated cost],[proportionally adjusted impressions],[proportionally adjusted clicks]
+          Asset,Platform,Platform Description,Budget %,Cost,Adj. Impressions,Adj. Clicks
+          [name],[platform_name],[platform_description],[%],[cost],[proportional impressions],[proportional clicks]
           
-          For this plan:
-          - Include only the most impactful assets (up to 3)
-          - Use the asset's amount field as the base cost
-          - Calculate estimated costs based on budget allocations
-          - Make sure percentages add up to 100%
-          - IMPORTANT: Adjust the estimated_impressions and estimated_clicks proportionally based on the budget allocation
-            (e.g., if an asset's base cost is 100,000 with 50,000 impressions, and your budget allocation is 200,000, then the adjusted impressions would be 100,000)
+          Rules:
+          - Use amount as base cost
+          - Ensure % totals 100%
+          - Adjust impressions/clicks proportionally to budget
+          - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
           
-          3. A brief conclusion with 1-2 specific next steps
-          
-          Be concise and precise. Format the marketing plan as a neat table.
+          3. Brief next steps (1-2 points)
         `;
         break;
     }
