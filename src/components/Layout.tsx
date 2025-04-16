@@ -87,8 +87,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )
         )}
       >
-        <div className="neu-flat dark:bg-gray-800 dark:text-white p-4 mb-8">
-          <h1 className="text-xl font-bold text-center text-primary dark:text-blue-400">MobistackIO</h1>
+        <div className="neu-flat dark:bg-gray-800 dark:text-white p-4 mb-8 flex items-center justify-center">
+          <img 
+            src="/lovable-uploads/b6ecfa47-4034-4f99-ae5c-87d3dae9b818.png" 
+            alt="MobiStackIO Logo" 
+            className="h-10 w-auto" 
+          />
         </div>
         
         <nav className="space-y-2">
@@ -135,3 +139,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 };
 
 export default Layout;
+
