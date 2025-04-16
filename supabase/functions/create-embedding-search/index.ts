@@ -133,6 +133,7 @@ serve(async (req) => {
       azureOpenAIApiVersion: azureApiVersion,
       azureOpenAIApiInstanceName: azureInstance,
       azureOpenAIApiDeploymentName: azureDeployment,
+      azureOpenAIEndpoint: azureEndpoint,
       temperature: 0.5,
       maxTokens: 1000
     });
