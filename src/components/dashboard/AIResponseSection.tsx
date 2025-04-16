@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -25,68 +25,11 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   onSearchBriefChange,
   onClear
 }) => {
-  const [streamedContent, setStreamedContent] = useState<string>('');
-  const [isStreaming, setIsStreaming] = useState(false);
-
-  useEffect(() => {
-    if (searchResults instanceof ReadableStream) {
-      // Reset content when new stream arrives
-      setStreamedContent('');
-      setIsStreaming(true);
-      
-      const reader = searchResults.getReader();
-      const decoder = new TextDecoder();
-
-      const processStream = async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-              setIsStreaming(false);
-              break;
-            }
-
-            const chunk = decoder.decode(value);
-            console.log('Received chunk:', chunk);
-            
-            // Process each line in the chunk
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                try {
-                  const jsonStr = line.slice(6);
-                  if (jsonStr.trim() && jsonStr !== 'undefined') {
-                    const data = JSON.parse(jsonStr);
-                    if (data.content !== undefined) {
-                      setStreamedContent(prev => prev + data.content);
-                    }
-                  }
-                } catch (e) {
-                  console.error('Error parsing SSE data:', e, 'Raw line:', line);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error reading stream:', error);
-          setIsStreaming(false);
-        } finally {
-          reader.releaseLock();
-        }
-      };
-
-      processStream();
-    } else if (searchResults) {
-      // Handle non-streaming response (fallback)
-      setIsStreaming(false);
-      const content = searchResults.choices?.[0]?.message?.content || '';
-      setStreamedContent(content);
-    }
-  }, [searchResults]);
-
   const renderAIResponse = () => {
-    if (!searchResults && !isStreaming) return null;
+    if (!searchResults) return null;
 
+    const content = searchResults.choices?.[0]?.message?.content || '';
+    
     return (
       <div className="mt-4">
         <ReactMarkdown
@@ -94,7 +37,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           rehypePlugins={[rehypeRaw]}
           className="prose prose-sm max-w-full dark:prose-invert"
         >
-          {streamedContent || (isStreaming && !streamedContent ? "Waiting for response..." : "No content received")}
+          {content || "No content received"}
         </ReactMarkdown>
       </div>
     );
@@ -134,7 +77,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : (searchResults || isStreaming) ? (
+      ) : searchResults ? (
         <NeuCard>
           {renderAIResponse()}
         </NeuCard>
@@ -144,3 +87,4 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 };
 
 export default AIResponseSection;
+

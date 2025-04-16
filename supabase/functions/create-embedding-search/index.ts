@@ -19,18 +19,6 @@ serve(async (req) => {
     });
   }
 
-  const encoder = new TextEncoder();
-  const respondWithStream = (stream: ReadableStream) => {
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-  };
-
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -73,15 +61,13 @@ serve(async (req) => {
       azureOpenAIApiKey: azureApiKey,
       azureOpenAIApiVersion: azureApiVersion,
       azureOpenAIApiInstanceName: azureInstance,
-      azureOpenAIEndpoint: azureEndpoint,
+      azureOpenAIApiEndpoint: azureEndpoint,
       azureOpenAIApiDeploymentName: azureEmbeddingDeployment,
       modelName: azureEmbeddingDeployment
     });
 
     console.log('Generating query embeddings...');
-    const [queryEmbedding] = await embeddings.embedDocuments([
-      queryText
-    ]);
+    const [queryEmbedding] = await embeddings.embedDocuments([queryText]);
     console.log('Query embeddings generated successfully with length:', queryEmbedding.length);
 
     const { data: matchResults, error: matchError } = await supabaseClient.rpc('match_assets_by_embedding_only', {
@@ -107,49 +93,6 @@ serve(async (req) => {
       similarity: Number(asset.similarity).toFixed(2)
     }));
 
-    let promptType = processedAssets.length === 0 ? "no_results" : "budget_planning";
-
-    let promptContent;
-    switch (promptType) {
-      case "no_results":
-        promptContent = `
-          Search query: "${queryText}" returned no matching assets.
-          
-          Provide:
-          1. Brief explanation why (1-2 sentences)
-          2. 3 alternative queries that might work better
-          3. What marketing assets might help (2-3 sentences)
-          4. A next step suggestion (1 sentence)
-        `;
-        break;
-      default:
-        promptContent = `
-          Given search query: "${queryText}", analyze it to understand the user's marketing needs and budget requirements.
-          
-          Provide a marketing plan based on these assets that were found through semantic search:
-          ${JSON.stringify(processedAssets.slice(0, 3))}
-          
-          Include:
-          1. Brief response to query (2-3 sentences)
-          2. For each asset, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset)
-          3. Marketing plan as:
-          
-          MARKETING PLAN:
-          Asset,Platform,Platform Description,Budget %,Cost,Adj. Impressions,Adj. Clicks
-          [name],[platform_name],[platform_description],[%],[cost],[proportional impressions],[proportional clicks]
-          
-          Rules:
-          - Extract any budget information from the query text; if none is specified, use a default of 5-8 lakhs
-          - Use amount as base cost
-          - Ensure % totals 100%
-          - Adjust impressions/clicks proportionally to budget
-          - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
-          
-          4. Brief next steps (1-2 points)
-        `;
-        break;
-    }
-
     const chatModel = new AzureChatOpenAI({
       azureOpenAIApiKey: azureApiKey,
       azureOpenAIApiVersion: azureApiVersion,
@@ -158,11 +101,24 @@ serve(async (req) => {
       azureOpenAIEndpoint: `https://${azureInstance}.openai.azure.com`,
       temperature: 0.5,
       maxTokens: 1000,
-      streaming: true
+      streaming: false
     });
 
     const systemTemplate = "You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.";
-    const humanTemplate = "{prompt}";
+    const humanTemplate = processedAssets.length === 0 
+      ? `Search query: "${queryText}" returned no matching assets.
+         Provide:
+         1. Brief explanation why (1-2 sentences)
+         2. 3 alternative queries that might work better
+         3. What marketing assets might help (2-3 sentences)
+         4. A next step suggestion (1 sentence)`
+      : `Given search query: "${queryText}", analyze these assets that were found through semantic search:
+         ${JSON.stringify(processedAssets.slice(0, 3))}
+         
+         Provide:
+         1. Brief response to query (2-3 sentences)
+         2. For each asset, explain WHY it was chosen and how it meets the user's needs
+         3. Brief next steps (1-2 points)`;
 
     const chatPrompt = ChatPromptTemplate.fromMessages([
       SystemMessagePromptTemplate.fromTemplate(systemTemplate),
@@ -170,42 +126,26 @@ serve(async (req) => {
     ]);
 
     const formattedPrompt = await chatPrompt.formatMessages({
-      prompt: promptContent
+      prompt: humanTemplate
     });
 
-    const stream = new TransformStream();
-    const writer = stream.writable.getWriter();
+    const response = await chatModel.invoke(formattedPrompt);
 
-    const runStream = await chatModel.stream(formattedPrompt);
-
-    (async () => {
-      try {
-        const initMessage = `data: ${JSON.stringify({ content: "" })}\n\n`;
-        await writer.write(encoder.encode(initMessage));
-        
-        for await (const chunk of runStream) {
-          if (chunk.content) {
-            const data = { content: chunk.content };
-            const message = `data: ${JSON.stringify(data)}\n\n`;
-            await writer.write(encoder.encode(message));
-          }
-        }
-      } catch (error) {
-        console.error('Streaming error:', error);
-        const errorMessage = `data: ${JSON.stringify({ error: 'Streaming error occurred', content: "Error occurred during streaming" })}\n\n`;
-        await writer.write(encoder.encode(errorMessage));
-      } finally {
-        await writer.close();
+    return new Response(
+      JSON.stringify({ choices: [{ message: { content: response.content } }] }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    })();
-
-    return respondWithStream(stream.readable);
+    );
 
   } catch (error) {
     console.error('Error in asset search function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
