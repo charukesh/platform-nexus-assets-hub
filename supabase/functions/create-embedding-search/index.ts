@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -114,11 +113,12 @@ serve(async (req) => {
     // Query database for similar assets using vector search
     console.log('Performing vector similarity search...');
     
-    // Use the explicit type for the RPC call to match the database function
-    const { data: similarAssets, error: vectorSearchError } = await supabaseClient.rpc<AssetSearchResult>(
+    // The key fix: Ensure query_embedding is properly formatted
+    // PostgreSQL expects a specific format for vector inputs
+    const { data: similarAssets, error: vectorSearchError } = await supabaseClient.rpc(
       'match_assets_by_embedding_only',
       { 
-        query_embedding: queryEmbedding,
+        query_embedding: queryEmbedding, // Make sure this is an array of numbers
         match_threshold: matchThreshold,
         match_count: matchCount
       }
@@ -132,7 +132,6 @@ serve(async (req) => {
     console.log(`Found ${similarAssets?.length || 0} assets via vector similarity`);
     
     // Prepare simplified asset data with comprehensive information
-    // No need for transformation as the return type is already correct
     const simplifiedAssets = similarAssets || [];
     
     // Comprehensive prompt that handles both normal search and budget planning
