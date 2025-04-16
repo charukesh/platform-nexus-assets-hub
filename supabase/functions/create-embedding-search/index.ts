@@ -1,8 +1,11 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
+import { AzureChatOpenAI } from "npm:@langchain/azure-openai";
+import { PromptTemplate } from "npm:@langchain/core/prompts";
+import { StringOutputParser } from "npm:@langchain/core/output_parsers";
+import { RunnableSequence } from "npm:@langchain/core/runnables";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,8 +58,8 @@ serve(async (req) => {
     
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = requestData.matchCount || 3; // Default to top 3 assets (reduced from 15)
-    const matchThreshold = requestData.matchThreshold || 0.75; // Increased threshold from 0.7
+    const matchCount = requestData.matchCount || 3; // Default to top 3 assets
+    const matchThreshold = requestData.matchThreshold || 0.75; // Default similarity threshold
     const budget = "5-8 lakhs"; // Always assume a budget plan is needed
     
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
@@ -124,82 +127,88 @@ serve(async (req) => {
       similarity: Number(asset.similarity).toFixed(2) // Reduce decimal precision
     }));
     
-    // Determine prompt type based only on whether we have results
-    let promptType = processedAssets.length === 0 ? "no_results" : "budget_planning";
-    
-    // Create appropriate prompt based on type
-    let prompt;
-    
-    switch (promptType) {
-      case "no_results":
-        prompt = `
-          Search query: "${queryText}" returned no matching assets.
-          
-          Provide:
-          1. Brief explanation why (1-2 sentences)
-          2. 3 alternative queries that might work better
-          3. What marketing assets might help (2-3 sentences)
-          4. A next step suggestion (1 sentence)
-        `;
-        break;
-        
-      default: // Always use budget planning
-        prompt = `
-          Given search query: "${queryText}" with budget ${budget}, provide a marketing plan based on these assets:
-          ${JSON.stringify(processedAssets.slice(0, 3))}
-          
-          Include:
-          1. Brief response to query (2-3 sentences)
-          2. Marketing plan as:
-          
-          MARKETING PLAN:
-          Asset,Platform,Platform Description,Budget %,Cost,Adj. Impressions,Adj. Clicks
-          [name],[platform_name],[platform_description],[%],[cost],[proportional impressions],[proportional clicks]
-          
-          Rules:
-          - Use amount as base cost
-          - Ensure % totals 100%
-          - Adjust impressions/clicks proportionally to budget
-          - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
-          
-          3. Brief next steps (1-2 points)
-        `;
-        break;
-    }
-    
-    console.log(`Using ${promptType} prompt for Azure OpenAI...`);
-    
-    // Optimize token usage by setting temperature and max_tokens appropriately
-    const response = await fetch(`${azureEndpoint}/openai/deployments/${azureDeployment}/chat/completions?api-version=${azureApiVersion}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': azureApiKey
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.5, // Reduced from 0.7 for more focused responses
-        max_tokens: 1000 // Reduced from 2000 to limit token usage
-      })
+    // Set up LangChain with Azure OpenAI
+    const model = new AzureChatOpenAI({
+      azureOpenAIApiKey: azureApiKey,
+      azureOpenAIApiVersion: azureApiVersion,
+      azureOpenAIApiInstanceName: azureInstance,
+      azureOpenAIApiDeploymentName: azureDeployment,
+      temperature: 0.5,
+      maxTokens: 1000
     });
     
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Azure OpenAI API error:', errorText);
-      throw new Error(`Azure OpenAI API error: ${response.status} ${response.statusText}`);
+    // Create templates based on whether we have results
+    let promptTemplate;
+    
+    if (processedAssets.length === 0) {
+      // No results template
+      promptTemplate = PromptTemplate.fromTemplate(`
+        Search query: "{query}" returned no matching assets.
+        
+        Provide:
+        1. Brief explanation why (1-2 sentences)
+        2. 3 alternative queries that might work better
+        3. What marketing assets might help (2-3 sentences)
+        4. A next step suggestion (1 sentence)
+      `);
+    } else {
+      // Budget planning template
+      // Use a streaming approach with LangChain to handle large contexts more efficiently
+      promptTemplate = PromptTemplate.fromTemplate(`
+        Given search query: "{query}" with budget {budget}, provide a marketing plan based on these assets:
+        
+        {{#each assets}}
+        Asset ID: {{id}}
+        Name: {{name}}
+        Platform: {{platform}}
+        Platform Name: {{platform_name}}
+        Platform Description: {{platform_description}}
+        Amount: {{amount}}
+        Estimated Impressions: {{estimated_impressions}}
+        Estimated Clicks: {{estimated_clicks}}
+        Similarity: {{similarity}}
+        ---
+        {{/each}}
+        
+        Include:
+        1. Brief response to query (2-3 sentences)
+        2. Marketing plan as:
+        
+        MARKETING PLAN:
+        Asset,Platform,Platform Description,Budget %,Cost,Adj. Impressions,Adj. Clicks
+        [name],[platform_name],[platform_description],[%],[cost],[proportional impressions],[proportional clicks]
+        
+        Rules:
+        - Use amount as base cost
+        - Ensure % totals 100%
+        - Adjust impressions/clicks proportionally to budget
+        - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
+        
+        3. Brief next steps (1-2 points)
+      `);
     }
     
-    const openaiResponse = await response.json();
-    const conversationalContent = openaiResponse.choices[0].message.content;
+    // Create a processing chain with LangChain
+    const chain = RunnableSequence.from([
+      promptTemplate,
+      model,
+      new StringOutputParser()
+    ]);
+    
+    // Prepare inputs for the chain
+    const chainInputs = {
+      query: queryText,
+      budget: budget,
+      assets: processedAssets.slice(0, 3) // Just pass top 3 assets
+    };
+    
+    // Invoke the chain
+    console.log('Invoking LangChain processing chain...');
+    const startTime = Date.now();
+    
+    const conversationalContent = await chain.invoke(chainInputs);
+    
+    console.log(`LangChain processing completed in ${Date.now() - startTime}ms`);
     
     // Extract the asset IDs mentioned in the response for metadata
     const mentionedAssetIds = processedAssets
@@ -211,12 +220,23 @@ serve(async (req) => {
     
     // Return the combined response with metadata
     return new Response(JSON.stringify({
-      id: openaiResponse.id,
+      id: `langchain-${Date.now()}`,
       object: "chat.completion",
-      created: openaiResponse.created,
+      created: Math.floor(Date.now() / 1000),
       model: `${azureInstance}/${azureDeployment}`,
-      choices: openaiResponse.choices,
-      usage: openaiResponse.usage,
+      choices: [{
+        message: {
+          role: "assistant",
+          content: conversationalContent
+        },
+        finish_reason: "stop",
+        index: 0
+      }],
+      usage: {
+        prompt_tokens: -1, // Not available through this method
+        completion_tokens: -1, // Not available through this method
+        total_tokens: -1 // Not available through this method
+      },
       metadata: {
         method: 'asset-search-with-plan',
         query: queryText,
@@ -224,7 +244,8 @@ serve(async (req) => {
         vector_results_count: processedAssets.length,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold,
-        prompt_type: promptType
+        prompt_type: processedAssets.length === 0 ? "no_results" : "budget_planning",
+        using_langchain: true
       }
     }), {
       headers: {
