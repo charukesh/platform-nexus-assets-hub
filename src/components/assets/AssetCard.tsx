@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
-import { FileIcon, Info, Tag, Calendar, ExternalLink } from "lucide-react";
+import { FileIcon, Info, Tag, Calendar, ExternalLink, DollarSign } from "lucide-react";
 import { Asset } from "@/types/asset";
 
 interface AssetCardProps {
@@ -31,12 +30,20 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
         <div>
           <div className="flex items-start justify-between mb-2">
             <h3 className="text-lg font-bold line-clamp-1">{asset.name}</h3>
-            <span className={`text-xs py-1 px-2 rounded-full 
-              ${asset.category === "Digital" ? "bg-neublue-100 text-neublue-500" : 
-                asset.category === "Physical" ? "bg-green-100 text-green-600" : 
-                "bg-purple-100 text-purple-600"}`}>
-              {asset.category}
-            </span>
+            <div className="flex flex-col items-end gap-1">
+              <span className={`text-xs py-1 px-2 rounded-full 
+                ${asset.category === "Digital" ? "bg-neublue-100 text-neublue-500" : 
+                  asset.category === "Physical" ? "bg-green-100 text-green-600" : 
+                  "bg-purple-100 text-purple-600"}`}>
+                {asset.category}
+              </span>
+              {asset.amount !== null && asset.amount !== undefined && (
+                <div className="flex items-center gap-1 text-sm font-medium text-green-600">
+                  <DollarSign size={14} />
+                  {asset.amount.toLocaleString()}
+                </div>
+              )}
+            </div>
           </div>
           
           <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{asset.description || "No description"}</p>

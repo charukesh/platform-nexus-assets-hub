@@ -1,8 +1,7 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import NeuButton from "@/components/NeuButton";
-import { FileIcon, Info, Tag, Calendar, ExternalLink } from "lucide-react";
+import { FileIcon, Info, Tag, Calendar, ExternalLink, DollarSign } from "lucide-react";
 import { Asset } from "@/types/asset";
 
 interface AssetListItemProps {
@@ -40,11 +39,19 @@ const AssetListItem: React.FC<AssetListItemProps> = ({ asset }) => {
       <div className="md:col-span-2">
         <p className="text-sm text-muted-foreground mb-2">{asset.description || "No description"}</p>
         <div className="space-y-2 mb-2">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-medium">Buy Type:</span>
-            <span className="bg-neugray-200 px-1.5 py-0.5 rounded">
-              {asset.buy_types}
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-medium">Buy Type:</span>
+              <span className="bg-neugray-200 px-1.5 py-0.5 rounded">
+                {asset.buy_types}
+              </span>
+            </div>
+            {asset.amount !== null && asset.amount !== undefined && (
+              <div className="flex items-center gap-1 text-sm font-medium text-green-600">
+                <DollarSign size={14} />
+                {asset.amount.toLocaleString()}
+              </div>
+            )}
           </div>
           <div className="flex gap-4">
             <div className="text-sm">
