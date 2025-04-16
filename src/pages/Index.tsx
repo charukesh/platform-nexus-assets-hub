@@ -566,15 +566,15 @@ const Dashboard: React.FC = () => {
                 </div>
               </form>
 
-              {searchResults.length > 0 && (
+              {searchResults && (
                 <div className="space-y-4">
-                  <div className="font-mono bg-neugray-100 p-4 rounded-lg whitespace-pre-wrap break-words overflow-x-auto">
-                    {JSON.stringify(searchResults, null, 2)}
+                  <div className="prose prose-sm max-w-none bg-neugray-100 p-6 rounded-lg whitespace-pre-wrap">
+                    {searchResults.choices?.[0]?.message?.content || "No response content available"}
                   </div>
                 </div>
               )}
 
-              {searchBrief.trim() && searchResults.length === 0 && !searchLoading && (
+              {searchBrief.trim() && !searchResults && !searchLoading && (
                 <div className="text-center py-8">
                   <div className="text-muted-foreground mb-4">
                     <Search size={48} className="mx-auto mb-2 opacity-40" />
