@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, FileIcon, Image } from "lucide-react";
 import BuyTypeSelector from "@/components/asset/BuyTypeSelector";
+import { PLACEMENT_OPTIONS } from "@/types/asset";
 
 interface Platform {
   id: string;
@@ -35,6 +36,7 @@ interface FormData {
   amount: number;
   estimated_impressions: number;
   estimated_clicks: number;
+  placement: string;
 }
 
 const AssetForm: React.FC = () => {
@@ -62,7 +64,8 @@ const AssetForm: React.FC = () => {
     buy_types: 'CPC',
     amount: 0,
     estimated_impressions: 0,
-    estimated_clicks: 0
+    estimated_clicks: 0,
+    placement: PLACEMENT_OPTIONS[0],
   });
   
   const [files, setFiles] = useState<{
@@ -149,7 +152,8 @@ const AssetForm: React.FC = () => {
           buy_types: data.buy_types || 'CPC',
           amount: amount,
           estimated_impressions: estimatedImpressions,
-          estimated_clicks: estimatedClicks
+          estimated_clicks: estimatedClicks,
+          placement: data.placement || PLACEMENT_OPTIONS[0],
         });
         
         setFiles({
@@ -385,7 +389,8 @@ const AssetForm: React.FC = () => {
         buy_types: formData.buy_types,
         amount: formData.amount,
         estimated_impressions: formData.estimated_impressions,
-        estimated_clicks: formData.estimated_clicks
+        estimated_clicks: formData.estimated_clicks,
+        placement: formData.placement
       };
       
       console.log("Saving asset data:", assetData);
@@ -467,6 +472,25 @@ const AssetForm: React.FC = () => {
                     className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
                     required
                   />
+                </div>
+                
+                <div>
+                  <Label htmlFor="placement">Placement*</Label>
+                  <Select
+                    value={formData.placement}
+                    onValueChange={(value) => handleSelectChange("placement", value)}
+                  >
+                    <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
+                      <SelectValue placeholder="Select placement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PLACEMENT_OPTIONS.map((placement) => (
+                        <SelectItem key={placement} value={placement}>
+                          {placement}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>

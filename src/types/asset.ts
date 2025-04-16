@@ -5,11 +5,12 @@ export interface Asset {
   description?: string;
   category: "Digital" | "Physical" | "Phygital";
   type: string;
+  placement?: string;
   thumbnail_url?: string;
   file_size?: string;
   created_at: string;
   buy_types: string;
-  amount?: number; // Already using number type which can handle integers
+  amount?: number;
   estimated_impressions: number;
   estimated_clicks: number;
   tags?: string[];
@@ -27,3 +28,14 @@ export interface Asset {
   platform_id?: string;
   similarity?: number;
 }
+
+// Add placement options constant
+export const PLACEMENT_OPTIONS = [
+  'Homepage Banner',
+  'Order Page',
+  'In-stream Page',
+  'Ride Page',
+  'Payment Success Screen'
+] as const;
+
+export type Placement = typeof PLACEMENT_OPTIONS[number];

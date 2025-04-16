@@ -1,4 +1,3 @@
-
 export interface PlatformFormData {
   name: string;
   industry: string;
@@ -79,3 +78,13 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[];
+
+export const PLACEMENT_OPTIONS = [
+  'Homepage Banner',
+  'Order Page',
+  'In-stream Page',
+  'Ride Page',
+  'Payment Success Screen'
+] as const;
+
+export type Placement = typeof PLACEMENT_OPTIONS[number];
