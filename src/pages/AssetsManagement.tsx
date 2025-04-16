@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
@@ -42,7 +41,17 @@ const AssetsManagement: React.FC = () => {
       }
 
       if (data) {
-        setAssets(data);
+        const validatedAssets = data.map(asset => {
+          let category: "Digital" | "Physical" | "Phygital" = "Digital";
+          
+          if (asset.category === "Physical" || asset.category === "Phygital") {
+            category = asset.category;
+          }
+          
+          return { ...asset, category } as Asset;
+        });
+        
+        setAssets(validatedAssets);
       }
     } catch (error: any) {
       toast({
