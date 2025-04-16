@@ -11,31 +11,26 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-// Initialize and check storage buckets once at startup to avoid runtime errors
+// Check storage buckets once at startup, but don't try to create them
+// since we've set them up with proper RLS policies
 const initializeStorage = async () => {
   try {
-    // Check if the platform-logos bucket exists, create if not
+    // Just log information about the existing buckets
     const { data: platformLogosData, error: platformLogosError } = await supabase.storage.getBucket('platform-logos');
     
-    if (platformLogosError && platformLogosError.message.includes('does not exist')) {
-      console.log('Creating platform-logos bucket...');
-      const { error } = await supabase.storage.createBucket('platform-logos', {
-        public: true,
-        fileSizeLimit: 5 * 1024 * 1024, // 5MB
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
-      });
-      
-      if (error) {
-        console.error('Error creating platform-logos bucket:', error);
-      } else {
-        console.log('Successfully created platform-logos bucket');
-      }
+    if (platformLogosError) {
+      console.error('Error checking platform-logos bucket:', platformLogosError);
+    } else {
+      console.log('Platform-logos bucket exists:', platformLogosData);
     }
 
     // Check if the assets bucket exists
     const { data: assetsData, error: assetsError } = await supabase.storage.getBucket('assets');
-    if (assetsError && assetsError.message.includes('does not exist')) {
-      console.log('Assets bucket not found. Please create it in the Supabase dashboard.');
+    
+    if (assetsError) {
+      console.error('Error checking assets bucket:', assetsError);
+    } else {
+      console.log('Assets bucket exists:', assetsData);
     }
   } catch (error) {
     console.error('Storage initialization error:', error);

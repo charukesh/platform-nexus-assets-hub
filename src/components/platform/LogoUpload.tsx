@@ -37,27 +37,8 @@ const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) =
         throw new Error('Please upload an image file');
       }
 
-      // Create the bucket if it doesn't exist
-      try {
-        const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('platform-logos');
-        
-        if (bucketError && bucketError.message.includes('does not exist')) {
-          const { error: createError } = await supabase.storage.createBucket('platform-logos', {
-            public: true,
-            fileSizeLimit: 5 * 1024 * 1024, // 5MB
-            allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
-          });
-          
-          if (createError) {
-            console.error('Error creating bucket:', createError);
-            throw createError;
-          }
-        }
-      } catch (error) {
-        console.error('Error checking bucket:', error);
-      }
-
-      // Upload file to storage
+      // Upload file directly without trying to create the bucket
+      // Since we've already set up the bucket with proper policies
       const { error: uploadError } = await supabase.storage
         .from('platform-logos')
         .upload(filePath, file, {
