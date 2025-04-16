@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -13,6 +14,7 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
+      status: 204,
       headers: corsHeaders
     });
   }
@@ -84,6 +86,8 @@ serve(async (req) => {
     
     // Query database for similar assets using vector search
     console.log('Performing vector similarity search...');
+    
+    // Ensure we're using the correct parameters and return types
     const { data: similarAssets, error: vectorSearchError } = await supabaseClient.rpc(
       'match_assets_by_embedding_only',
       { 
