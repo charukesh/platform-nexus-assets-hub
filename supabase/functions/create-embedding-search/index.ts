@@ -104,7 +104,7 @@ serve(async (req) => {
       throw new Error('No similar assets found, fetching all assets...');
     }
     
-    // Prepare simplified asset data for the prompt
+    // Prepare simplified asset data for the prompt with comprehensive platform information
     const simplifiedAssets = assets.map((asset) => ({
       id: asset.id,
       name: asset.name,
@@ -112,8 +112,16 @@ serve(async (req) => {
       description: asset.description,
       type: asset.type,
       tags: asset.tags,
+      platform_id: asset.platform_id,
       platform_name: asset.platform_name,
       platform_industry: asset.platform_industry,
+      platform_audience: asset.platforms?.audience_data,
+      platform_devices: asset.platforms?.device_split,
+      platform_description: asset.platforms?.description,
+      platform_vertical: asset.platforms?.vertical,
+      platform_regions: asset.platforms?.regions,
+      platform_demographics: asset.platforms?.demographics,
+      platform_age_range: asset.platforms?.age_range,
       similarity: asset.similarity
     }));
     
