@@ -59,11 +59,22 @@ serve(async (req) => {
     const matchCount = requestData.matchCount || 3; // Default to top 3 assets
     const matchThreshold = requestData.matchThreshold || 0.75; // Threshold for similarity
 
-        if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
+    if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
+    
+    // Parse the query to extract core search terms and requirements
+    const queryInfo = parseMarketingQuery(queryText);
+    console.log('Parsed query info:', queryInfo);
+    
+    // Use core search terms for embedding to improve search relevance
+    // If no core terms could be extracted, fall back to the original query
+    const searchText = queryInfo.coreSearchTerms && queryInfo.coreSearchTerms.trim() !== '' 
+                      ? queryInfo.coreSearchTerms 
+                      : queryText;
 
-    console.log('Processing query:', queryText);
+    console.log('Original query:', queryText);
+    console.log('Using search terms for embedding:', searchText);
 
     // Azure OpenAI setup for embeddings and endpoint
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
@@ -82,7 +93,7 @@ serve(async (req) => {
     // Generate embeddings for the query
     console.log('Generating query embeddings...');
     const [queryEmbedding] = await embeddings.embedDocuments([
-      queryText
+      searchText
     ]);
     console.log('Query embeddings generated successfully with length:', queryEmbedding.length);
 
@@ -91,14 +102,20 @@ serve(async (req) => {
     console.log('- match_threshold:', matchThreshold, 'type:', typeof matchThreshold);
     console.log('- match_count:', matchCount, 'type:', typeof matchCount);
 
-    // Check if the user requested a specific number of assets
-    const assetCountMatch = queryText.match(/(\d+)\s*(?:asset|platform)s?\s*(?:required|needed|requested|only)/i);
-    const requestedAssetCount = assetCountMatch ? parseInt(assetCountMatch[1], 10) : matchCount;
+    // Check if the user requested specific numbers of assets or platforms
+    const requestedAssetCount = queryInfo.assetCount || matchCount;
+    const requestedPlatformCount = queryInfo.platformCount;
+    const assetPlatformCombination = queryInfo.combination;
     
-    // Use the higher of the requested count or default matchCount
-    const finalMatchCount = Math.max(requestedAssetCount, matchCount);
+    // Get enough assets to fulfill request, with some buffer for filtering
+    const finalMatchCount = Math.max(requestedAssetCount * 2, matchCount);
     
-    console.log('Requested asset count detected:', requestedAssetCount);
+    console.log('Requested asset count:', requestedAssetCount);
+    console.log('Requested platform count:', requestedPlatformCount);
+    if (assetPlatformCombination) {
+      console.log('Requested asset-platform combination:', 
+                 `${assetPlatformCombination.assets} assets from ${assetPlatformCombination.platforms} platforms`);
+    }
     console.log('Final match count to use:', finalMatchCount);
 
     // Ensure parameters have the correct types for PostgreSQL
@@ -153,18 +170,20 @@ serve(async (req) => {
         break;
       default:
         promptContent = `
-          Given search query: "${queryText}", carefully analyze it to understand the user's specific marketing needs including:
-          - Product or service they want to promote (e.g., "Britain biscuits")
-          - Any specific platform preferences mentioned
-          - Budget amount and any allocation instructions (e.g., "10 lakh budget")
-          - Number of assets requested (e.g., "5 assets required")
-          - Number of platforms requested (e.g., "2 platforms only" or "2 assets from 1 platform")
+          Given search query: "${queryText}", I've analyzed it to understand the user's specific marketing needs:
+          
+          Product/Brand: ${queryInfo.product || "Not specified"}
+          Marketing Objective: ${queryInfo.objective || "Not specified"}
+          Budget: ${queryInfo.budget || "5-8 lakhs"}
+          Asset Count Requested: ${queryInfo.assetCount || "Not specified"}
+          Platform Count Requested: ${queryInfo.platformCount || "Not specified"}
+          Budget Allocation: ${queryInfo.budgetAllocation === "equal" ? "Equal split" : "Proportional allocation"}
           
           We found ${processedAssets.length} matching assets through semantic search:
           ${JSON.stringify(processedAssets)}
           
           Include:
-          1. Brief response to query (2-3 sentences). If the user requested more assets or specific platform counts that you can't fulfill, clearly state this.
+          1. Brief response to the query (2-3 sentences). If the user requested more assets or specific platform counts that you can't fulfill, clearly state this.
           2. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset)
           3. Marketing plan as:
           
@@ -173,18 +192,16 @@ serve(async (req) => {
           [name],[platform_name],[platform_description],[buy_type],[%],[exact cost amount],[proportional impressions],[proportional clicks]
           
           Rules:
-          - Extract any budget information from the query text; if none is specified, use a default of 5-8 lakhs
-          - If user requested specific asset count (e.g., "2 assets"), use exactly that number if possible
-          - If user requested specific platform count (e.g., "1 platform"), select assets from exactly that many unique platforms
-          - If user requested a combination (e.g., "2 assets from 1 platform"), prioritize this requirement
+          - Use the specified budget: ${queryInfo.budget || "5-8 lakhs"}
+          - If user requested ${queryInfo.assetCount || "N/A"} assets, use exactly that number if possible
+          - If user requested ${queryInfo.platformCount || "N/A"} platforms, select assets from exactly that many unique platforms
           - If you don't have enough assets or platforms, use what you have and explain the limitation
-          - If specific budget allocation is mentioned (e.g., "split equally"), follow those instructions precisely
+          - If budget allocation is "${queryInfo.budgetAllocation}", follow this precisely
           - Use amount as base cost
           - Ensure % totals 100%
           - Provide EXACT cost amounts for each platform (not percentages)
           - Include the buy type for each asset (e.g., CPM, CPC, CPA, etc.)
           - Adjust impressions/clicks proportionally to budget
-          - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
           - Never include placeholder or "not specified" assets in your plan
           
           4. Brief next steps (1-2 points)
@@ -262,6 +279,8 @@ Important:
       metadata: {
         method: 'asset-search-with-plan',
         query: queryText,
+        search_terms: searchText,
+        parsed_query: queryInfo,
         vector_results_count: processedAssets.length,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold,
@@ -289,4 +308,99 @@ Important:
   }
 });
 
-// Function removed as we're now having the AI extract the budget
+/**
+ * Parses a marketing query to extract core search terms and requirements
+ * @param {string} query - The user's search query
+ * @returns {Object} - Object containing parsed query information
+ */
+function parseMarketingQuery(query) {
+  if (!query || typeof query !== 'string') {
+    return {
+      originalQuery: "",
+      coreSearchTerms: "",
+      product: null,
+      objective: null,
+      budget: "5-8 lakhs",
+      assetCount: null,
+      platformCount: null,
+      combination: null,
+      budgetAllocation: "proportional"
+    };
+  }
+  
+  try {
+    // Extract product/brand
+    const productMatch = query.match(/(?:for|promoting)\s+([a-z0-9\s]+?)(?:,|\s+to\s+|$)/i);
+    const product = productMatch ? productMatch[1].trim() : null;
+    
+    // Extract objective
+    const objectiveMatch = query.match(/to\s+(?:increase|improve|boost|enhance|maximize)\s+([a-z0-9\s]+?)(?:,|$)/i);
+    const objective = objectiveMatch ? objectiveMatch[1].trim() : null;
+    
+    // Extract budget
+    const budgetMatch = query.match(/(\d+(?:\.\d+)?)\s*(?:lakh|lac|L|cr|crore|k|K|thousand)/i);
+    const budget = budgetMatch ? budgetMatch[0] : "5-8 lakhs"; // Default
+    
+    // Extract asset count
+    const assetMatch = query.match(/(\d+)\s*(?:asset|ad)s?/i);
+    const assetCount = assetMatch ? parseInt(assetMatch[1], 10) : null;
+    
+    // Extract platform count
+    const platformMatch = query.match(/(\d+)\s*(?:platform|channel)s?/i);
+    const platformCount = platformMatch ? parseInt(platformMatch[1], 10) : null;
+    
+    // Extract asset-platform combination
+    const combinationMatch = query.match(/(\d+)\s*(?:asset|ad)s?\s*(?:from|on)\s*(\d+)\s*(?:platform|channel)/i);
+    const combination = combinationMatch ? {
+      assets: parseInt(combinationMatch[1], 10),
+      platforms: parseInt(combinationMatch[2], 10)
+    } : null;
+    
+    // Extract budget allocation
+    const equalBudgetMatch = /(equal|split|same|even)\s*budget/i.test(query);
+    const budgetAllocation = equalBudgetMatch ? "equal" : "proportional";
+    
+    // Construct core search terms (for embedding)
+    let coreTerms = [];
+    if (product) coreTerms.push(product);
+    if (objective) coreTerms.push(`increase ${objective}`);
+    
+    // If we couldn't extract specific terms, use keywords from the query
+    const keywordExtractionRegex = /\b((?!budget|asset|platform|channel|lakh|lac|cr|crore|k|split|equal|from|on)[a-z]{3,})\b/gi;
+    const extractedKeywords = query.match(keywordExtractionRegex) || [];
+    
+    if (coreTerms.length === 0 && extractedKeywords.length > 0) {
+      // Use top 3-5 keywords as fallback
+      coreTerms = extractedKeywords.slice(0, 5);
+    }
+    
+    // Final fallback - use the full query if nothing else works
+    const coreSearchTerms = coreTerms.length > 0 ? coreTerms.join(' ') : query;
+    
+    return {
+      originalQuery: query,
+      coreSearchTerms,
+      product,
+      objective,
+      budget,
+      assetCount,
+      platformCount,
+      combination,
+      budgetAllocation
+    };
+  } catch (error) {
+    console.error("Error parsing marketing query:", error);
+    // Return a safe default if parsing fails
+    return {
+      originalQuery: query,
+      coreSearchTerms: query, // Use original query as fallback
+      product: null,
+      objective: null,
+      budget: "5-8 lakhs",
+      assetCount: null,
+      platformCount: null,
+      combination: null,
+      budgetAllocation: "proportional"
+    };
+  }
+}
