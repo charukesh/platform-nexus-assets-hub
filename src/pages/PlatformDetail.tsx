@@ -7,12 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-import { BarChart, Users, Smartphone, Pencil, Trash2, ExternalLink, Clock, RefreshCw, Tag } from "lucide-react";
+import { Users, Pencil, Trash2, ExternalLink, Clock, Tag } from "lucide-react";
 import EditHistoryComponent from "@/components/EditHistoryComponent";
 import { AudienceDataDisplay } from "@/components/platform/AudienceDataDisplay";
 import { DeviceSplitDisplay } from "@/components/platform/DeviceSplitDisplay";
 import { CampaignDisplay } from "@/components/platform/CampaignDisplay";
-import { DemographicData } from "@/types/platform";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const PlatformDetail: React.FC = () => {
@@ -412,102 +411,6 @@ const PlatformDetail: React.FC = () => {
             {platform?.audience_data && (
               <AudienceDataDisplay audienceData={platform.audience_data as any} />
             )}
-            <NeuCard>
-              <h3 className="text-lg font-bold mb-4">Demographics</h3>
-              {platform?.audience_data?.demographic ? (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-medium mb-2">Age Groups</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {platform.audience_data.demographic.ageGroups?.map((ageGroup: DemographicData, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg text-center dark:bg-gray-700">
-                          <p className="font-medium">{ageGroup.name}</p>
-                          <p className="text-sm text-muted-foreground">{ageGroup.percentage}%</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-2">Gender</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {platform.audience_data.demographic.gender?.map((genderData: DemographicData, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg text-center dark:bg-gray-700">
-                          <p className="font-medium">{genderData.name}</p>
-                          <p className="text-sm text-muted-foreground">{genderData.percentage}%</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-2">Interests</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {platform.audience_data.demographic.interests?.map((interest: DemographicData, idx: number) => (
-                        <div key={idx} className="neu-flat px-2 py-1 rounded-full text-sm dark:bg-gray-700">
-                          {interest.name} ({interest.percentage}%)
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No demographic data available</p>
-              )}
-            </NeuCard>
-            
-            <NeuCard>
-              <h3 className="text-lg font-bold mb-4">Geographic Distribution</h3>
-              {platform?.audience_data?.geographic ? (
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-medium mb-2">Top Cities</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {platform.audience_data.geographic.cities?.map((city: DemographicData, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg dark:bg-gray-700">
-                          <p className="font-medium">{city.name}</p>
-                          <p className="text-sm text-muted-foreground">{city.percentage}%</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-2">Top States/Provinces</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {platform.audience_data.geographic.states?.map((state: DemographicData, idx: number) => (
-                        <div key={idx} className="neu-pressed p-3 rounded-lg dark:bg-gray-700">
-                          <p className="font-medium">{state.name}</p>
-                          <p className="text-sm text-muted-foreground">{state.percentage}%</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-2">Regions</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {platform.audience_data.geographic.regions?.map((region: DemographicData, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center mb-2">
-                          <span>{region.name}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-32 h-2 bg-neugray-200 rounded-full overflow-hidden dark:bg-gray-700">
-                              <div 
-                                className="h-full bg-primary rounded-full" 
-                                style={{ width: `${region.percentage}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-sm text-muted-foreground">{region.percentage}%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No geographic data available</p>
-              )}
-            </NeuCard>
           </TabsContent>
           
           <TabsContent value="assets" className="space-y-6">

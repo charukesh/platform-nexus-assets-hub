@@ -4,6 +4,7 @@ import { Upload, Image as ImageIcon } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import NeuButton from '@/components/NeuButton';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface LogoUploadProps {
   currentLogoUrl?: string | null;
@@ -13,18 +14,30 @@ interface LogoUploadProps {
 
 const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) => {
   const [uploading, setUploading] = useState(false);
+  const { toast } = useToast();
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
-      const file = event.target.files?.[0];
-      if (!file) return;
+      
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('You must select an image to upload.');
+      }
 
+      const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
       const fileName = `${platformId}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const filePath = fileName;
 
-      const { error: uploadError, data } = await supabase.storage
+      if (file.size > 2 * 1024 * 1024) {
+        throw new Error('File size should be less than 2MB');
+      }
+
+      if (!file.type.includes('image/')) {
+        throw new Error('Please upload an image file');
+      }
+
+      const { error: uploadError } = await supabase.storage
         .from('platform-logos')
         .upload(filePath, file);
 
@@ -37,8 +50,18 @@ const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) =
         .getPublicUrl(filePath);
 
       onUpload(publicUrl);
+      
+      toast({
+        title: "Success",
+        description: "Logo uploaded successfully",
+      });
+
     } catch (error: any) {
-      console.error('Error uploading logo:', error.message);
+      toast({
+        title: "Error uploading logo",
+        description: error.message,
+        variant: "destructive"
+      });
     } finally {
       setUploading(false);
     }
@@ -58,7 +81,7 @@ const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) =
           <label className="cursor-pointer">
             <NeuButton type="button" variant="outline" className="flex items-center gap-2">
               <Upload size={16} />
-              Change Logo
+              {uploading ? 'Uploading...' : 'Change Logo'}
             </NeuButton>
             <input
               type="file"
@@ -75,6 +98,9 @@ const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) =
             <ImageIcon className="w-8 h-8 mb-3 text-gray-400" />
             <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
               {uploading ? 'Uploading...' : 'Click to upload platform logo'}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              PNG, JPG, GIF up to 2MB
             </p>
           </div>
           <input
