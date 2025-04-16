@@ -25,7 +25,7 @@ const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [industryFilter, setIndustryFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("ai");
   const [searchBrief, setSearchBrief] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -181,7 +181,7 @@ const Dashboard: React.FC = () => {
           </div>
         </header>
 
-        <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="mb-8">
+        <Tabs defaultValue="ai" value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="neu-flat bg-white p-1">
             <TabsTrigger value="overview" className="data-[state=active]:neu-pressed">
               Overview

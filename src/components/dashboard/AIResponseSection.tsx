@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -25,11 +25,33 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   onSearchBriefChange,
   onClear
 }) => {
+  const [streamedContent, setStreamedContent] = useState<string>('');
+
+  useEffect(() => {
+    if (searchResults) {
+      // Reset content when new results arrive
+      setStreamedContent('');
+      
+      // Simulate streaming by splitting content into characters
+      const content = searchResults.choices?.[0]?.message?.content || '';
+      const characters = content.split('');
+      
+      let currentIndex = 0;
+      const streamInterval = setInterval(() => {
+        if (currentIndex < characters.length) {
+          setStreamedContent(prev => prev + characters[currentIndex]);
+          currentIndex++;
+        } else {
+          clearInterval(streamInterval);
+        }
+      }, 10); // Adjust speed as needed
+
+      return () => clearInterval(streamInterval);
+    }
+  }, [searchResults]);
+
   const renderAIResponse = () => {
     if (!searchResults) return null;
-
-    // Extract the conversational content from the first choice's message
-    const conversationalContent = searchResults.choices?.[0]?.message?.content || '';
 
     return (
       <div className="mt-4">
@@ -38,7 +60,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           rehypePlugins={[rehypeRaw]}
           className="prose prose-sm max-w-full"
         >
-          {conversationalContent.trim()}
+          {streamedContent.trim()}
         </ReactMarkdown>
       </div>
     );
@@ -88,4 +110,3 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 };
 
 export default AIResponseSection;
-
