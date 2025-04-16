@@ -9,7 +9,7 @@ export interface Asset {
   file_size?: string;
   created_at: string;
   buy_types: string;
-  amount?: number;
+  amount?: number; // Already using number type which can handle integers
   estimated_impressions: number;
   estimated_clicks: number;
   tags?: string[];
