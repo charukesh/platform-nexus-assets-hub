@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
@@ -9,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MediaPlanInputForm from "@/components/media-plan/MediaPlanInputForm";
 import MediaPlanResults from "@/components/media-plan/MediaPlanResults";
+import { useEmbeddingSearch } from "@/hooks/use-media-plan-generator";  // Update import path
 
 const MediaPlanGenerator: React.FC = () => {
   const { toast } = useToast();
