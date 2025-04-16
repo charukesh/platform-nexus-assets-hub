@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -16,6 +15,9 @@ interface DemographicData {
   name: string;
   percentage: number;
 }
+
+import { DeviceSplitDisplay } from "@/components/platform/DeviceSplitDisplay";
+import { CampaignDisplay } from "@/components/platform/CampaignDisplay";
 
 const PlatformDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -386,64 +388,39 @@ const PlatformDetail: React.FC = () => {
                 </div>
               </NeuCard>
             </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <NeuCard>
-                <h3 className="text-lg font-bold mb-4">Device Distribution</h3>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>iOS</span>
-                      <span>{platform?.device_split?.ios || 50}%</span>
-                    </div>
-                    <div className="w-full h-3 bg-neugray-200 rounded-full overflow-hidden dark:bg-gray-700">
-                      <div 
-                        className="h-full bg-primary rounded-full" 
-                        style={{ width: `${platform?.device_split?.ios || 50}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Android</span>
-                      <span>{platform?.device_split?.android || 50}%</span>
-                    </div>
-                    <div className="w-full h-3 bg-neugray-200 rounded-full overflow-hidden dark:bg-gray-700">
-                      <div 
-                        className="h-full bg-green-500 rounded-full" 
-                        style={{ width: `${platform?.device_split?.android || 50}%` }}
-                      ></div>
-                    </div>
-                  </div>
+
+            {platform?.device_split && (
+              <DeviceSplitDisplay deviceSplit={platform.device_split as any} />
+            )}
+
+            {platform?.campaign_data && (
+              <CampaignDisplay campaignData={platform.campaign_data as any} />
+            )}
+
+            <NeuCard>
+              <h3 className="text-lg font-bold mb-4">Platform Information</h3>
+              <div className="grid grid-cols-2 gap-y-4">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Created</Label>
+                  <p className="font-medium">{new Date(platform?.created_at).toLocaleDateString()}</p>
                 </div>
-              </NeuCard>
-              
-              <NeuCard>
-                <h3 className="text-lg font-bold mb-4">Platform Information</h3>
-                <div className="grid grid-cols-2 gap-y-4">
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Created</Label>
-                    <p className="font-medium">{new Date(platform?.created_at).toLocaleDateString()}</p>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Last Updated</Label>
-                    <p className="font-medium">{new Date(platform?.updated_at).toLocaleDateString()}</p>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Industry</Label>
-                    <p className="font-medium">{platform?.industry}</p>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Platform ID</Label>
-                    <p className="font-medium truncate text-muted-foreground">{platform?.id}</p>
-                  </div>
+                
+                <div>
+                  <Label className="text-muted-foreground text-sm">Last Updated</Label>
+                  <p className="font-medium">{new Date(platform?.updated_at).toLocaleDateString()}</p>
                 </div>
-              </NeuCard>
-            </div>
+                
+                <div>
+                  <Label className="text-muted-foreground text-sm">Industry</Label>
+                  <p className="font-medium">{platform?.industry}</p>
+                </div>
+                
+                <div>
+                  <Label className="text-muted-foreground text-sm">Platform ID</Label>
+                  <p className="font-medium truncate text-muted-foreground">{platform?.id}</p>
+                </div>
+              </div>
+            </NeuCard>
           </TabsContent>
           
           <TabsContent value="audience" className="space-y-6">
