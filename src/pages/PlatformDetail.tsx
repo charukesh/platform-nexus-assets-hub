@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -7,12 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-import { Users, Pencil, Trash2, ExternalLink, Clock, Tag } from "lucide-react";
+import { Users, Pencil, Trash2, ExternalLink, Clock, Tag, Smartphone } from "lucide-react";
 import EditHistoryComponent from "@/components/EditHistoryComponent";
 import { AudienceDataDisplay } from "@/components/platform/AudienceDataDisplay";
 import { DeviceSplitDisplay } from "@/components/platform/DeviceSplitDisplay";
 import { CampaignDisplay } from "@/components/platform/CampaignDisplay";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { DemographicData } from "@/types/platform";
 
 const PlatformDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
