@@ -8,8 +8,8 @@ export interface Asset {
   thumbnail_url?: string;
   file_size?: string;
   created_at: string;
-  buy_types: string; // Changed from string[] to string
-  amount?: number; // New field
+  buy_types: string;
+  amount?: number;
   estimated_impressions: number;
   estimated_clicks: number;
   tags?: string[];
