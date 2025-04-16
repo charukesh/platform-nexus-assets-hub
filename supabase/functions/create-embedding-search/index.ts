@@ -137,17 +137,32 @@ serve(async (req) => {
     const matchedAssets = matchResults || [];
     console.log(`Found ${matchedAssets.length} assets via vector similarity`);
 
-    // Process the assets to include only essential fields and ensure correct types
+    // Process the assets to include all available fields from match_assets_by_embedding_only function
+    // This now matches the fields returned by the PostgreSQL function
     const processedAssets = matchedAssets.map((asset) => ({
       id: asset.id,
       name: asset.name,
-      platform: asset.platform,
-      platform_name: asset.platform_name,
-      platform_description: asset.platform_description,
+      category: asset.category,
+      description: asset.description,
+      thumbnail_url: asset.thumbnail_url,
+      file_url: asset.file_url,
+      type: asset.type,
+      tags: asset.tags,
+      buy_types: asset.buy_types, // Corrected to match schema
       amount: asset.amount !== null ? Number(asset.amount) : null,
-      estimated_impressions: Number(asset.estimated_impressions),
       estimated_clicks: Number(asset.estimated_clicks),
-      buy_type: asset.buy_type || "Unknown",
+      estimated_impressions: Number(asset.estimated_impressions),
+      platform_id: asset.platform_id,
+      platform_name: asset.platform_name,
+      platform_industry: asset.platform_industry,
+      platform_audience_data: asset.platform_audience_data,
+      platform_campaign_data: asset.platform_campaign_data,
+      platform_device_split: asset.platform_device_split,
+      platform_mau: asset.platform_mau,
+      platform_dau: asset.platform_dau,
+      platform_premium_users: asset.platform_premium_users,
+      platform_restrictions: asset.platform_restrictions,
+      placement: asset.placement,
       similarity: Number(asset.similarity).toFixed(2) // Reduce decimal precision
     }));
 
@@ -188,8 +203,8 @@ serve(async (req) => {
           3. Marketing plan as:
           
           MARKETING PLAN:
-          Asset,Platform,Platform Description,Buy Type,Budget %,Cost,Adj. Impressions,Adj. Clicks
-          [name],[platform_name],[platform_description],[buy_type],[%],[exact cost amount],[proportional impressions],[proportional clicks]
+          Asset,Platform,Platform Industry,Buy Type,Budget %,Cost,Adj. Impressions,Adj. Clicks
+          [name],[platform_name],[platform_industry],[buy_types],[%],[exact cost amount],[proportional impressions],[proportional clicks]
           
           Rules:
           - Use the specified budget: ${queryInfo.budget || "5-8 lakhs"}
@@ -200,7 +215,7 @@ serve(async (req) => {
           - Use amount as base cost
           - Ensure % totals 100%
           - Provide EXACT cost amounts for each platform (not percentages)
-          - Include the buy type for each asset (e.g., CPM, CPC, CPA, etc.)
+          - Include the buy type for each asset (from buy_types field)
           - Adjust impressions/clicks proportionally to budget
           - Never include placeholder or "not specified" assets in your plan
           
@@ -233,7 +248,7 @@ When a user provides a query:
    - "X assets from Y platforms" - They want X assets distributed across Y platforms
 3. Check for budget allocation instructions (e.g., "split equally", "70% to Facebook").
 4. Identify any specific product, brand or campaign needs.
-5. Pay attention to the buy type for each asset (CPM, CPC, CPA, etc.) as this is important for the marketing plan.
+5. Pay attention to the buy type for each asset (from buy_types field) as this is important for the marketing plan.
 
 Important:
 - If the user requests more assets or platforms than you found, clearly state this limitation in your response
