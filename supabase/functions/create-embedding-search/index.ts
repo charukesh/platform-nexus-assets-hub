@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -23,7 +22,7 @@ serve(async (req) => {
     const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
     const azureInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
     const azureDeployment = Deno.env.get('AZURE_OPENAI_API_DEPLOYMENT_NAME');
-    const azureApiVersion = Deno.env.get('AZURE_OPENAI_EMBEDDING_API_VERSION');
+    const azureApiVersion = Deno.env.get('AZURE_OPENAI_API_VERSION');
     
     // Validate configuration
     console.log('SUPABASE_URL:', supabaseUrl ? '✓ Present' : '✗ Missing');
@@ -86,28 +85,25 @@ serve(async (req) => {
       platform_industry: asset.platforms?.industry
     }));
     
-    // Call Azure OpenAI API to process the query against assets
+    // Modified prompt to instruct AI to respond in a more conversational, GPT-like manner
     const prompt = `
       I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
-      please identify the most relevant assets for this query from the list below. 
+      please identify the most relevant assets for this query from the list below and respond in a conversational manner.
       Consider the asset name, category, description, type, tags, and the platform it belongs to.
       
       Available assets: ${JSON.stringify(simplifiedAssets)}
       
-      Return ONLY the IDs of the top 10 most relevant assets in order of relevance, along with a brief explanation
-      of why each asset is relevant to the query. Format your response as valid JSON with this structure:
-      {
-        "results": [
-          {
-            "id": "asset-id",
-            "name": "asset-name",
-            "relevance": "brief explanation of relevance",
-            "similarity": 0.95
-          }
-        ]
-      }
+      Respond like an AI chat assistant would:
+      1. Start with a natural, conversational response addressing the user's query directly
+      2. Provide the top 5-10 most relevant assets based on their query
+      3. For each asset, explain why it's relevant and how it might help
+      4. End with a helpful conclusion or follow-up question
       
-      The similarity score should be a number between 0 and 1 representing how relevant the asset is to the query.
+      DO NOT include any separate JSON object in your response. The entire response should be 
+      natural language that a user would read.
+      
+      I will handle extracting the structured data from your response separately, so focus entirely 
+      on providing a high-quality, GPT-like conversational response.
     `;
     
     console.log('Calling Azure OpenAI with prompt...');
@@ -119,7 +115,10 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         messages: [
-          { role: 'system', content: 'You are a helpful assistant that helps match marketing assets to user queries.' },
+          { 
+            role: 'system', 
+            content: 'You are a helpful marketing asset assistant. Respond in a conversational and helpful tone, similar to ChatGPT. Your job is to help users find the perfect marketing assets for their needs.' 
+          },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
@@ -134,29 +133,23 @@ serve(async (req) => {
     }
     
     const openaiResponse = await response.json();
-    const content = openaiResponse.choices[0].message.content;
+    const conversationalContent = openaiResponse.choices[0].message.content;
     
-    // Parse the response to get the results
-    let parsedResults;
-    try {
-      // Extract JSON from possible text wrapper
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      parsedResults = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-      
-      if (!parsedResults || !parsedResults.results) {
-        throw new Error('Failed to parse results from AI response');
-      }
-    } catch (parseError) {
-      console.error('Error parsing AI response:', parseError);
-      console.log('Raw response:', content);
-      throw new Error('Failed to parse results from AI response');
-    }
+    // We're going to return the complete OpenAI response with our metadata
+    // This keeps the full conversational response intact
     
-    // Return the results
+    // Return the combined response - a full chat completion with results as JSON
     return new Response(JSON.stringify({ 
-      results: parsedResults.results,
-      method: 'azure-openai',
-      query: queryText
+      id: openaiResponse.id,
+      object: "chat.completion",
+      created: openaiResponse.created,
+      model: `${azureInstance}/${azureDeployment}`,
+      choices: openaiResponse.choices,
+      usage: openaiResponse.usage,
+      metadata: {
+        method: 'azure-openai-gpt-style',
+        query: queryText
+      }
     }), {
       headers: {
         ...corsHeaders,
