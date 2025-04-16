@@ -113,12 +113,10 @@ serve(async (req) => {
     // Query database for similar assets using vector search
     console.log('Performing vector similarity search...');
     
-    // The key fix: Ensure query_embedding is properly formatted
-    // PostgreSQL expects a specific format for vector inputs
     const { data: similarAssets, error: vectorSearchError } = await supabaseClient.rpc(
       'match_assets_by_embedding_only',
       { 
-        query_embedding: queryEmbedding, // Make sure this is an array of numbers
+        query_embedding: queryEmbedding,
         match_threshold: matchThreshold,
         match_count: matchCount
       }

@@ -15,6 +15,15 @@ export interface Asset {
   tags?: string[];
   platforms?: {
     name: string;
+    industry?: string;
+    audience_data?: any;
+    campaign_data?: any;
+    device_split?: any;
+    mau?: string;
+    dau?: string;
+    premium_users?: number;
+    restrictions?: any;
   };
   platform_id?: string;
+  similarity?: number;
 }
