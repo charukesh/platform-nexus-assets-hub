@@ -3,35 +3,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
 
-// Define the expected return type from match_assets_by_embedding_only
-// We'll keep the TypeScript type but we won't use it in the RPC call
-// This will prevent any type mismatches between TypeScript and PostgreSQL
-type AssetSearchResult = {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  thumbnail_url: string;
-  file_url: string;
-  type: string;
-  tags: string[];
-  buy_types: string;
-  amount: string; // Changed from number to string to be more flexible with numeric/integer
-  estimated_clicks: number;
-  estimated_impressions: number;
-  platform_id: string;
-  platform_name: string;
-  platform_industry: string;
-  platform_audience_data: any;
-  platform_campaign_data: any;
-  platform_device_split: any;
-  platform_mau: string;
-  platform_dau: string;
-  platform_premium_users: number;
-  platform_restrictions: any;
-  similarity: number;
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -110,40 +81,61 @@ serve(async (req) => {
     // Generate embeddings for the query
     console.log('Generating query embeddings...');
     const [queryEmbedding] = await embeddings.embedDocuments([queryText]);
-    console.log('Query embeddings generated successfully');
+    console.log('Query embeddings generated successfully with length:', queryEmbedding.length);
     
     // Query database for similar assets using vector search
-    console.log('Performing vector similarity search...');
+    console.log('Performing vector similarity search with parameters:');
+    console.log('- match_threshold:', matchThreshold, 'type:', typeof matchThreshold);
+    console.log('- match_count:', matchCount, 'type:', typeof matchCount);
     
-
+    // Ensure parameters have the correct types for PostgreSQL
+    const rpcParams = {
+      query_embedding: queryEmbedding,
+      match_threshold: parseFloat(matchThreshold.toString()), // Ensure this is a float
+      match_count: parseInt(matchCount.toString(), 10) // Ensure this is an integer
+    };
     
-    if (vectorSearchError) {
-      console.error('Error in vector similarity search:', vectorSearchError);
-      throw vectorSearchError;
+    console.log('Calling match_assets_by_embedding_only with properly typed parameters');
+    const { data: matchResults, error: matchError } = await supabaseClient.rpc(
+      'match_assets_by_embedding_only',
+      rpcParams
+    );
+    
+    if (matchError) {
+      console.error('Error in vector similarity search:', matchError);
+      throw matchError;
     }
     
-    // This section will be replaced by our updated code
+    // Process the results to ensure correct data types
+    const matchedAssets = matchResults || [];
+    console.log(`Found ${matchedAssets.length} assets via vector similarity`);
+    
+    // Process the assets to ensure consistent types (especially amount field)
+    const processedAssets = matchedAssets.map(asset => ({
+      ...asset,
+      amount: asset.amount?.toString() || "0" // Ensure amount is a string to avoid type issues
+    }));
     
     // Comprehensive prompt that handles both normal search and budget planning
     const prompt = `
       I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
       please provide a helpful response that includes both asset recommendations and a marketing plan.
       
-      ${simplifiedAssets.length === 0 ? 
+      ${processedAssets.length === 0 ? 
         `Unfortunately, no assets matched your query closely enough. Please suggest 3-5 alternative queries that might yield better results. 
         Explain why the original query might not have matched and what types of marketing assets the user might be looking for.` :
         `Consider these assets that matched your query (higher similarity scores are better matches):
-        ${JSON.stringify(simplifiedAssets)}`
+        ${JSON.stringify(processedAssets)}`
       }
       
       Your response should include:
       
       1. A conversational response addressing the query directly
-      2. ${simplifiedAssets.length > 0 ? 
+      2. ${processedAssets.length > 0 ? 
           `A list of the most relevant assets (up to 5) with brief explanations of why each is suitable` : 
           `Suggested alternative queries that might yield better results`
         }
-      3. ${simplifiedAssets.length > 0 ? 
+      3. ${processedAssets.length > 0 ? 
           `A marketing plan in CSV-like format:
           
           MARKETING PLAN:
@@ -197,7 +189,7 @@ serve(async (req) => {
     const conversationalContent = openaiResponse.choices[0].message.content;
     
     // Extract the asset IDs mentioned in the response for metadata
-    const mentionedAssetIds = (simplifiedAssets || [])
+    const mentionedAssetIds = processedAssets
       .filter(asset => 
         conversationalContent.includes(asset.id) || 
         conversationalContent.includes(asset.name)
@@ -216,7 +208,7 @@ serve(async (req) => {
         method: 'asset-search-with-plan',
         query: queryText,
         budget: budget,
-        vector_results_count: similarAssets?.length || 0,
+        vector_results_count: processedAssets.length,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold
       }
