@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
 import NeuInput from "@/components/NeuInput";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, File } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -255,47 +255,6 @@ const Dashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="assets" className="mt-6">
-            <NeuCard className="mb-8">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={18} />
-                  <Input 
-                    placeholder="Search assets..." 
-                    className="pl-10 w-full bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0" 
-                    value={searchQuery} 
-                    onChange={e => setSearchQuery(e.target.value)} 
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <NeuButton 
-                      variant="outline" 
-                      className="flex items-center gap-1"
-                      onClick={() => setCategoryFilter("All")}
-                    >
-                      <Filter size={16} />
-                      Filter
-                    </NeuButton>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex gap-2 flex-wrap">
-                <span className="text-sm font-medium">Categories:</span>
-                {assetCategories.map(category => (
-                  <span
-                    key={category}
-                    className={`text-xs py-1 px-2 neu-flat hover:shadow-neu-pressed cursor-pointer ${
-                      categoryFilter === category ? 'shadow-neu-pressed' : ''
-                    }`}
-                    onClick={() => setCategoryFilter(category)}
-                  >
-                    {category}
-                  </span>
-                ))}
-              </div>
-            </NeuCard>
-
             {loading ? (
               <div className="flex justify-center items-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -314,7 +273,7 @@ const Dashboard: React.FC = () => {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-neugray-200">
-                            <FileImage size={48} className="text-neugray-400" />
+                            <File size={48} className="text-neugray-400" />
                           </div>
                         )}
                       </div>
