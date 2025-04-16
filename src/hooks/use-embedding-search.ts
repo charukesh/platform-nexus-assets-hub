@@ -39,8 +39,13 @@ export function useEmbeddingSearch() {
     setError(null);
     
     try {
-      const { data: searchResults, error: searchError } = await supabase.functions.invoke('create-embedding-search', {
-        body: { text: searchBrief }
+      // Instead of embedding search, we call our new function
+      const { data: searchResults, error: searchError } = await supabase.functions.invoke('generate-media-plan', {
+        body: { 
+          prompt: searchBrief,
+          includeAllAssets: true,
+          includeAllPlatforms: true
+        }
       });
 
       if (searchError) throw searchError;
@@ -48,7 +53,7 @@ export function useEmbeddingSearch() {
       setResults(searchResults.results || []);
       return searchResults.results || [];
     } catch (err: any) {
-      console.error("Error in embedding search:", err);
+      console.error("Error in search:", err);
       setError(err.message || "An error occurred during search");
       toast({
         title: "Search error",
