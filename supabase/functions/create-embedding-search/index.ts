@@ -55,11 +55,36 @@ serve(async (req) => {
     const matchCount = requestData.matchCount || 15; // Default to top 15 assets
     const matchThreshold = requestData.matchThreshold || 0.7; // Default similarity threshold
     
+    // Check for budget in the query text
+    let budget = requestData.budget;
+    const budgetRegex = /budget[:\s]+(?:Rs\.?|INR|₹)?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:k|l|cr|lakhs?|crores?|thousand|million|lakh|crore)?/i;
+    const budgetMatch = queryText.match(budgetRegex);
+    
+    if (!budget && budgetMatch) {
+      const budgetValue = budgetMatch[1].replace(/,/g, '');
+      const budgetUnit = budgetMatch[0].toLowerCase();
+      
+      // Convert to standard form based on units
+      if (budgetUnit.includes('k') || budgetUnit.includes('thousand')) {
+        budget = parseFloat(budgetValue) * 1000;
+      } else if (budgetUnit.includes('l') || budgetUnit.includes('lakh')) {
+        budget = parseFloat(budgetValue) * 100000;
+      } else if (budgetUnit.includes('cr') || budgetUnit.includes('crore')) {
+        budget = parseFloat(budgetValue) * 10000000;
+      } else {
+        budget = parseFloat(budgetValue);
+      }
+      
+      console.log(`Extracted budget from query: ${budget}`);
+    }
+    
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
     
     console.log('Processing query:', queryText);
+    console.log('Mode:', mode);
+    console.log('Budget:', budget !== undefined ? budget : 'Not specified');
     
     // Azure OpenAI setup for embeddings and endpoint
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
@@ -98,13 +123,75 @@ serve(async (req) => {
     
     console.log(`Found ${similarAssets?.length || 0} assets via vector similarity`);
     
-    // If no assets found through vector search, fall back to fetching all assets
+    // If no assets found through vector search, handle the no-results case
     let assets = similarAssets;
     if (!assets || assets.length === 0) {
-      throw new Error('No similar assets found, fetching all assets...');
+      console.log('No similar assets found, returning suggestion for better query');
+      
+      // Create a prompt asking for better query suggestions
+      const noResultsPrompt = `
+        I was searching for marketing assets related to this query: "${queryText}"
+        
+        Unfortunately, no assets matched this query closely enough. As an expert marketing assistant,
+        please suggest 3-5 alternative queries that might yield better results. Consider different ways 
+        to phrase the same intent, or suggest related marketing goals that would be more likely to match 
+        available assets.
+        
+        Also, provide a brief explanation of why the original query might not have matched any assets
+        and what types of marketing assets the user might be looking for based on their intent.
+      `;
+      
+      // Call Azure OpenAI for query suggestions
+      const suggestionsResponse = await fetch(`${azureEndpoint}/openai/deployments/${azureDeployment}/chat/completions?api-version=${azureApiVersion}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': azureApiKey
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful marketing assistant that specializes in helping users find marketing assets.'
+            },
+            {
+              role: 'user',
+              content: noResultsPrompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        })
+      });
+      
+      if (!suggestionsResponse.ok) {
+        throw new Error(`Azure OpenAI API error: ${suggestionsResponse.status} ${suggestionsResponse.statusText}`);
+      }
+      
+      const suggestionsResult = await suggestionsResponse.json();
+      
+      // Return the suggestions
+      return new Response(JSON.stringify({
+        id: suggestionsResult.id,
+        object: "chat.completion",
+        created: suggestionsResult.created,
+        model: `${azureInstance}/${azureDeployment}`,
+        choices: suggestionsResult.choices,
+        usage: suggestionsResult.usage,
+        metadata: {
+          method: 'query-suggestions',
+          query: queryText,
+          suggestion_type: 'no_results'
+        }
+      }), {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      });
     }
     
-    // Prepare simplified asset data for the prompt with comprehensive platform information
+    // Prepare simplified asset data with comprehensive information
     const simplifiedAssets = assets.map((asset) => ({
       id: asset.id,
       name: asset.name,
@@ -112,25 +199,39 @@ serve(async (req) => {
       description: asset.description,
       type: asset.type,
       tags: asset.tags,
+      buy_types: asset.buy_types,
+      amount: asset.amount,
+      estimated_clicks: asset.estimated_clicks,
+      estimated_impressions: asset.estimated_impressions,
+      
+      // Platform information
       platform_id: asset.platform_id,
       platform_name: asset.platform_name,
       platform_industry: asset.platform_industry,
-      platform_audience: asset.platforms?.audience_data,
-      platform_devices: asset.platforms?.device_split,
-      platform_description: asset.platforms?.description,
-      platform_vertical: asset.platforms?.vertical,
-      platform_regions: asset.platforms?.regions,
-      platform_demographics: asset.platforms?.demographics,
-      platform_age_range: asset.platforms?.age_range,
+      platform_audience_data: asset.platform_audience_data,
+      platform_campaign_data: asset.platform_campaign_data,
+      platform_device_split: asset.platform_device_split,
+      platform_mau: asset.platform_mau,
+      platform_dau: asset.platform_dau,
+      platform_premium_users: asset.platform_premium_users,
+      platform_restrictions: asset.platform_restrictions,
+      
+      // Search relevance
       similarity: asset.similarity
     }));
     
-    // Enhanced prompt to instruct AI to respond with relevant assets only
+    // Extract budget from request if available
+    const budget = requestData.budget;
+    
+    // Enhanced prompt with planning table and budget handling
     const prompt = `
       I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
       please identify the most relevant assets for this query from the list below and respond in a conversational manner.
       
-      Consider the asset name, category, description, type, tags, and the platform it belongs to when determining relevance.
+      Consider the asset name, category, description, type, tags, buy types, estimated clicks, and estimated impressions.
+      Pay special attention to platform metrics like Monthly Active Users (MAU), Daily Active Users (DAU), 
+      premium users, audience data, campaign data, device split, and restrictions when determining suitability.
+      
       These assets have already been pre-filtered by similarity, with scores provided.
       
       Available assets: ${JSON.stringify(simplifiedAssets)}
@@ -140,13 +241,26 @@ serve(async (req) => {
       2. Provide only the truly relevant assets based on their query (up to 10 maximum)
       3. If no assets are directly relevant to the query, be honest about that fact
       4. For each relevant asset, explain why it's applicable and how it might help
-      5. End with a helpful conclusion or follow-up question
+      
+      IMPORTANT: After explaining the relevant assets, create a marketing plan table in a CSV-like format:
+      
+      MARKETING PLAN:
+      Asset,Platform,Description,Estimated Impressions,Estimated Clicks,Budget Allocation,Estimated Cost
+      [asset name],[platform name],[brief description],[estimated impressions],[estimated clicks],[% of budget],[calculated cost]
+      
+      Here's how to create this table:
+      - Include only the 3-5 most impactful assets from your recommendations
+      - Use the asset's amount field as the base cost
+      - ${budget !== undefined ? 
+          `Work with the specified budget of ${budget} and allocate percentages accordingly` : 
+          `Since no budget was specified, create a sample plan with a budget range of 5-8 lakhs (500,000 to 800,000). Adjust the allocations accordingly and mention that this is a suggested budget range.`}
+      - Calculate the estimated cost based on the budget allocation percentage
+      - Make sure the percentages add up to 100%
+      
+      End with a helpful conclusion or follow-up question.
       
       DO NOT include any separate JSON object in your response. The entire response should be 
       natural language that a user would read.
-      
-      I will handle extracting the structured data from your response separately, so focus entirely 
-      on providing a high-quality, conversational response that only includes truly relevant assets.
     `;
     
     console.log('Calling Azure OpenAI with prompt...');
@@ -160,7 +274,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful marketing asset assistant. Respond in a conversational and helpful tone. Your job is to help users find the perfect marketing assets for their needs. Only include assets that are truly relevant to the query.'
+            content: 'You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Provide detailed asset recommendations and structured budget allocations based on the query.'
           },
           {
             role: 'user',
@@ -182,10 +296,11 @@ serve(async (req) => {
     const conversationalContent = openaiResponse.choices[0].message.content;
     
     // Extract the asset IDs mentioned in the response for metadata
-    // This is a simple heuristic - in production, you might want to use a more robust approach
     const mentionedAssetIds = assets
-      .filter(asset => conversationalContent.includes(asset.id) || 
-             conversationalContent.includes(asset.name))
+      .filter(asset => 
+        conversationalContent.includes(asset.id) || 
+        conversationalContent.includes(asset.name)
+      )
       .map(asset => asset.id);
     
     // Return the combined response with metadata
@@ -197,8 +312,9 @@ serve(async (req) => {
       choices: openaiResponse.choices,
       usage: openaiResponse.usage,
       metadata: {
-        method: 'hybrid-vector-gpt',
+        method: 'asset-search-with-plan',
         query: queryText,
+        budget: budget,
         vector_results_count: similarAssets?.length || 0,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold
