@@ -56,11 +56,10 @@ serve(async (req) => {
 
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = requestData.matchCount || 3; // Default to top 3 assets (reduced from 15)
-    const matchThreshold = requestData.matchThreshold || 0.75; // Increased threshold from 0.7
-    const budget = "5-8 lakhs"; // Always assume a budget plan is needed
+    const matchCount = requestData.matchCount || 3; // Default to top 3 assets
+    const matchThreshold = requestData.matchThreshold || 0.75; // Threshold for similarity
 
-    if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
+        if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
 
@@ -143,24 +142,28 @@ serve(async (req) => {
         break;
       default:
         promptContent = `
-          Given search query: "${queryText}" with budget ${budget}, provide a marketing plan based on these assets:
+          Given search query: "${queryText}", analyze it to understand the user's marketing needs and budget requirements.
+          
+          Provide a marketing plan based on these assets that were found through semantic search:
           ${JSON.stringify(processedAssets.slice(0, 3))}
           
           Include:
           1. Brief response to query (2-3 sentences)
-          2. Marketing plan as:
+          2. For each asset, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset)
+          3. Marketing plan as:
           
           MARKETING PLAN:
           Asset,Platform,Platform Description,Budget %,Cost,Adj. Impressions,Adj. Clicks
           [name],[platform_name],[platform_description],[%],[cost],[proportional impressions],[proportional clicks]
           
           Rules:
+          - Extract any budget information from the query text; if none is specified, use a default of 5-8 lakhs
           - Use amount as base cost
           - Ensure % totals 100%
           - Adjust impressions/clicks proportionally to budget
           - Example: If base cost=100K with 50K impressions and allocation=200K, adjusted impressions=100K
           
-          3. Brief next steps (1-2 points)
+          4. Brief next steps (1-2 points)
         `;
         break;
     }
@@ -179,7 +182,7 @@ serve(async (req) => {
     });
 
     // Create the chat prompt
-    const systemTemplate = "You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.";
+    const systemTemplate = "You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations. When a user provides a query, extract any budget information mentioned. If no budget is specified, assume a default budget of 5-8 lakhs.";
     const humanTemplate = "{prompt}";
 
     const chatPrompt = ChatPromptTemplate.fromMessages([
@@ -218,7 +221,6 @@ serve(async (req) => {
       metadata: {
         method: 'asset-search-with-plan',
         query: queryText,
-        budget: budget,
         vector_results_count: processedAssets.length,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold,
@@ -245,3 +247,5 @@ serve(async (req) => {
     });
   }
 });
+
+// Function removed as we're now having the AI extract the budget
