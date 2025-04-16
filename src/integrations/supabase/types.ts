@@ -148,7 +148,8 @@ export type Database = {
           file_url: string
           type: string
           tags: string[]
-          buy_types: string[]
+          buy_types: string
+          amount: number
           estimated_clicks: number
           estimated_impressions: number
           platform_id: string

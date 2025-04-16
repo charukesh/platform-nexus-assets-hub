@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -5,13 +6,15 @@ import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
+      status: 204,
       headers: corsHeaders
     });
   }
@@ -55,27 +58,30 @@ serve(async (req) => {
     const matchCount = requestData.matchCount || 15; // Default to top 15 assets
     const matchThreshold = requestData.matchThreshold || 0.7; // Default similarity threshold
     
-    // Check for budget in the query text
-    let budget = requestData.budget;
+    // Extract budget from request
+    const budget = requestData.budget;
+    
+    // Check for budget in the query text if not explicitly provided
+    let extractedBudget = budget;
     const budgetRegex = /budget[:\s]+(?:Rs\.?|INR|₹)?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:k|l|cr|lakhs?|crores?|thousand|million|lakh|crore)?/i;
     const budgetMatch = queryText.match(budgetRegex);
     
-    if (!budget && budgetMatch) {
+    if (!extractedBudget && budgetMatch) {
       const budgetValue = budgetMatch[1].replace(/,/g, '');
       const budgetUnit = budgetMatch[0].toLowerCase();
       
       // Convert to standard form based on units
       if (budgetUnit.includes('k') || budgetUnit.includes('thousand')) {
-        budget = parseFloat(budgetValue) * 1000;
+        extractedBudget = parseFloat(budgetValue) * 1000;
       } else if (budgetUnit.includes('l') || budgetUnit.includes('lakh')) {
-        budget = parseFloat(budgetValue) * 100000;
+        extractedBudget = parseFloat(budgetValue) * 100000;
       } else if (budgetUnit.includes('cr') || budgetUnit.includes('crore')) {
-        budget = parseFloat(budgetValue) * 10000000;
+        extractedBudget = parseFloat(budgetValue) * 10000000;
       } else {
-        budget = parseFloat(budgetValue);
+        extractedBudget = parseFloat(budgetValue);
       }
       
-      console.log(`Extracted budget from query: ${budget}`);
+      console.log(`Extracted budget from query: ${extractedBudget}`);
     }
     
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
@@ -83,8 +89,7 @@ serve(async (req) => {
     }
     
     console.log('Processing query:', queryText);
-    console.log('Mode:', mode);
-    console.log('Budget:', budget !== undefined ? budget : 'Not specified');
+    console.log('Budget:', extractedBudget !== undefined ? extractedBudget : 'Not specified');
     
     // Azure OpenAI setup for embeddings and endpoint
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
@@ -170,7 +175,7 @@ serve(async (req) => {
       
       const suggestionsResult = await suggestionsResponse.json();
       
-      // Return the suggestions
+      // Return the suggestions with CORS headers
       return new Response(JSON.stringify({
         id: suggestionsResult.id,
         object: "chat.completion",
@@ -220,9 +225,6 @@ serve(async (req) => {
       similarity: asset.similarity
     }));
     
-    // Extract budget from request if available
-    const budget = requestData.budget;
-    
     // Enhanced prompt with planning table and budget handling
     const prompt = `
       I have a collection of marketing assets and platforms. Given the following search query: "${queryText}",
@@ -251,8 +253,8 @@ serve(async (req) => {
       Here's how to create this table:
       - Include only the 3-5 most impactful assets from your recommendations
       - Use the asset's amount field as the base cost
-      - ${budget !== undefined ? 
-          `Work with the specified budget of ${budget} and allocate percentages accordingly` : 
+      - ${extractedBudget !== undefined ? 
+          `Work with the specified budget of ${extractedBudget} and allocate percentages accordingly` : 
           `Since no budget was specified, create a sample plan with a budget range of 5-8 lakhs (500,000 to 800,000). Adjust the allocations accordingly and mention that this is a suggested budget range.`}
       - Calculate the estimated cost based on the budget allocation percentage
       - Make sure the percentages add up to 100%
@@ -303,7 +305,7 @@ serve(async (req) => {
       )
       .map(asset => asset.id);
     
-    // Return the combined response with metadata
+    // Return the combined response with metadata and CORS headers
     return new Response(JSON.stringify({
       id: openaiResponse.id,
       object: "chat.completion",
@@ -314,7 +316,7 @@ serve(async (req) => {
       metadata: {
         method: 'asset-search-with-plan',
         query: queryText,
-        budget: budget,
+        budget: extractedBudget,
         vector_results_count: similarAssets?.length || 0,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold
