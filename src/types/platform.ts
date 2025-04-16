@@ -39,9 +39,15 @@ export interface AudienceData {
   };
   interests?: string[];
   age_targeting_available?: boolean;
+  age_targeting_values?: string;
   gender_targeting_available?: boolean;
+  gender_targeting_values?: string;
   state_level_targeting?: boolean;
+  state_targeting_values?: string;
   city_level_targeting?: boolean;
+  city_targeting_values?: string;
+  pincode_level_targeting?: boolean;
+  pincode_targeting_values?: string;
   platform_specific_targeting?: string[];
 }
 
