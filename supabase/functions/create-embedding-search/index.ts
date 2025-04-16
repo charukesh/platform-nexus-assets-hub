@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -110,10 +111,16 @@ serve(async (req) => {
     const matchedAssets = matchResults || [];
     console.log(`Found ${matchedAssets.length} assets via vector similarity`);
     
-    // Process the assets to ensure consistent types (especially amount field)
+    // Process the assets to ensure consistent types (especially numeric fields)
     const processedAssets = matchedAssets.map(asset => ({
       ...asset,
-      amount: asset.amount?.toString() || "0" // Ensure amount is a string to avoid type issues
+      // Convert all numeric fields to appropriate JavaScript types
+      amount: asset.amount !== null ? Number(asset.amount) : null,
+      estimated_impressions: Number(asset.estimated_impressions),
+      estimated_clicks: Number(asset.estimated_clicks),
+      similarity: Number(asset.similarity),
+      platform_premium_users: asset.platform_premium_users !== null ? 
+        Number(asset.platform_premium_users) : null
     }));
     
     // Comprehensive prompt that handles both normal search and budget planning
