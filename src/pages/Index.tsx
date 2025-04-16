@@ -4,13 +4,17 @@ import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
 import NeuInput from "@/components/NeuInput";
-import { Search, Filter, BarChart2, ChevronRight, Users, PieChart, Layers, Database, FileImage, Bot, Sparkles } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEmbeddingSearch } from "@/hooks/use-embedding-search";
-import ReactMarkdown from 'react-markdown';
+import PlatformStatsCard from "@/components/dashboard/PlatformStatsCard";
+import AssetStatsCard from "@/components/dashboard/AssetStatsCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
+import AIResponseSection from "@/components/dashboard/AIResponseSection";
+import PlatformList from "@/components/dashboard/PlatformList";
 
 const Dashboard: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);
@@ -47,12 +51,9 @@ const Dashboard: React.FC = () => {
   const fetchPlatforms = async () => {
     try {
       const { data, error } = await supabase.from('platforms').select('*');
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       if (data) {
         setPlatforms(data);
-
         const uniqueIndustries = Array.from(new Set(data.map(platform => platform.industry)));
         setIndustries(["All", ...uniqueIndustries]);
       }
@@ -71,13 +72,9 @@ const Dashboard: React.FC = () => {
         .from('assets')
         .select('*, platforms(name)');
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       if (data) {
         setAssets(data);
-        
         const uniqueCategories = Array.from(new Set(data.map(asset => asset.category)));
         setAssetCategories(["All", ...uniqueCategories]);
       }
@@ -196,128 +193,16 @@ const Dashboard: React.FC = () => {
               Assets
             </TabsTrigger>
             <TabsTrigger value="ai" className="data-[state=active]:neu-pressed">
-              <span className="flex items-center gap-1">
-                <Sparkles size={14} />
-                AI Response
-              </span>
+              <span className="flex items-center gap-1">AI Response</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <NeuCard>
-                <div className="flex items-center gap-3 mb-4">
-                  <Database className="text-primary" size={24} />
-                  <h2 className="text-xl font-bold">Platforms Overview</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="neu-pressed p-4 rounded-lg">
-                    <p className="text-muted-foreground mb-1">Total Platforms</p>
-                    <p className="text-2xl font-bold">{platformStats.total}</p>
-                  </div>
-                  <div className="neu-pressed p-4 rounded-lg">
-                    <p className="text-muted-foreground mb-1">Industries</p>
-                    <p className="text-2xl font-bold">{platformStats.byIndustry.length}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 mb-4">
-                  <p className="font-medium">Industry Distribution</p>
-                  {platformStats.byIndustry.map(item => (
-                    <div key={item.name} className="flex justify-between items-center">
-                      <span>{item.name}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-32 h-2 bg-neugray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary rounded-full" 
-                            style={{ width: `${(item.count / platformStats.total * 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{item.count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Link to="/platforms" className="inline-block">
-                  <NeuButton size="sm">View All Platforms</NeuButton>
-                </Link>
-              </NeuCard>
-
-              <NeuCard>
-                <div className="flex items-center gap-3 mb-4">
-                  <FileImage className="text-primary" size={24} />
-                  <h2 className="text-xl font-bold">Assets Overview</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="neu-pressed p-4 rounded-lg">
-                    <p className="text-muted-foreground mb-1">Total Assets</p>
-                    <p className="text-2xl font-bold">{assetStats.total}</p>
-                  </div>
-                  <div className="neu-pressed p-4 rounded-lg">
-                    <p className="text-muted-foreground mb-1">Categories</p>
-                    <p className="text-2xl font-bold">{assetStats.byCategory.length}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 mb-4">
-                  <p className="font-medium">Category Distribution</p>
-                  {assetStats.byCategory.map(item => (
-                    <div key={item.name} className="flex justify-between items-center">
-                      <span>{item.name}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-32 h-2 bg-neugray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary rounded-full" 
-                            style={{ width: `${(item.count / assetStats.total * 100)}%` }}
-                          ></div>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{item.count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <Link to="/assets" className="inline-block">
-                  <NeuButton size="sm">View All Assets</NeuButton>
-                </Link>
-              </NeuCard>
+              <PlatformStatsCard platformStats={platformStats} />
+              <AssetStatsCard assetStats={assetStats} />
             </div>
-
-            <NeuCard>
-              <div className="flex items-center gap-3 mb-4">
-                <Layers className="text-primary" size={24} />
-                <h2 className="text-xl font-bold">Recent Activity</h2>
-              </div>
-              <div className="divide-y divide-neugray-200">
-                {loading ? (
-                  <div className="py-8 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Loading activity...</p>
-                  </div>
-                ) : (
-                  <>
-                    {[...platforms.slice(0, 3), ...assets.slice(0, 3)]
-                      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                      .slice(0, 5)
-                      .map((item, idx) => (
-                        <div key={`${item.id}-${idx}`} className="py-3 first:pt-0 last:pb-0">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="font-medium">{item.name}</p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span>{('category' in item) ? 'Asset' : 'Platform'}</span>
-                                <span>•</span>
-                                <span>{('industry' in item) ? item.industry : item.category}</span>
-                              </div>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {new Date(item.updated_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    }
-                  </>
-                )}
-              </div>
-            </NeuCard>
+            <RecentActivity loading={loading} platforms={platforms} assets={assets} />
           </TabsContent>
 
           <TabsContent value="platforms" className="mt-6">
@@ -362,72 +247,11 @@ const Dashboard: React.FC = () => {
               </div>
             </NeuCard>
 
-            {loading ? (
-              <div className="flex justify-center items-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              </div>
-            ) : filteredPlatforms.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {filteredPlatforms.map(platform => (
-                  <Link key={platform.id} to={`/platforms/${platform.id}`}>
-                    <NeuCard className="h-full hover:shadow-neu-pressed transition-all cursor-pointer animate-scale-in">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-bold">{platform.name}</h3>
-                          <span className="inline-block text-xs bg-neugray-200 py-0.5 px-2 rounded-full mt-1">
-                            {platform.industry}
-                          </span>
-                        </div>
-                        <ChevronRight size={18} className="text-muted-foreground" />
-                      </div>
-                      
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                        <div className="neu-pressed p-2 rounded-lg">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                            <Users size={12} />
-                            <span>MAU/DAU</span>
-                          </div>
-                          <div className="font-medium">
-                            {formatUserCount(platform.mau)}/{formatUserCount(platform.dau)}
-                          </div>
-                        </div>
-                        <div className="neu-pressed p-2 rounded-lg">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-                            <PieChart size={12} />
-                            <span>Premium</span>
-                          </div>
-                          <div className="font-medium">
-                            {platform.premium_users || 0}%
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-3">
-                        <p className="text-xs text-muted-foreground mb-1">Device Split</p>
-                        <div className="w-full h-2 bg-neugray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary rounded-full" 
-                            style={{ width: `${platform.device_split?.ios || 50}%` }}
-                          ></div>
-                        </div>
-                        <div className="flex justify-between text-xs mt-1">
-                          <span>iOS: {platform.device_split?.ios || 50}%</span>
-                          <span>Android: {platform.device_split?.android || 50}%</span>
-                        </div>
-                      </div>
-                    </NeuCard>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <NeuCard className="py-10 text-center mb-8">
-                <p className="text-lg font-medium mb-4">No platforms found</p>
-                <p className="text-muted-foreground mb-6">Add your first platform to get started</p>
-                <Link to="/platforms/new">
-                  <NeuButton>Add New Platform</NeuButton>
-                </Link>
-              </NeuCard>
-            )}
+            <PlatformList 
+              loading={loading}
+              filteredPlatforms={filteredPlatforms}
+              formatUserCount={formatUserCount}
+            />
           </TabsContent>
 
           <TabsContent value="assets" className="mt-6">
@@ -524,72 +348,14 @@ const Dashboard: React.FC = () => {
           </TabsContent>
 
           <TabsContent value="ai" className="mt-6">
-            <NeuCard className="mb-8">
-              <div className="flex items-center gap-3 mb-4">
-                <Bot className="text-primary" size={24} />
-                <h2 className="text-xl font-bold">AI Response</h2>
-              </div>
-              <p className="text-muted-foreground mb-4">
-                Enter your query and get an AI-powered response.
-              </p>
-              
-              <form onSubmit={handleSearchSubmit} className="mb-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
-                    <NeuInput
-                      as="textarea"
-                      placeholder="Enter your query..."
-                      value={searchBrief}
-                      onChange={(e) => setSearchBrief(e.target.value)}
-                      className="w-full"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <NeuButton 
-                      type="submit" 
-                      disabled={searchLoading}
-                      className="whitespace-nowrap"
-                    >
-                      {searchLoading ? (
-                        <span className="flex items-center gap-2">
-                          <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                          Processing...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <Search size={16} />
-                          Get Response
-                        </span>
-                      )}
-                    </NeuButton>
-                  </div>
-                </div>
-              </form>
-
-              {searchResults && (
-                <div className="space-y-4">
-                  <div className="prose prose-sm max-w-none bg-neugray-100 p-6 rounded-lg">
-                    <ReactMarkdown className="whitespace-pre-wrap [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                      {searchResults.choices && searchResults.choices[0]?.message?.content || 
-                       "No response content available"}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              )}
-
-              {searchBrief.trim() && !searchResults && !searchLoading && (
-                <div className="text-center py-8">
-                  <div className="text-muted-foreground mb-4">
-                    <Search size={48} className="mx-auto mb-2 opacity-40" />
-                    <p>No response found for your query.</p>
-                  </div>
-                  <NeuButton variant="outline" onClick={() => setSearchBrief('')}>
-                    Clear query and try again
-                  </NeuButton>
-                </div>
-              )}
-            </NeuCard>
+            <AIResponseSection
+              searchBrief={searchBrief}
+              searchResults={searchResults}
+              searchLoading={searchLoading}
+              onSearchSubmit={handleSearchSubmit}
+              onSearchBriefChange={(e) => setSearchBrief(e.target.value)}
+              onClear={() => setSearchBrief('')}
+            />
           </TabsContent>
         </Tabs>
       </div>
