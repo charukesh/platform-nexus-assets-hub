@@ -137,33 +137,19 @@ serve(async (req) => {
     const matchedAssets = matchResults || [];
     console.log(`Found ${matchedAssets.length} assets via vector similarity`);
 
-    // Process the assets to include all available fields from match_assets_by_embedding_only function
-    // This now matches the fields returned by the PostgreSQL function
+    // Process the assets to include only essential fields to reduce payload size
+    // This minimizes data sent to the LLM to improve performance
     const processedAssets = matchedAssets.map((asset) => ({
       id: asset.id,
       name: asset.name,
-      category: asset.category,
-      description: asset.description,
-      thumbnail_url: asset.thumbnail_url,
-      file_url: asset.file_url,
-      type: asset.type,
-      tags: asset.tags,
-      buy_types: asset.buy_types, // Corrected to match schema
+      buy_types: asset.buy_types,
       amount: asset.amount !== null ? Number(asset.amount) : null,
       estimated_clicks: Number(asset.estimated_clicks),
       estimated_impressions: Number(asset.estimated_impressions),
-      platform_id: asset.platform_id,
       platform_name: asset.platform_name,
       platform_industry: asset.platform_industry,
-      platform_audience_data: asset.platform_audience_data,
-      platform_campaign_data: asset.platform_campaign_data,
-      platform_device_split: asset.platform_device_split,
-      platform_mau: asset.platform_mau,
-      platform_dau: asset.platform_dau,
-      platform_premium_users: asset.platform_premium_users,
-      platform_restrictions: asset.platform_restrictions,
-      placement: asset.placement,
-      similarity: Number(asset.similarity).toFixed(2) // Reduce decimal precision
+      category: asset.category,
+      similarity: Number(asset.similarity).toFixed(2)
     }));
 
     // Determine prompt type based only on whether we have results
@@ -194,8 +180,11 @@ serve(async (req) => {
           Platform Count Requested: ${queryInfo.platformCount || "Not specified"}
           Budget Allocation: ${queryInfo.budgetAllocation === "equal" ? "Equal split" : "Proportional allocation"}
           
-          We found ${processedAssets.length} matching assets through semantic search:
-          ${JSON.stringify(processedAssets)}
+          We found ${processedAssets.length} matching assets through semantic search.
+          Here's a summary of the top matches:
+          ${processedAssets.slice(0, 5).map(asset => 
+            `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): Buy type: ${asset.buy_types}, Cost: ${asset.amount}, Est. impressions: ${asset.estimated_impressions}, Est. clicks: ${asset.estimated_clicks}`
+          ).join('\n')}
           
           Include:
           1. Brief response to the query (2-3 sentences). If the user requested more assets or specific platform counts that you can't fulfill, clearly state this.
@@ -277,6 +266,9 @@ Important:
       .filter((asset) => conversationalContent.includes(asset.id) || conversationalContent.includes(asset.name))
       .map((asset) => asset.id);
 
+    // Log we've received a response and are about to return
+    console.log('LLM response received successfully, preparing response...');
+
     // Return the combined response with metadata
     return new Response(JSON.stringify({
       id: Date.now().toString(), // Since we don't have the direct OpenAI response ID
@@ -295,7 +287,6 @@ Important:
         method: 'asset-search-with-plan',
         query: queryText,
         search_terms: searchText,
-        parsed_query: queryInfo,
         vector_results_count: processedAssets.length,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold,
