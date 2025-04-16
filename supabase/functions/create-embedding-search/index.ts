@@ -4,6 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
 
 // Define the expected return type from match_assets_by_embedding_only
+// We'll keep the TypeScript type but we won't use it in the RPC call
+// This will prevent any type mismatches between TypeScript and PostgreSQL
 type AssetSearchResult = {
   id: string;
   name: string;
@@ -14,7 +16,7 @@ type AssetSearchResult = {
   type: string;
   tags: string[];
   buy_types: string;
-  amount: number;
+  amount: string; // Changed from number to string to be more flexible with numeric/integer
   estimated_clicks: number;
   estimated_impressions: number;
   platform_id: string;
@@ -113,24 +115,14 @@ serve(async (req) => {
     // Query database for similar assets using vector search
     console.log('Performing vector similarity search...');
     
-    const { data: similarAssets, error: vectorSearchError } = await supabaseClient.rpc(
-      'match_assets_by_embedding_only',
-      { 
-        query_embedding: queryEmbedding,
-        match_threshold: matchThreshold,
-        match_count: matchCount
-      }
-    );
+
     
     if (vectorSearchError) {
       console.error('Error in vector similarity search:', vectorSearchError);
       throw vectorSearchError;
     }
     
-    console.log(`Found ${similarAssets?.length || 0} assets via vector similarity`);
-    
-    // Prepare simplified asset data with comprehensive information
-    const simplifiedAssets = similarAssets || [];
+    // This section will be replaced by our updated code
     
     // Comprehensive prompt that handles both normal search and budget planning
     const prompt = `
@@ -205,7 +197,7 @@ serve(async (req) => {
     const conversationalContent = openaiResponse.choices[0].message.content;
     
     // Extract the asset IDs mentioned in the response for metadata
-    const mentionedAssetIds = (similarAssets || [])
+    const mentionedAssetIds = (simplifiedAssets || [])
       .filter(asset => 
         conversationalContent.includes(asset.id) || 
         conversationalContent.includes(asset.name)
