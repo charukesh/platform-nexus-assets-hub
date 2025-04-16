@@ -1,19 +1,19 @@
 
-import React from "react";
-import { Bot, Search } from "lucide-react";
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
-import NeuCard from "@/components/NeuCard";
-import NeuButton from "@/components/NeuButton";
-import NeuInput from "@/components/NeuInput";
+import rehypeRaw from 'rehype-raw';
+import { Loader2, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import NeuButton from '@/components/NeuButton';
+import NeuCard from '@/components/NeuCard';
 
 interface AIResponseSectionProps {
   searchBrief: string;
   searchResults: any;
   searchLoading: boolean;
-  onSearchSubmit: (e: React.FormEvent) => Promise<void>;
-  onSearchBriefChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+  onSearchSubmit: (e: React.FormEvent) => void;
+  onSearchBriefChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onClear: () => void;
 }
 
@@ -23,86 +23,69 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   searchLoading,
   onSearchSubmit,
   onSearchBriefChange,
-  onClear,
+  onClear
 }) => {
-  return (
-    <NeuCard className="mb-8">
-      <div className="flex items-center gap-3 mb-4">
-        <Bot className="text-primary" size={24} />
-        <h2 className="text-xl font-bold">AI Response</h2>
+  const renderAIResponse = () => {
+    if (!searchResults) return null;
+
+    // Extract the conversational content from the first choice's message
+    const conversationalContent = searchResults.choices?.[0]?.message?.content || '';
+
+    return (
+      <div className="mt-4">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          className="prose prose-sm max-w-full"
+        >
+          {conversationalContent.trim()}
+        </ReactMarkdown>
       </div>
-      <p className="text-muted-foreground mb-4">
-        Enter your query and get an AI-powered response.
-      </p>
-      
-      <form onSubmit={onSearchSubmit} className="mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <NeuInput
-              as="textarea"
-              placeholder="Enter your query..."
-              value={searchBrief}
-              onChange={onSearchBriefChange}
-              className="w-full"
-              rows={3}
-            />
-          </div>
-          <div className="flex items-end">
-            <NeuButton 
-              type="submit" 
-              disabled={searchLoading}
-              className="whitespace-nowrap"
+    );
+  };
+
+  return (
+    <div>
+      <form onSubmit={onSearchSubmit} className="flex gap-2 mb-4">
+        <div className="relative flex-grow">
+          <Input
+            placeholder="Describe the assets you're looking for..."
+            value={searchBrief}
+            onChange={onSearchBriefChange}
+            className="pr-10"
+          />
+          {searchBrief && (
+            <button 
+              type="button" 
+              onClick={onClear} 
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-destructive"
             >
-              {searchLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Search size={16} />
-                  Get Response
-                </span>
-              )}
-            </NeuButton>
-          </div>
+              ✕
+            </button>
+          )}
         </div>
+        <NeuButton type="submit" disabled={searchLoading}>
+          {searchLoading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="mr-2 h-4 w-4" />
+          )}
+          Search
+        </NeuButton>
       </form>
 
-      {searchResults && (
-        <div className="space-y-4">
-          <div className="prose prose-sm max-w-none bg-neugray-100 p-6 rounded-lg">
-            <ReactMarkdown 
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              className="whitespace-pre-wrap [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-              components={{
-                p: ({node, ...props}) => <p {...props} className="mb-2 last:mb-0" />,
-                ul: ({node, ...props}) => <ul {...props} className="list-disc list-inside" />,
-                ol: ({node, ...props}) => <ol {...props} className="list-decimal list-inside" />,
-                code: ({node, ...props}) => <code {...props} className="bg-neugray-200 px-1 py-0.5 rounded text-sm" />,
-              }}
-            >
-              {searchResults.choices && searchResults.choices[0]?.message?.content || 
-               "No response content available"}
-            </ReactMarkdown>
-          </div>
+      {searchLoading ? (
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      )}
-
-      {searchBrief.trim() && !searchResults && !searchLoading && (
-        <div className="text-center py-8">
-          <div className="text-muted-foreground mb-4">
-            <Search size={48} className="mx-auto mb-2 opacity-40" />
-            <p>No response found for your query.</p>
-          </div>
-          <NeuButton variant="outline" onClick={onClear}>
-            Clear query and try again
-          </NeuButton>
-        </div>
-      )}
-    </NeuCard>
+      ) : searchResults ? (
+        <NeuCard>
+          {renderAIResponse()}
+        </NeuCard>
+      ) : null}
+    </div>
   );
 };
 
 export default AIResponseSection;
+
