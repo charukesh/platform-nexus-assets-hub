@@ -2,13 +2,14 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
+import NeuButton from "@/components/NeuButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MediaPlanInputForm from "@/components/media-plan/MediaPlanInputForm";
 import MediaPlanResults from "@/components/media-plan/MediaPlanResults";
-import { useEmbeddingSearch } from "@/hooks/use-media-plan-generator";  // Update import path
+import { useEmbeddingSearch } from "@/hooks/use-media-plan-generator";
 
 const MediaPlanGenerator: React.FC = () => {
   const { toast } = useToast();

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
+import { Brain } from "lucide-react";
 
 interface MediaPlanInputFormProps {
   prompt: string;
