@@ -47,6 +47,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             }
 
             const chunk = decoder.decode(value);
+            console.log('Received chunk:', chunk);
             
             // Process each line in the chunk
             const lines = chunk.split('\n');
@@ -54,7 +55,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
               if (line.startsWith('data: ')) {
                 try {
                   const jsonStr = line.slice(6);
-                  if (jsonStr.trim()) {
+                  if (jsonStr.trim() && jsonStr !== 'undefined') {
                     const data = JSON.parse(jsonStr);
                     if (data.content !== undefined) {
                       setStreamedContent(prev => prev + data.content);
@@ -84,7 +85,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   }, [searchResults]);
 
   const renderAIResponse = () => {
-    if (!searchResults) return null;
+    if (!searchResults && !isStreaming) return null;
 
     return (
       <div className="mt-4">
@@ -93,7 +94,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           rehypePlugins={[rehypeRaw]}
           className="prose prose-sm max-w-full dark:prose-invert"
         >
-          {streamedContent || (isStreaming ? "Waiting for response..." : "No content received")}
+          {streamedContent || (isStreaming && !streamedContent ? "Waiting for response..." : "No content received")}
         </ReactMarkdown>
       </div>
     );
@@ -133,7 +134,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : searchResults ? (
+      ) : (searchResults || isStreaming) ? (
         <NeuCard>
           {renderAIResponse()}
         </NeuCard>

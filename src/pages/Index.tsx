@@ -140,7 +140,9 @@ const Dashboard: React.FC = () => {
     
     setSearchLoading(true);
     try {
+      console.log('Submitting search brief:', searchBrief);
       const results = await searchByEmbedding(searchBrief);
+      console.log('Search results:', results);
       setSearchResults(results);
       
       if (!results) {

@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -13,7 +12,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -34,7 +32,6 @@ serve(async (req) => {
   };
 
   try {
-    // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
@@ -43,7 +40,6 @@ serve(async (req) => {
     const azureEmbeddingDeployment = Deno.env.get('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME');
     const azureApiVersion = Deno.env.get('AZURE_OPENAI_API_VERSION') || '2023-05-15';
 
-    // Validate configuration
     console.log('SUPABASE_URL:', supabaseUrl ? '✓ Present' : '✗ Missing');
     console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Present' : '✗ Missing');
     console.log('AZURE_OPENAI_API_KEY:', azureApiKey ? '✓ Present' : '✗ Missing');
@@ -60,7 +56,6 @@ serve(async (req) => {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
 
-    // Initialize clients and process request data
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
     const requestData = await req.json();
     const queryText = requestData.query || requestData.text;
@@ -71,11 +66,9 @@ serve(async (req) => {
       throw new Error('A valid query is required');
     }
 
-    // Azure OpenAI setup for embeddings and endpoint
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
     console.log('Using Azure OpenAI endpoint:', azureEndpoint);
 
-    // Initialize Azure OpenAI embeddings
     const embeddings = new AzureOpenAIEmbeddings({
       azureOpenAIApiKey: azureApiKey,
       azureOpenAIApiVersion: azureApiVersion,
@@ -85,7 +78,6 @@ serve(async (req) => {
       modelName: azureEmbeddingDeployment
     });
 
-    // Generate embeddings for the query
     console.log('Generating query embeddings...');
     const [queryEmbedding] = await embeddings.embedDocuments([
       queryText
@@ -115,10 +107,8 @@ serve(async (req) => {
       similarity: Number(asset.similarity).toFixed(2)
     }));
 
-    // Determine prompt type based only on whether we have results
     let promptType = processedAssets.length === 0 ? "no_results" : "budget_planning";
 
-    // Create appropriate prompt based on type
     let promptContent;
     switch (promptType) {
       case "no_results":
@@ -183,19 +173,18 @@ serve(async (req) => {
       prompt: promptContent
     });
 
-    // Create a TransformStream for handling the streamed response
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
 
-    // Start streaming response
     const runStream = await chatModel.stream(formattedPrompt);
 
-    // Process the stream
     (async () => {
       try {
+        const initMessage = `data: ${JSON.stringify({ content: "" })}\n\n`;
+        await writer.write(encoder.encode(initMessage));
+        
         for await (const chunk of runStream) {
           if (chunk.content) {
-            // Send a proper SSE formatted message with valid JSON
             const data = { content: chunk.content };
             const message = `data: ${JSON.stringify(data)}\n\n`;
             await writer.write(encoder.encode(message));
@@ -203,7 +192,7 @@ serve(async (req) => {
         }
       } catch (error) {
         console.error('Streaming error:', error);
-        const errorMessage = `data: ${JSON.stringify({ error: 'Streaming error occurred' })}\n\n`;
+        const errorMessage = `data: ${JSON.stringify({ error: 'Streaming error occurred', content: "Error occurred during streaming" })}\n\n`;
         await writer.write(encoder.encode(errorMessage));
       } finally {
         await writer.close();
