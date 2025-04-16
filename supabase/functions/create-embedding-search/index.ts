@@ -1,8 +1,34 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
+
+// Define the expected return type from match_assets_by_embedding_only
+type AssetSearchResult = {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  thumbnail_url: string;
+  file_url: string;
+  type: string;
+  tags: string[];
+  buy_types: string;
+  amount: number;
+  estimated_clicks: number;
+  estimated_impressions: number;
+  platform_id: string;
+  platform_name: string;
+  platform_industry: string;
+  platform_audience_data: any;
+  platform_campaign_data: any;
+  platform_device_split: any;
+  platform_mau: string;
+  platform_dau: string;
+  platform_premium_users: number;
+  platform_restrictions: any;
+  similarity: number;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,8 +113,8 @@ serve(async (req) => {
     // Query database for similar assets using vector search
     console.log('Performing vector similarity search...');
     
-    // Ensure we're using the correct parameters and return types
-    const { data: similarAssets, error: vectorSearchError } = await supabaseClient.rpc(
+    // Use the explicit type for the RPC call to match the database function
+    const { data: similarAssets, error: vectorSearchError } = await supabaseClient.rpc<AssetSearchResult>(
       'match_assets_by_embedding_only',
       { 
         query_embedding: queryEmbedding,
@@ -105,33 +131,8 @@ serve(async (req) => {
     console.log(`Found ${similarAssets?.length || 0} assets via vector similarity`);
     
     // Prepare simplified asset data with comprehensive information
-    const simplifiedAssets = (similarAssets || []).map((asset) => ({
-      id: asset.id,
-      name: asset.name,
-      category: asset.category,
-      description: asset.description,
-      type: asset.type,
-      tags: asset.tags,
-      buy_types: asset.buy_types,
-      amount: asset.amount,
-      estimated_clicks: asset.estimated_clicks,
-      estimated_impressions: asset.estimated_impressions,
-      
-      // Platform information
-      platform_id: asset.platform_id,
-      platform_name: asset.platform_name,
-      platform_industry: asset.platform_industry,
-      platform_audience_data: asset.platform_audience_data,
-      platform_campaign_data: asset.platform_campaign_data,
-      platform_device_split: asset.platform_device_split,
-      platform_mau: asset.platform_mau,
-      platform_dau: asset.platform_dau,
-      platform_premium_users: asset.platform_premium_users,
-      platform_restrictions: asset.platform_restrictions,
-      
-      // Search relevance
-      similarity: asset.similarity
-    }));
+    // No need for transformation as the return type is already correct
+    const simplifiedAssets = similarAssets || [];
     
     // Comprehensive prompt that handles both normal search and budget planning
     const prompt = `
