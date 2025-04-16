@@ -23,6 +23,7 @@ export type Database = {
           file_url: string | null
           id: string
           name: string
+          placement: string | null
           platform_id: string
           tags: string[] | null
           thumbnail_url: string | null
@@ -43,6 +44,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           name: string
+          placement?: string | null
           platform_id: string
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -63,6 +65,7 @@ export type Database = {
           file_url?: string | null
           id?: string
           name?: string
+          placement?: string | null
           platform_id?: string
           tags?: string[] | null
           thumbnail_url?: string | null
@@ -162,6 +165,7 @@ export type Database = {
           platform_dau: string
           platform_premium_users: number
           platform_restrictions: Json
+          placement: string
           similarity: number
         }[]
       }

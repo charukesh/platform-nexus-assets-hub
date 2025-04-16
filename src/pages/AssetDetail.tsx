@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -224,6 +223,31 @@ const AssetDetail: React.FC = () => {
                     <div>
                       <Label className="text-muted-foreground text-sm">Last Updated</Label>
                       <p className="font-medium">{new Date(asset?.updated_at).toLocaleDateString()}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Placement</Label>
+                      <p className="font-medium">{asset?.placement || "Not specified"}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Buy Type</Label>
+                      <p className="font-medium">{asset?.buy_types}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Amount</Label>
+                      <p className="font-medium">{asset?.amount ? `$${asset.amount.toLocaleString()}` : "N/A"}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Estimated Impressions</Label>
+                      <p className="font-medium">{asset?.estimated_impressions.toLocaleString()}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Estimated Clicks</Label>
+                      <p className="font-medium">{asset?.estimated_clicks.toLocaleString()}</p>
                     </div>
                   </div>
                 </NeuCard>

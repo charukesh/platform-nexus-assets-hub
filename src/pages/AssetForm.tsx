@@ -85,7 +85,7 @@ const AssetForm: React.FC = () => {
     
     if (id) {
       setIsEdit(true);
-      fetchAssetDetails(id);
+      fetchAsset(id);
     }
   }, [id]);
 
@@ -112,59 +112,61 @@ const AssetForm: React.FC = () => {
     }
   };
 
-  const fetchAssetDetails = async (assetId: string) => {
+  const fetchAsset = async (assetId: string) => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase
+      const { data: assetData, error } = await supabase
         .from("assets")
-        .select("*")
+        .select(`
+          *,
+          platforms:platform_id (
+            name,
+            industry,
+            audience_data,
+            campaign_data,
+            device_split,
+            mau,
+            dau,
+            premium_users,
+            restrictions
+          )
+        `)
         .eq("id", assetId)
         .single();
         
       if (error) throw error;
       
-      if (data) {
-        console.log("Asset data fetched:", data);
-        const estimatedImpressions = typeof data.estimated_impressions === 'number' 
-          ? data.estimated_impressions 
+      if (assetData) {
+        const estimatedImpressions = typeof assetData.estimated_impressions === 'number' 
+          ? assetData.estimated_impressions 
           : 0;
         
-        const estimatedClicks = typeof data.estimated_clicks === 'number' 
-          ? data.estimated_clicks 
+        const estimatedClicks = typeof assetData.estimated_clicks === 'number' 
+          ? assetData.estimated_clicks 
           : 0;
           
-        const amount = typeof data.amount === 'number'
-          ? data.amount
+        const amount = typeof assetData.amount === 'number'
+          ? assetData.amount
           : 0;
         
-        const placement = typeof data.placement === 'string' 
-          ? data.placement 
-          : PLACEMENT_OPTIONS[0];
+        const placement = assetData.placement || PLACEMENT_OPTIONS[0];
         
         setFormData({
-          name: data.name || "",
-          description: data.description || "",
-          category: data.category || "Digital",
-          type: data.type || "Image",
-          platform_id: data.platform_id || "",
-          tags: data.tags || [],
+          name: assetData.name || "",
+          description: assetData.description || "",
+          category: assetData.category || "Digital",
+          type: assetData.type || "Image",
+          platform_id: assetData.platform_id || "",
+          tags: assetData.tags || [],
           tagInput: "",
-          file_url: data.file_url || null,
-          thumbnail_url: data.thumbnail_url || null,
-          file_size: data.file_size || null,
-          buy_types: data.buy_types || 'CPC',
-          amount: amount,
+          file_url: assetData.file_url || null,
+          thumbnail_url: assetData.thumbnail_url || null,
+          file_size: assetData.file_size || null,
+          buy_types: assetData.buy_types || "CPC",
+          amount,
           estimated_impressions: estimatedImpressions,
           estimated_clicks: estimatedClicks,
-          placement: placement
-        });
-        
-        setFiles({
-          file: null,
-          thumbnail: null,
-          filePreview: data.file_url,
-          thumbnailPreview: data.thumbnail_url
+          placement
         });
       }
     } catch (error: any) {
