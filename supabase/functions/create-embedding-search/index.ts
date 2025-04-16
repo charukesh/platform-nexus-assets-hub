@@ -160,13 +160,15 @@ serve(async (req) => {
           
           MARKETING PLAN:
           Asset,Platform,Description,Budget Allocation,Estimated Cost,Estimated Impressions,Estimated Clicks
-          [asset name],[platform name],[brief description],[% of budget],[calculated cost],[estimated impressions],[estimated clicks]
+          [asset name],[platform name],[brief description],[% of budget],[calculated cost],[proportionally adjusted impressions],[proportionally adjusted clicks]
           
           For this plan:
           - Include only the most impactful assets (up to 3)
           - Use the asset's amount field as the base cost
-          - Calculate costs based on budget allocations
+          - Calculate estimated costs based on budget allocations
           - Make sure percentages add up to 100%
+          - IMPORTANT: Adjust the estimated_impressions and estimated_clicks proportionally based on the budget allocation
+            (e.g., if an asset's base cost is 100,000 with 50,000 impressions, and your budget allocation is 200,000, then the adjusted impressions would be 100,000)
           
           3. A brief conclusion with 1-2 specific next steps
           
