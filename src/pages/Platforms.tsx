@@ -112,7 +112,10 @@ const Platforms: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {industries.map((industry) => (
-                    <SelectItem key={industry} value={industry || "uncategorized-industry"}>
+                    <SelectItem 
+                      key={industry} 
+                      value={industry || "uncategorized-industry"}
+                    >
                       {industry || "Uncategorized"}
                     </SelectItem>
                   ))}

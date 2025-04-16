@@ -1,9 +1,10 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { ChevronRight, Users, PieChart } from "lucide-react";
+import { ChevronRight, Users, PieChart, Image as ImageIcon } from "lucide-react";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface PlatformListProps {
   loading: boolean;
@@ -36,17 +37,38 @@ const PlatformList: React.FC<PlatformListProps> = ({
     );
   }
 
+  // Function to get platform initials for avatar fallback
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       {filteredPlatforms.map(platform => (
         <Link key={platform.id} to={`/platforms/${platform.id}`}>
           <NeuCard className="h-full hover:shadow-neu-pressed transition-all cursor-pointer animate-scale-in">
             <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold">{platform.name}</h3>
-                <span className="inline-block text-xs bg-neugray-200 py-0.5 px-2 rounded-full mt-1">
-                  {platform.industry}
-                </span>
+              <div className="flex items-center gap-3">
+                <Avatar className="w-12 h-12 neu-flat">
+                  {platform.logo_url ? (
+                    <AvatarImage src={platform.logo_url} alt={platform.name} />
+                  ) : (
+                    <AvatarFallback className="bg-neugray-200 text-primary font-medium">
+                      {getInitials(platform.name)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-bold">{platform.name}</h3>
+                  <span className="inline-block text-xs bg-neugray-200 py-0.5 px-2 rounded-full mt-1">
+                    {platform.industry || "Uncategorized"}
+                  </span>
+                </div>
               </div>
               <ChevronRight size={18} className="text-muted-foreground" />
             </div>
