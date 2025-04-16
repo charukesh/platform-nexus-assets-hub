@@ -154,8 +154,13 @@ const AssetForm: React.FC = () => {
     }
   };
 
-  const handleChange = (field: string, value: any) => {
+  const handleFieldChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -441,7 +446,7 @@ const AssetForm: React.FC = () => {
                     name="name"
                     placeholder="Enter asset name"
                     value={formData.name}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
                     required
                   />
@@ -514,7 +519,7 @@ const AssetForm: React.FC = () => {
                     name="description"
                     placeholder="Enter asset description"
                     value={formData.description}
-                    onChange={handleChange}
+                    onChange={handleInputChange}
                     className="mt-1.5 min-h-[120px] bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 </div>
@@ -527,7 +532,7 @@ const AssetForm: React.FC = () => {
                       name="tagInput"
                       placeholder="Add tags"
                       value={formData.tagInput}
-                      onChange={handleChange}
+                      onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
                       className="flex-1 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
@@ -568,7 +573,7 @@ const AssetForm: React.FC = () => {
               buyTypes={formData.buy_types}
               estimatedImpressions={formData.estimated_impressions}
               estimatedClicks={formData.estimated_clicks}
-              onChange={handleChange}
+              onChange={handleFieldChange}
             />
           </NeuCard>
           
