@@ -567,59 +567,26 @@ const Dashboard: React.FC = () => {
               </form>
 
               {searchResults.length > 0 && (
-                <div>
+                <div className="space-y-4">
                   <h3 className="text-lg font-medium mb-4">Search Results</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {searchResults.map(asset => (
-                      <Link key={asset.id} to={`/assets/${asset.id}`}>
-                        <NeuCard className="h-full neu-flat hover:shadow-neu-pressed transition-all cursor-pointer">
-                          <div className="w-full h-40 bg-neugray-200 mb-4 rounded-lg overflow-hidden">
-                            {asset.thumbnail_url ? (
-                              <img
-                                src={asset.thumbnail_url}
-                                alt={asset.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-neugray-200">
-                                <FileImage size={48} className="text-neugray-400" />
-                              </div>
-                            )}
+                  {searchResults.map((result: any) => (
+                    <NeuCard key={result.id} className="p-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-lg font-semibold mb-2">{result.name}</h4>
+                          {result.relevance && (
+                            <p className="text-muted-foreground text-sm mb-3">{result.relevance}</p>
+                          )}
+                        </div>
+                        {result.similarity && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Match: </span>
+                            <span className="font-medium">{Math.round(result.similarity * 100)}%</span>
                           </div>
-                          
-                          <div>
-                            <div className="flex items-start justify-between mb-2">
-                              <h3 className="text-lg font-bold line-clamp-1">{asset.name}</h3>
-                              <span className={`text-xs py-1 px-2 rounded-full 
-                                ${asset.category === "Digital" ? "bg-neublue-100 text-neublue-500" : 
-                                  asset.category === "Physical" ? "bg-green-100 text-green-600" : 
-                                  "bg-purple-100 text-purple-600"}`}>
-                                {asset.category}
-                              </span>
-                            </div>
-                            
-                            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
-                              {asset.description || "No description"}
-                            </p>
-                            
-                            {asset.similarity && (
-                              <div className="mt-2">
-                                <p className="text-xs text-muted-foreground">
-                                  Relevance: {Math.round(asset.similarity * 100)}%
-                                </p>
-                                <div className="w-full h-1.5 bg-neugray-200 rounded-full overflow-hidden mt-1">
-                                  <div 
-                                    className="h-full bg-primary rounded-full" 
-                                    style={{ width: `${asset.similarity * 100}%` }}
-                                  ></div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </NeuCard>
-                      </Link>
-                    ))}
-                  </div>
+                        )}
+                      </div>
+                    </NeuCard>
+                  ))}
                 </div>
               )}
 
