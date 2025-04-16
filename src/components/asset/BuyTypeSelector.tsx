@@ -21,7 +21,7 @@ const BuyTypeSelector = ({
     const newBuyTypes = checked 
       ? [...buyTypes, type]
       : buyTypes.filter(t => t !== type);
-    onChange('buyTypes', newBuyTypes);
+    onChange('buy_types', newBuyTypes);
   };
 
   return (
@@ -58,7 +58,7 @@ const BuyTypeSelector = ({
           id="estimated_impressions"
           type="number"
           value={estimatedImpressions}
-          onChange={(e) => onChange('estimatedImpressions', parseInt(e.target.value, 10) || 0)}
+          onChange={(e) => onChange('estimated_impressions', parseInt(e.target.value, 10) || 0)}
           className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
           required
         />
@@ -70,7 +70,7 @@ const BuyTypeSelector = ({
           id="estimated_clicks"
           type="number"
           value={estimatedClicks}
-          onChange={(e) => onChange('estimatedClicks', parseInt(e.target.value, 10) || 0)}
+          onChange={(e) => onChange('estimated_clicks', parseInt(e.target.value, 10) || 0)}
           className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
           required
         />

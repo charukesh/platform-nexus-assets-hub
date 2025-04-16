@@ -120,6 +120,7 @@ const AssetForm: React.FC = () => {
       if (error) throw error;
       
       if (data) {
+        console.log("Asset data fetched:", data);
         setFormData({
           name: data.name || "",
           description: data.description || "",
@@ -131,7 +132,7 @@ const AssetForm: React.FC = () => {
           file_url: data.file_url || null,
           thumbnail_url: data.thumbnail_url || null,
           file_size: data.file_size || null,
-          buy_types: data.buy_types || [],
+          buy_types: data.buy_types || ['CPC'],
           estimated_impressions: data.estimated_impressions || 0,
           estimated_clicks: data.estimated_clicks || 0
         });
@@ -310,7 +311,6 @@ const AssetForm: React.FC = () => {
     try {
       console.log('Generating embeddings for asset:', assetId);
       
-      // Create content string from asset data for embedding
       const content = `${formData.name} ${formData.description || ''} ${formData.category} ${formData.type} ${formData.tags?.join(' ') || ''}`;
       console.log('Content for embedding:', content);
       
@@ -347,7 +347,6 @@ const AssetForm: React.FC = () => {
       let file_url = formData.file_url;
       let thumbnail_url = formData.thumbnail_url;
       
-      // For now, simulate file uploads by using the file previews
       if (files.file) {
         file_url = files.filePreview;
       }
@@ -371,6 +370,8 @@ const AssetForm: React.FC = () => {
         estimated_impressions: formData.estimated_impressions,
         estimated_clicks: formData.estimated_clicks
       };
+      
+      console.log("Saving asset data:", assetData);
       
       let result;
       let assetId;
@@ -398,7 +399,6 @@ const AssetForm: React.FC = () => {
       
       console.log('Asset saved successfully, now generating embeddings');
       
-      // Generate embeddings for the asset - this is a critical step
       if (assetId) {
         await generateEmbeddings(assetId);
       } else {
