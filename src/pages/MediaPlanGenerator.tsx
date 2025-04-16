@@ -3,15 +3,12 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
-import NeuButton from "@/components/NeuButton";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clipboard, Brain, BarChart2, Calendar, Coins, Users, Zap } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Brain } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import MediaPlanInputForm from "@/components/media-plan/MediaPlanInputForm";
+import MediaPlanResults from "@/components/media-plan/MediaPlanResults";
 
 const MediaPlanGenerator: React.FC = () => {
   const { toast } = useToast();
@@ -61,31 +58,22 @@ const MediaPlanGenerator: React.FC = () => {
       setIsGenerating(true);
       setActiveTab("results");
       
-      const response = await fetch(
-        "https://lkenxwnqoazfdoabrpxl.functions.supabase.co/generate-media-plan",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt,
-            advertiserInfo,
-            budget,
-            timeframe,
-            platformsData: includeAllPlatforms ? platforms : [],
-            assetsData: includeAllAssets ? assets : [],
-          }),
-        }
-      );
+      const response = await supabase.functions.invoke("generate-media-plan", {
+        body: {
+          prompt,
+          advertiserInfo,
+          budget,
+          timeframe,
+          platformsData: includeAllPlatforms ? platforms : [],
+          assetsData: includeAllAssets ? assets : [],
+        },
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate media plan");
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to generate media plan");
       }
 
-      const data = await response.json();
-      setMediaPlan(data.mediaPlan);
+      setMediaPlan(response.data.mediaPlan);
       
       toast({
         title: "Success",
@@ -101,21 +89,6 @@ const MediaPlanGenerator: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const renderMarkdown = (content: string) => {
-    if (!content) return null;
-    
-    return <div dangerouslySetInnerHTML={{ __html: 
-      content
-        .replace(/# (.*?)\n/g, '<h1 class="text-2xl font-bold my-3">$1</h1>')
-        .replace(/## (.*?)\n/g, '<h2 class="text-xl font-bold my-2">$1</h2>')
-        .replace(/### (.*?)\n/g, '<h3 class="text-lg font-bold my-2">$1</h3>')
-        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.*?)\*/g, '<em>$1</em>')
-        .replace(/- (.*?)(?:\n|$)/g, '<li>$1</li>')
-        .replace(/\n\n/g, '<br/><br/>')
-    }} />;
   };
 
   return (
@@ -140,107 +113,25 @@ const MediaPlanGenerator: React.FC = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="input" className="mt-6 space-y-6">
-            <NeuCard>
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                <Brain className="text-primary" size={20} />
-                Create Media Plan
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    What are you looking for?
-                  </label>
-                  <Textarea
-                    placeholder="e.g., Create a media plan for a new fitness app launch targeting young professionals in urban areas"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="h-24"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Advertiser Information (Optional)
-                  </label>
-                  <Textarea
-                    placeholder="e.g., FitLife Pro is a premium fitness app offering personalized workout plans and nutrition guidance"
-                    value={advertiserInfo}
-                    onChange={(e) => setAdvertiserInfo(e.target.value)}
-                    className="h-16"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Budget (Optional)
-                    </label>
-                    <Input
-                      placeholder="e.g., $50,000"
-                      value={budget}
-                      onChange={(e) => setBudget(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">
-                      Timeframe (Optional)
-                    </label>
-                    <Input
-                      placeholder="e.g., Q3 2025 (3 months)"
-                      value={timeframe}
-                      onChange={(e) => setTimeframe(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="border rounded-md p-4 bg-neugray-50">
-                  <h3 className="font-medium mb-3">Data Options</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Include Platform Data</p>
-                        <p className="text-sm text-muted-foreground">
-                          Use data from {platforms.length} platform{platforms.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <Switch
-                        checked={includeAllPlatforms}
-                        onCheckedChange={setIncludeAllPlatforms}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Include Asset Data</p>
-                        <p className="text-sm text-muted-foreground">
-                          Use data from {assets.length} asset{assets.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <Switch
-                        checked={includeAllAssets}
-                        onCheckedChange={setIncludeAllAssets}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <NeuButton
-                  onClick={generateMediaPlan}
-                  disabled={isGenerating || !prompt}
-                  className="w-full"
-                >
-                  {isGenerating ? (
-                    <>
-                      <span className="animate-spin mr-2">⟳</span>
-                      Generating Media Plan...
-                    </>
-                  ) : (
-                    <>Generate Media Plan</>
-                  )}
-                </NeuButton>
-              </div>
-            </NeuCard>
+          <TabsContent value="input" className="mt-6">
+            <MediaPlanInputForm
+              prompt={prompt}
+              setPrompt={setPrompt}
+              advertiserInfo={advertiserInfo}
+              setAdvertiserInfo={setAdvertiserInfo}
+              budget={budget}
+              setBudget={setBudget}
+              timeframe={timeframe}
+              setTimeframe={setTimeframe}
+              includeAllPlatforms={includeAllPlatforms}
+              setIncludeAllPlatforms={setIncludeAllPlatforms}
+              includeAllAssets={includeAllAssets}
+              setIncludeAllAssets={setIncludeAllAssets}
+              onGenerateClick={generateMediaPlan}
+              isGenerating={isGenerating}
+              platforms={platforms}
+              assets={assets}
+            />
           </TabsContent>
 
           <TabsContent value="results" className="mt-6">
@@ -255,73 +146,18 @@ const MediaPlanGenerator: React.FC = () => {
                 </div>
               </NeuCard>
             ) : mediaPlan ? (
-              <div className="space-y-6">
-                <NeuCard>
-                  <div className="flex items-center gap-3 mb-4">
-                    <Clipboard className="text-primary" size={24} />
-                    <h2 className="text-xl font-bold">Executive Summary</h2>
-                  </div>
-                  {renderMarkdown(mediaPlan.executiveSummary)}
-                </NeuCard>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <NeuCard>
-                    <div className="flex items-center gap-3 mb-4">
-                      <Users className="text-primary" size={24} />
-                      <h2 className="text-xl font-bold">Target Audience Analysis</h2>
-                    </div>
-                    {renderMarkdown(mediaPlan.targetAudienceAnalysis)}
-                  </NeuCard>
-
-                  <NeuCard>
-                    <div className="flex items-center gap-3 mb-4">
-                      <BarChart2 className="text-primary" size={24} />
-                      <h2 className="text-xl font-bold">Platform Selection & Rationale</h2>
-                    </div>
-                    {renderMarkdown(mediaPlan.platformSelectionRationale)}
-                  </NeuCard>
-
-                  <NeuCard>
-                    <div className="flex items-center gap-3 mb-4">
-                      <Coins className="text-primary" size={24} />
-                      <h2 className="text-xl font-bold">Budget Allocation</h2>
-                    </div>
-                    {renderMarkdown(mediaPlan.budgetAllocation)}
-                  </NeuCard>
-
-                  <NeuCard>
-                    <div className="flex items-center gap-3 mb-4">
-                      <Calendar className="text-primary" size={24} />
-                      <h2 className="text-xl font-bold">Asset Utilization Strategy</h2>
-                    </div>
-                    {renderMarkdown(mediaPlan.assetUtilizationStrategy)}
-                  </NeuCard>
-                </div>
-
-                <NeuCard>
-                  <div className="flex items-center gap-3 mb-4">
-                    <Zap className="text-primary" size={24} />
-                    <h2 className="text-xl font-bold">Expected KPIs & Measurement</h2>
-                  </div>
-                  {renderMarkdown(mediaPlan.measurementStrategy)}
-                </NeuCard>
-
-                <div className="flex justify-between mt-8">
-                  <NeuButton variant="outline" onClick={() => setActiveTab("input")}>
-                    Edit Request
-                  </NeuButton>
-                  <NeuButton onClick={() => {
-                    setPrompt("");
-                    setAdvertiserInfo("");
-                    setBudget("");
-                    setTimeframe("");
-                    setMediaPlan(null);
-                    setActiveTab("input");
-                  }}>
-                    Start New Plan
-                  </NeuButton>
-                </div>
-              </div>
+              <MediaPlanResults
+                mediaPlan={mediaPlan}
+                onEditRequest={() => setActiveTab("input")}
+                onStartNew={() => {
+                  setPrompt("");
+                  setAdvertiserInfo("");
+                  setBudget("");
+                  setTimeframe("");
+                  setMediaPlan(null);
+                  setActiveTab("input");
+                }}
+              />
             ) : (
               <NeuCard className="py-10 text-center">
                 <p className="text-lg font-medium mb-4">No Media Plan Generated Yet</p>
