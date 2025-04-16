@@ -23,6 +23,13 @@ pop3_port = 54326
 [storage]
 file_size_limit = "50MiB"
 
+# Define storage buckets
+[[storage.buckets]]
+name = "platform-logos"
+public = true
+file_size_limit = "5MB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"]
+
 [auth]
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://localhost:3000"]

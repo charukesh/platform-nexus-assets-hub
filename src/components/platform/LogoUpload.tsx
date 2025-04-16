@@ -37,14 +37,40 @@ const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) =
         throw new Error('Please upload an image file');
       }
 
+      // Create the bucket if it doesn't exist
+      try {
+        const { data: bucketData, error: bucketError } = await supabase.storage.getBucket('platform-logos');
+        
+        if (bucketError && bucketError.message.includes('does not exist')) {
+          const { error: createError } = await supabase.storage.createBucket('platform-logos', {
+            public: true,
+            fileSizeLimit: 5 * 1024 * 1024, // 5MB
+            allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
+          });
+          
+          if (createError) {
+            console.error('Error creating bucket:', createError);
+            throw createError;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking bucket:', error);
+      }
+
+      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from('platform-logos')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
 
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
 
+      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('platform-logos')
         .getPublicUrl(filePath);
@@ -57,9 +83,10 @@ const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) =
       });
 
     } catch (error: any) {
+      console.error('Full upload error:', error);
       toast({
         title: "Error uploading logo",
-        description: error.message,
+        description: error.message || "Failed to upload logo",
         variant: "destructive"
       });
     } finally {

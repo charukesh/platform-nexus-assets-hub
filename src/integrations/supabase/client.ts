@@ -12,13 +12,29 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 // Initialize and check storage buckets once at startup to avoid runtime errors
-// This function is isolated and doesn't attempt to modify any config files
 const initializeStorage = async () => {
   try {
-    // Check if the assets bucket exists, but don't try to create it here
-    // This is just for diagnostics
-    const { data } = await supabase.storage.getBucket('assets');
-    if (!data) {
+    // Check if the platform-logos bucket exists, create if not
+    const { data: platformLogosData, error: platformLogosError } = await supabase.storage.getBucket('platform-logos');
+    
+    if (platformLogosError && platformLogosError.message.includes('does not exist')) {
+      console.log('Creating platform-logos bucket...');
+      const { error } = await supabase.storage.createBucket('platform-logos', {
+        public: true,
+        fileSizeLimit: 5 * 1024 * 1024, // 5MB
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
+      });
+      
+      if (error) {
+        console.error('Error creating platform-logos bucket:', error);
+      } else {
+        console.log('Successfully created platform-logos bucket');
+      }
+    }
+
+    // Check if the assets bucket exists
+    const { data: assetsData, error: assetsError } = await supabase.storage.getBucket('assets');
+    if (assetsError && assetsError.message.includes('does not exist')) {
       console.log('Assets bucket not found. Please create it in the Supabase dashboard.');
     }
   } catch (error) {
