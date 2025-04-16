@@ -48,7 +48,16 @@ const AssetsManagement: React.FC = () => {
             category = asset.category;
           }
           
-          return { ...asset, category } as Asset;
+          let buyTypes = asset.buy_types;
+          if (Array.isArray(buyTypes)) {
+            buyTypes = buyTypes.length > 0 ? buyTypes[0] : 'CPC';
+          }
+          
+          return { 
+            ...asset, 
+            category,
+            buy_types: buyTypes
+          } as Asset;
         });
         
         setAssets(validatedAssets);

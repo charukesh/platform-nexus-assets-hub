@@ -11,7 +11,8 @@ export type Database = {
     Tables: {
       assets: {
         Row: {
-          buy_types: string[]
+          amount: number | null
+          buy_types: string
           category: string
           created_at: string | null
           description: string | null
@@ -30,7 +31,8 @@ export type Database = {
           uploaded_by: string | null
         }
         Insert: {
-          buy_types?: string[]
+          amount?: number | null
+          buy_types?: string
           category: string
           created_at?: string | null
           description?: string | null
@@ -49,7 +51,8 @@ export type Database = {
           uploaded_by?: string | null
         }
         Update: {
-          buy_types?: string[]
+          amount?: number | null
+          buy_types?: string
           category?: string
           created_at?: string | null
           description?: string | null
@@ -145,15 +148,21 @@ export type Database = {
           file_url: string
           type: string
           tags: string[]
+          buy_types: string[]
+          estimated_clicks: number
+          estimated_impressions: number
           platform_id: string
           platform_name: string
           platform_industry: string
+          platform_audience_data: Json
+          platform_campaign_data: Json
+          platform_device_split: Json
+          platform_mau: string
+          platform_dau: string
+          platform_premium_users: number
+          platform_restrictions: Json
           similarity: number
         }[]
-      }
-      validate_buy_types: {
-        Args: { buy_types: string[] }
-        Returns: boolean
       }
     }
     Enums: {

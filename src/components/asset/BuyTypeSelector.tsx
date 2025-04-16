@@ -2,60 +2,63 @@
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface BuyTypeSelectorProps {
-  buyTypes: string[];
+  buyType: string;
+  amount: number;
   estimatedImpressions: number;
   estimatedClicks: number;
   onChange: (field: string, value: any) => void;
 }
 
 const BuyTypeSelector = ({
-  buyTypes,
+  buyType,
+  amount,
   estimatedImpressions,
   estimatedClicks,
   onChange
 }: BuyTypeSelectorProps) => {
-  const handleBuyTypeChange = (type: string, checked: boolean) => {
-    const newBuyTypes = checked 
-      ? [...buyTypes, type]
-      : buyTypes.filter(t => t !== type);
-    onChange('buy_types', newBuyTypes);
-  };
-
   const handleNumericChange = (field: string, value: string) => {
     // Parse the input value as a number, ensuring we don't pass NaN
-    const numericValue = value === '' ? 0 : parseInt(value, 10);
+    const numericValue = value === '' ? 0 : parseFloat(value);
     onChange(field, isNaN(numericValue) ? 0 : numericValue);
   };
 
   return (
     <div className="space-y-4">
       <div>
-        <Label>Buy Types*</Label>
-        <div className="mt-2 flex gap-4">
+        <Label>Buy Type*</Label>
+        <RadioGroup 
+          value={buyType} 
+          onValueChange={(value) => onChange('buy_types', value)}
+          className="mt-2 flex gap-4"
+        >
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="cpc"
-              checked={buyTypes.includes('CPC')}
-              onCheckedChange={(checked) => handleBuyTypeChange('CPC', checked as boolean)}
-            />
+            <RadioGroupItem value="CPC" id="cpc" />
             <label htmlFor="cpc" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               CPC
             </label>
           </div>
           <div className="flex items-center space-x-2">
-            <Checkbox
-              id="cpm"
-              checked={buyTypes.includes('CPM')}
-              onCheckedChange={(checked) => handleBuyTypeChange('CPM', checked as boolean)}
-            />
+            <RadioGroupItem value="CPM" id="cpm" />
             <label htmlFor="cpm" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               CPM
             </label>
           </div>
-        </div>
+        </RadioGroup>
+      </div>
+
+      <div>
+        <Label htmlFor="amount">Amount*</Label>
+        <Input
+          id="amount"
+          type="number"
+          value={amount}
+          onChange={(e) => handleNumericChange('amount', e.target.value)}
+          className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+          required
+        />
       </div>
 
       <div>

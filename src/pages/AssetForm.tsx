@@ -31,7 +31,8 @@ interface FormData {
   file_url: string | null;
   thumbnail_url: string | null;
   file_size: string | null;
-  buy_types: string[];
+  buy_types: string;
+  amount: number;
   estimated_impressions: number;
   estimated_clicks: number;
 }
@@ -58,7 +59,8 @@ const AssetForm: React.FC = () => {
     file_url: "" as string | null,
     thumbnail_url: "" as string | null,
     file_size: "" as string | null,
-    buy_types: ['CPC'],
+    buy_types: 'CPC',
+    amount: 0,
     estimated_impressions: 0,
     estimated_clicks: 0
   });
@@ -128,6 +130,10 @@ const AssetForm: React.FC = () => {
         const estimatedClicks = typeof data.estimated_clicks === 'number' 
           ? data.estimated_clicks 
           : 0;
+          
+        const amount = typeof data.amount === 'number'
+          ? data.amount
+          : 0;
         
         setFormData({
           name: data.name || "",
@@ -140,13 +146,11 @@ const AssetForm: React.FC = () => {
           file_url: data.file_url || null,
           thumbnail_url: data.thumbnail_url || null,
           file_size: data.file_size || null,
-          buy_types: data.buy_types || ['CPC'],
+          buy_types: data.buy_types || 'CPC',
+          amount: amount,
           estimated_impressions: estimatedImpressions,
           estimated_clicks: estimatedClicks
         });
-        
-        console.log("Setting estimated impressions:", estimatedImpressions);
-        console.log("Setting estimated clicks:", estimatedClicks);
         
         setFiles({
           file: null,
@@ -379,6 +383,7 @@ const AssetForm: React.FC = () => {
         file_size: formData.file_size,
         updated_at: new Date().toISOString(),
         buy_types: formData.buy_types,
+        amount: formData.amount,
         estimated_impressions: formData.estimated_impressions,
         estimated_clicks: formData.estimated_clicks
       };
@@ -582,7 +587,8 @@ const AssetForm: React.FC = () => {
           <NeuCard>
             <h2 className="text-xl font-bold mb-4">Buy Type Information</h2>
             <BuyTypeSelector
-              buyTypes={formData.buy_types}
+              buyType={formData.buy_types}
+              amount={formData.amount}
               estimatedImpressions={formData.estimated_impressions}
               estimatedClicks={formData.estimated_clicks}
               onChange={handleFieldChange}

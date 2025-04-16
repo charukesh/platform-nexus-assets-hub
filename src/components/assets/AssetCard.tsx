@@ -43,14 +43,10 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
           
           <div className="space-y-2 mb-3">
             <div className="flex items-center gap-2 text-xs">
-              <span className="font-medium">Buy Types:</span>
-              <div className="flex gap-1">
-                {asset.buy_types.map((type: string, idx: number) => (
-                  <span key={idx} className="bg-neugray-200 px-1.5 py-0.5 rounded">
-                    {type}
-                  </span>
-                ))}
-              </div>
+              <span className="font-medium">Buy Type:</span>
+              <span className="bg-neugray-200 px-1.5 py-0.5 rounded">
+                {asset.buy_types}
+              </span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-neugray-100 p-2 rounded">
