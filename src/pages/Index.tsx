@@ -197,7 +197,7 @@ const Dashboard: React.FC = () => {
             <TabsTrigger value="ai" className="data-[state=active]:neu-pressed">
               <span className="flex items-center gap-1">
                 <Sparkles size={14} />
-                AI Search
+                AI Response
               </span>
             </TabsTrigger>
           </TabsList>
@@ -526,10 +526,10 @@ const Dashboard: React.FC = () => {
             <NeuCard className="mb-8">
               <div className="flex items-center gap-3 mb-4">
                 <Bot className="text-primary" size={24} />
-                <h2 className="text-xl font-bold">AI Asset Search</h2>
+                <h2 className="text-xl font-bold">AI Response</h2>
               </div>
               <p className="text-muted-foreground mb-4">
-                Enter a description or brief of what you're looking for, and our AI will find the most relevant assets.
+                Enter your query and get an AI-powered response.
               </p>
               
               <form onSubmit={handleSearchSubmit} className="mb-6">
@@ -537,7 +537,7 @@ const Dashboard: React.FC = () => {
                   <div className="flex-1">
                     <NeuInput
                       as="textarea"
-                      placeholder="Describe what you're looking for in detail..."
+                      placeholder="Enter your query..."
                       value={searchBrief}
                       onChange={(e) => setSearchBrief(e.target.value)}
                       className="w-full"
@@ -553,12 +553,12 @@ const Dashboard: React.FC = () => {
                       {searchLoading ? (
                         <span className="flex items-center gap-2">
                           <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                          Searching...
+                          Processing...
                         </span>
                       ) : (
                         <span className="flex items-center gap-2">
                           <Search size={16} />
-                          Search Assets
+                          Get Response
                         </span>
                       )}
                     </NeuButton>
@@ -568,25 +568,18 @@ const Dashboard: React.FC = () => {
 
               {searchResults.length > 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-medium mb-4">Search Results</h3>
-                  {searchResults.map((result: any) => (
-                    <NeuCard key={result.id} className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-lg font-semibold mb-2">{result.name}</h4>
-                          {result.relevance && (
-                            <p className="text-muted-foreground text-sm mb-3">{result.relevance}</p>
-                          )}
-                        </div>
-                        {result.similarity && (
-                          <div className="text-sm">
-                            <span className="text-muted-foreground">Match: </span>
-                            <span className="font-medium">{Math.round(result.similarity * 100)}%</span>
-                          </div>
-                        )}
-                      </div>
-                    </NeuCard>
-                  ))}
+                  <div className="font-mono bg-neugray-100 p-4 rounded-lg whitespace-pre-wrap">
+                    {searchResults.map((result: any) => (
+                      `${result.name}
+
+${result.relevance}
+
+Match: ${Math.round(result.similarity * 100)}%
+
+-------------------
+`
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -594,10 +587,10 @@ const Dashboard: React.FC = () => {
                 <div className="text-center py-8">
                   <div className="text-muted-foreground mb-4">
                     <Search size={48} className="mx-auto mb-2 opacity-40" />
-                    <p>No matching assets found for your search.</p>
+                    <p>No response found for your query.</p>
                   </div>
                   <NeuButton variant="outline" onClick={() => setSearchBrief('')}>
-                    Clear search and try again
+                    Clear query and try again
                   </NeuButton>
                 </div>
               )}
