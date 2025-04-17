@@ -56,8 +56,8 @@ serve(async (req) => {
 
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = 10; // Default to top 10 assets (increased)
-    const matchThreshold = 0.1; // Reduced threshold to 0.1 (10%)
+    const matchCount = requestData.matchCount || 10; // Default to top 10 assets (increased)
+    const matchThreshold = requestData.matchThreshold || 0.1; // Reduced threshold to 0.1 (10%)
 
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
@@ -158,6 +158,8 @@ serve(async (req) => {
             `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): Buy type: ${asset.buy_types}, Cost: ${asset.amount}, Est. impressions: ${asset.estimated_impressions}, Est. clicks: ${asset.estimated_clicks}`
           ).join('\n')}
           
+          IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
+          
           Please:
           1. First, carefully analyze the query "${queryText}" to identify:
              - Budget requirements
@@ -170,11 +172,12 @@ serve(async (req) => {
           
           3. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset)
           
-          4. Marketing plan as:
+          4. Marketing plan as a properly formatted table:
           
           MARKETING PLAN:
-          Asset,Platform,Platform Industry,Buy Type,Budget %,Cost,Adj. Impressions,Adj. Clicks
-          [name],[platform_name],[platform_industry],[buy_types],[%],[exact cost amount],[proportional impressions],[proportional clicks]
+          | Asset | Platform | Platform Industry | Buy Type | Budget % | Cost | Adj. Impressions | Adj. Clicks |
+          |-------|----------|-------------------|----------|----------|------|------------------|-------------|
+          | [name] | [platform_name] | [platform_industry] | [buy_types] | [%] | [exact cost amount] | [proportional impressions] | [proportional clicks] |
           
           Rules:
           - Use the budget specified in the query (default is 5-8 lakhs if not specified)
@@ -219,6 +222,7 @@ When a user provides a query:
    - Industry filters ("only QSR industry")
    - Budget allocation instructions ("split equally", "70% to Facebook")
 2. Pay attention to the buy type for each asset (from buy_types field) as this is important for the marketing plan.
+3. ALWAYS present the marketing plan as a properly formatted markdown table with headings, alignment, and proper cell formatting.
 
 Important:
 - If the user requests more assets or platforms than you found, clearly state this limitation
