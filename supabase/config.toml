@@ -35,8 +35,6 @@ site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
 enable_signup = true
-double_confirm_changes = true
-enable_confirmations = false
 
 [auth.email]
 enable_signup = true
@@ -47,7 +45,7 @@ enable_signup = true
 enable_confirmations = false
 
 [functions]
-port = 54328
+verify_jwt = true
 
 [functions.generate-embeddings]
 verify_jwt = false
