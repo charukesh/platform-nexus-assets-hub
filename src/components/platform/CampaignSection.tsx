@@ -65,6 +65,15 @@ export const CampaignSection = ({
       : campaignData.special_innovations;
   };
 
+  const getGeographyPresenceValue = () => {
+    if (!campaignData.geography_presence) return '';
+    return typeof campaignData.geography_presence === 'string'
+      ? campaignData.geography_presence
+      : Array.isArray(campaignData.geography_presence)
+        ? campaignData.geography_presence.join(", ")
+        : '';
+  };
+
   return (
     <NeuCard>
       <h2 className="text-xl font-semibold mb-4">Campaign Settings</h2>
@@ -149,7 +158,7 @@ export const CampaignSection = ({
           <Label>Geography Presence</Label>
           <CommaSeparatedInput 
             placeholder="Enter geography (e.g., India, South Asia, Global)"
-            value={campaignData.geography_presence || ''}
+            value={getGeographyPresenceValue()}
             onChange={(value) => onCampaignDataChange("geography_presence", value)}
           />
         </div>

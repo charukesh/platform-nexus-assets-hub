@@ -14,6 +14,13 @@ export const TargetingSection = ({
   audienceData,
   onAudienceDataChange,
 }: TargetingSectionProps) => {
+  // Helper function to convert arrays to comma-separated strings
+  const getStringFromArray = (value: string[] | string | undefined): string => {
+    if (!value) return '';
+    if (Array.isArray(value)) return value.join(', ');
+    return value;
+  };
+
   return (
     <NeuCard>
       <h2 className="text-xl font-semibold mb-4">Targeting Options</h2>
@@ -32,7 +39,7 @@ export const TargetingSection = ({
           {audienceData.age_targeting_available && (
             <CommaSeparatedInput
               placeholder="Enter age ranges (e.g., 18-24, 25-34)"
-              value={audienceData.age_targeting_values || ''}
+              value={getStringFromArray(audienceData.age_targeting_values)}
               onChange={(value) => onAudienceDataChange("age_targeting_values", value)}
             />
           )}
@@ -52,7 +59,7 @@ export const TargetingSection = ({
           {audienceData.gender_targeting_available && (
             <CommaSeparatedInput
               placeholder="Enter gender options (e.g., Male, Female, Non-binary)"
-              value={audienceData.gender_targeting_values || ''}
+              value={getStringFromArray(audienceData.gender_targeting_values)}
               onChange={(value) => onAudienceDataChange("gender_targeting_values", value)}
             />
           )}
@@ -72,7 +79,7 @@ export const TargetingSection = ({
           {audienceData.state_level_targeting && (
             <CommaSeparatedInput
               placeholder="Enter states (e.g., Maharashtra, Karnataka, Tamil Nadu)"
-              value={audienceData.state_targeting_values || ''}
+              value={getStringFromArray(audienceData.state_targeting_values)}
               onChange={(value) => onAudienceDataChange("state_targeting_values", value)}
             />
           )}
@@ -92,7 +99,7 @@ export const TargetingSection = ({
           {audienceData.city_level_targeting && (
             <CommaSeparatedInput
               placeholder="Enter cities (e.g., Mumbai, Bangalore, Delhi)"
-              value={audienceData.city_targeting_values || ''}
+              value={getStringFromArray(audienceData.city_targeting_values)}
               onChange={(value) => onAudienceDataChange("city_targeting_values", value)}
             />
           )}
@@ -112,7 +119,7 @@ export const TargetingSection = ({
           {audienceData.pincode_level_targeting && (
             <CommaSeparatedInput
               placeholder="Enter pincodes (e.g., 400001, 560001, 110001)"
-              value={audienceData.pincode_targeting_values || ''}
+              value={getStringFromArray(audienceData.pincode_targeting_values)}
               onChange={(value) => onAudienceDataChange("pincode_targeting_values", value)}
             />
           )}
