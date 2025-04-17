@@ -46,7 +46,6 @@ enable_confirmations = false
 
 # Define function settings
 [functions]
-# Default setting for all functions
 verify_jwt = true
 
 # Individual function settings
