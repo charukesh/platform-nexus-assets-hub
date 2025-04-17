@@ -15,7 +15,11 @@ export const useEmbeddingSearch = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('create-embedding-search', {
-        body: { query }
+        body: { 
+          query,
+          // Send the original query text for potential full-text search
+          text: query
+        }
       });
 
       if (error) throw error;

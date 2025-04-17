@@ -149,11 +149,18 @@ export type Database = {
         Returns: unknown
       }
       match_assets_by_embedding_only: {
-        Args: {
-          query_embedding: string
-          match_threshold: number
-          match_count: number
-        }
+        Args:
+          | {
+              query_embedding: string
+              match_threshold: number
+              match_count: number
+            }
+          | {
+              query_embedding: string
+              query_text: string
+              match_threshold: number
+              match_count: number
+            }
         Returns: {
           id: string
           name: string
