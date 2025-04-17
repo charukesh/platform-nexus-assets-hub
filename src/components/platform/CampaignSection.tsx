@@ -13,6 +13,7 @@ import NeuInput from "@/components/NeuInput";
 import { Switch } from "@/components/ui/switch";
 import NeuCard from "@/components/NeuCard";
 import { CampaignData } from "@/types/platform";
+import CommaSeparatedInput from "@/components/CommaSeparatedInput";
 
 interface CampaignSectionProps {
   campaignData: CampaignData;
@@ -96,12 +97,49 @@ export const CampaignSection = ({
         </div>
 
         <div>
+          <Label>Ad Formats</Label>
+          <CommaSeparatedInput 
+            placeholder="Enter ad formats (e.g., Banner, Video, Interstitial)"
+            value={Array.isArray(campaignData.ad_formats) 
+              ? campaignData.ad_formats.join(", ") 
+              : campaignData.ad_formats || ''}
+            onChange={(value) => {
+              const formatsArray = value ? value.split(",").map(v => v.trim()).filter(Boolean) : [];
+              onCampaignDataChange("ad_formats", formatsArray);
+            }}
+          />
+        </div>
+
+        <div>
+          <Label>Special Innovations</Label>
+          <CommaSeparatedInput 
+            placeholder="Enter special innovations (e.g., AR, Interactive ads)"
+            value={Array.isArray(campaignData.special_innovations) 
+              ? campaignData.special_innovations.join(", ") 
+              : campaignData.special_innovations || ''}
+            onChange={(value) => {
+              const innovationsArray = value ? value.split(",").map(v => v.trim()).filter(Boolean) : [];
+              onCampaignDataChange("special_innovations", innovationsArray);
+            }}
+          />
+        </div>
+
+        <div>
           <Label>Minimum Campaign Spend (INR)</Label>
           <NeuInput
             type="number"
             placeholder="e.g., 500000"
             value={campaignData.minimum_spend || ""}
             onChange={(e) => onCampaignDataChange("minimum_spend", e.target.value ? parseInt(e.target.value) : null)}
+          />
+        </div>
+
+        <div>
+          <Label>Geography Presence</Label>
+          <CommaSeparatedInput 
+            placeholder="Enter geography (e.g., India, South Asia, Global)"
+            value={campaignData.geography_presence || ''}
+            onChange={(value) => onCampaignDataChange("geography_presence", value)}
           />
         </div>
 

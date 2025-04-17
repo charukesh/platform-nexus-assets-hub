@@ -1,9 +1,9 @@
 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import NeuInput from "@/components/NeuInput";
 import NeuCard from "@/components/NeuCard";
 import { AudienceData } from "@/types/platform";
+import CommaSeparatedInput from "@/components/CommaSeparatedInput";
 
 interface TargetingSectionProps {
   audienceData: AudienceData;
@@ -30,10 +30,10 @@ export const TargetingSection = ({
             <Label htmlFor="age-targeting">Age Targeting Available</Label>
           </div>
           {audienceData.age_targeting_available && (
-            <NeuInput
-              placeholder="Enter age ranges (comma-separated)"
+            <CommaSeparatedInput
+              placeholder="Enter age ranges (e.g., 18-24, 25-34)"
               value={audienceData.age_targeting_values || ''}
-              onChange={(e) => onAudienceDataChange("age_targeting_values", e.target.value)}
+              onChange={(value) => onAudienceDataChange("age_targeting_values", value)}
             />
           )}
         </div>
@@ -50,10 +50,10 @@ export const TargetingSection = ({
             <Label htmlFor="gender-targeting">Gender Targeting Available</Label>
           </div>
           {audienceData.gender_targeting_available && (
-            <NeuInput
-              placeholder="Enter gender options (comma-separated)"
+            <CommaSeparatedInput
+              placeholder="Enter gender options (e.g., Male, Female, Non-binary)"
               value={audienceData.gender_targeting_values || ''}
-              onChange={(e) => onAudienceDataChange("gender_targeting_values", e.target.value)}
+              onChange={(value) => onAudienceDataChange("gender_targeting_values", value)}
             />
           )}
         </div>
@@ -70,10 +70,10 @@ export const TargetingSection = ({
             <Label htmlFor="state-targeting">State-Level Targeting</Label>
           </div>
           {audienceData.state_level_targeting && (
-            <NeuInput
-              placeholder="Enter states (comma-separated)"
+            <CommaSeparatedInput
+              placeholder="Enter states (e.g., Maharashtra, Karnataka, Tamil Nadu)"
               value={audienceData.state_targeting_values || ''}
-              onChange={(e) => onAudienceDataChange("state_targeting_values", e.target.value)}
+              onChange={(value) => onAudienceDataChange("state_targeting_values", value)}
             />
           )}
         </div>
@@ -90,10 +90,10 @@ export const TargetingSection = ({
             <Label htmlFor="city-targeting">City-Level Targeting</Label>
           </div>
           {audienceData.city_level_targeting && (
-            <NeuInput
-              placeholder="Enter cities (comma-separated)"
+            <CommaSeparatedInput
+              placeholder="Enter cities (e.g., Mumbai, Bangalore, Delhi)"
               value={audienceData.city_targeting_values || ''}
-              onChange={(e) => onAudienceDataChange("city_targeting_values", e.target.value)}
+              onChange={(value) => onAudienceDataChange("city_targeting_values", value)}
             />
           )}
         </div>
@@ -110,10 +110,10 @@ export const TargetingSection = ({
             <Label htmlFor="pincode-targeting">Pincode-Level Targeting</Label>
           </div>
           {audienceData.pincode_level_targeting && (
-            <NeuInput
-              placeholder="Enter pincodes (comma-separated)"
+            <CommaSeparatedInput
+              placeholder="Enter pincodes (e.g., 400001, 560001, 110001)"
               value={audienceData.pincode_targeting_values || ''}
-              onChange={(e) => onAudienceDataChange("pincode_targeting_values", e.target.value)}
+              onChange={(value) => onAudienceDataChange("pincode_targeting_values", value)}
             />
           )}
         </div>
