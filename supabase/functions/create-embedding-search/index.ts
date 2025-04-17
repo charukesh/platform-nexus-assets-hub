@@ -54,11 +54,11 @@ serve(async (req)=>{
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
     // Parse the query to extract core search terms and requirements
-    // const queryInfo = parseMarketingQuery(queryText);
+    const queryInfo = parseMarketingQuery(queryText);
     console.log('Parsed query info:', queryInfo);
     // Use core search terms for embedding to improve search relevance
     // If no core terms could be extracted, fall back to the original query
-    const searchText = queryText;
+    const searchText = queryInfo.coreSearchTerms && queryInfo.coreSearchTerms.trim() !== '' ? queryInfo.coreSearchTerms : "";
     console.log('Original query:', queryText);
     console.log('Using search terms for embedding:', searchText);
     // Azure OpenAI setup for embeddings and endpoint
