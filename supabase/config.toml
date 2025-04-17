@@ -54,3 +54,6 @@ verify_jwt = false
 
 [functions.create-embedding-search]
 verify_jwt = false
+
+[functions.regenerate-embeddings]
+verify_jwt = false
