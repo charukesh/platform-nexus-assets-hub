@@ -174,6 +174,11 @@ serve(async (req) => {
              - Budget allocation preferences (e.g., "split equally")
              - Specific platforms to include (e.g., "include Facebook and Instagram")
              - Any other filtering criteria for rows (e.g., "only CPC buy type", "only video assets")
+             - Targeting requirements:
+                * Geographic targeting (e.g., "people from Mumbai", "users in Delhi")
+                * Demographic targeting (e.g., "18-24 year olds", "women", "young adults")
+                * Interest-based targeting (e.g., "travelers", "food enthusiasts", "gamers")
+                * Behavioral targeting (e.g., "frequent shoppers", "new customers")
           
           2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
           
@@ -192,6 +197,10 @@ serve(async (req) => {
           - If specific industry filtering is requested, ONLY include assets from that industry
           - If specific platforms are mentioned to include, prioritize those platforms
           - If specific buy types, asset categories, or other criteria are mentioned, filter accordingly
+          - PRIORITIZE assets with targeting options that match query requirements (location, age, interests, etc.)
+          - Match geographic targeting mentioned in query (cities, states) with appropriate platforms
+          - Match demographic targeting mentioned in query (age groups, gender) with suitable assets
+          - Match interest or behavioral targeting in query with relevant assets
           - If you don't have enough assets or platforms, use what you have and explain the limitation
           - If query mentions budget allocation like "split equally", follow this precisely
           - Use amount as base cost
@@ -235,9 +244,14 @@ When a user provides a query:
    - Targeting options ("only assets with youth targeting")
    - Placement specifications ("only top banner placements")
    - Budget allocation instructions ("split equally", "70% to Facebook")
+   - Geographic targeting in the query ("people from Mumbai", "Delhi users")
+   - Demographic targeting in the query ("18-24 year olds", "women", "young professionals")
+   - Interest-based targeting in the query ("travelers", "food lovers", "tech enthusiasts")
+   - Behavioral targeting in the query ("frequent shoppers", "new customers")
 2. Pay attention to all available asset properties (targeting_options, audience_data, placement, tags, etc.)
 3. ALWAYS present the marketing plan as a properly formatted markdown table with headings, alignment, and proper cell formatting.
-4. When users request specific targeting or audience requirements, prioritize assets that match those criteria.
+4. When users mention specific geographic locations, demographics, interests, or behaviors, prioritize assets with targeting capabilities that match these requirements.
+5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
 
 Important:
 - If the user requests more assets or platforms than you found, clearly state this limitation
