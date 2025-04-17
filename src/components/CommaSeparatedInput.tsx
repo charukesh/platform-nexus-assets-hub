@@ -1,5 +1,5 @@
 
-import React, { useState, KeyboardEvent } from "react";
+import React, { useState, useEffect, KeyboardEvent } from "react";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import NeuInput from "@/components/NeuInput";
@@ -21,6 +21,15 @@ const CommaSeparatedInput: React.FC<CommaSeparatedInputProps> = ({
   const [valueArray, setValueArray] = useState<string[]>(
     value ? value.split(",").map(item => item.trim()).filter(Boolean) : []
   );
+
+  // Update the internal array whenever the external value changes
+  useEffect(() => {
+    if (value !== valueArray.join(", ")) {
+      setValueArray(
+        value ? value.split(",").map(item => item.trim()).filter(Boolean) : []
+      );
+    }
+  }, [value]);
 
   const addValue = (val: string) => {
     if (!val.trim()) return;

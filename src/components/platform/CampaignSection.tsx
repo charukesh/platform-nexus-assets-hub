@@ -50,6 +50,21 @@ export const CampaignSection = ({
     onCampaignDataChange("funnel_stage", updatedStages);
   };
 
+  // Convert arrays to comma-separated strings for the input component
+  const getAdFormatsValue = () => {
+    if (!campaignData.ad_formats) return '';
+    return Array.isArray(campaignData.ad_formats) 
+      ? campaignData.ad_formats.join(", ") 
+      : campaignData.ad_formats;
+  };
+
+  const getSpecialInnovationsValue = () => {
+    if (!campaignData.special_innovations) return '';
+    return Array.isArray(campaignData.special_innovations) 
+      ? campaignData.special_innovations.join(", ") 
+      : campaignData.special_innovations;
+  };
+
   return (
     <NeuCard>
       <h2 className="text-xl font-semibold mb-4">Campaign Settings</h2>
@@ -100,9 +115,7 @@ export const CampaignSection = ({
           <Label>Ad Formats</Label>
           <CommaSeparatedInput 
             placeholder="Enter ad formats (e.g., Banner, Video, Interstitial)"
-            value={Array.isArray(campaignData.ad_formats) 
-              ? campaignData.ad_formats.join(", ") 
-              : campaignData.ad_formats || ''}
+            value={getAdFormatsValue()}
             onChange={(value) => {
               const formatsArray = value ? value.split(",").map(v => v.trim()).filter(Boolean) : [];
               onCampaignDataChange("ad_formats", formatsArray);
@@ -114,9 +127,7 @@ export const CampaignSection = ({
           <Label>Special Innovations</Label>
           <CommaSeparatedInput 
             placeholder="Enter special innovations (e.g., AR, Interactive ads)"
-            value={Array.isArray(campaignData.special_innovations) 
-              ? campaignData.special_innovations.join(", ") 
-              : campaignData.special_innovations || ''}
+            value={getSpecialInnovationsValue()}
             onChange={(value) => {
               const innovationsArray = value ? value.split(",").map(v => v.trim()).filter(Boolean) : [];
               onCampaignDataChange("special_innovations", innovationsArray);
