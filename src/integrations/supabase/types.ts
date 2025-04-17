@@ -148,46 +148,6 @@ export type Database = {
         }
         Returns: unknown
       }
-      match_assets_by_embedding_only: {
-        Args:
-          | {
-              query_embedding: string
-              match_threshold: number
-              match_count: number
-            }
-          | {
-              query_embedding: string
-              query_text: string
-              match_threshold: number
-              match_count: number
-            }
-        Returns: {
-          id: string
-          name: string
-          category: string
-          description: string
-          thumbnail_url: string
-          file_url: string
-          type: string
-          tags: string[]
-          buy_types: string
-          amount: number
-          estimated_clicks: number
-          estimated_impressions: number
-          platform_id: string
-          platform_name: string
-          platform_industry: string
-          platform_audience_data: Json
-          platform_campaign_data: Json
-          platform_device_split: Json
-          platform_mau: string
-          platform_dau: string
-          platform_premium_users: number
-          platform_restrictions: Json
-          placement: string
-          similarity: number
-        }[]
-      }
     }
     Enums: {
       [_ in never]: never

@@ -121,6 +121,7 @@ serve(async (req) => {
     // Ensure parameters have the correct types for PostgreSQL
     const rpcParams = {
       query_embedding: queryEmbedding,
+      query_text: searchText, // Pass the search text for full-text search component
       match_threshold: parseFloat(matchThreshold.toString()),
       match_count: finalMatchCount // Use the potentially increased match count
     };
