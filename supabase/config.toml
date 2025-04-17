@@ -44,9 +44,12 @@ enable_confirmations = false
 enable_signup = true
 enable_confirmations = false
 
+# Define function settings
 [functions]
+# Default setting for all functions
 verify_jwt = true
 
+# Individual function settings
 [functions.generate-embeddings]
 verify_jwt = false
 
