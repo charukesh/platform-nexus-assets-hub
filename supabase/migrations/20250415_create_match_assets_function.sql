@@ -1,7 +1,23 @@
 
--- Corrected PostgreSQL function for vector similarity search
+-- Create an IMMUTABLE function for text vector generation
+CREATE OR REPLACE FUNCTION public.immutable_tsvector_concat(name text, description text, category text, tags text[])
+RETURNS tsvector
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT 
+    to_tsvector('english', 
+      coalesce(name, '') || ' ' || 
+      coalesce(description, '') || ' ' || 
+      coalesce(category, '') || ' ' || 
+      coalesce(array_to_string(tags, ' '), '')
+    )
+$$;
+
+-- Updated PostgreSQL function for hybrid vector + full-text similarity search
 CREATE OR REPLACE FUNCTION match_assets_by_embedding_only(
   query_embedding vector(1536),       -- Vector embedding of the query text
+  query_text text,                    -- Original query text for full-text search
   match_threshold float,              -- Similarity threshold (0.0 to 1.0)
   match_count int                     -- Maximum number of records to return
 )
@@ -15,7 +31,7 @@ RETURNS TABLE (
   type text,
   tags text[],
   buy_types text,
-  amount numeric,
+  amount integer,                     -- Changed from numeric to integer
   estimated_clicks integer,
   estimated_impressions integer,
   platform_id uuid,
@@ -28,6 +44,7 @@ RETURNS TABLE (
   platform_dau text,
   platform_premium_users smallint,
   platform_restrictions jsonb,
+  placement text,
   similarity float
 )
 LANGUAGE plpgsql
@@ -44,7 +61,7 @@ BEGIN
     a.type,
     a.tags,
     a.buy_types,
-    a.amount,
+    a.amount::integer,               -- Cast existing amount to integer
     a.estimated_clicks,
     a.estimated_impressions,
     a.platform_id,
@@ -57,7 +74,14 @@ BEGIN
     p.dau AS platform_dau,
     p.premium_users AS platform_premium_users,
     p.restrictions AS platform_restrictions,
-    1 - (a.embedding <=> query_embedding) AS similarity
+    a.placement,
+    (
+      0.7 * (1 - (a.embedding <=> query_embedding)) + 
+      0.3 * ts_rank(
+        public.immutable_tsvector_concat(a.name, a.description, a.category, a.tags), 
+        plainto_tsquery('english', query_text)
+      )
+    ) AS similarity
   FROM
     assets a
   LEFT JOIN
@@ -66,7 +90,11 @@ BEGIN
     a.embedding IS NOT NULL
     AND (1 - (a.embedding <=> query_embedding)) > match_threshold
   ORDER BY
-    similarity DESC, a.name
+    similarity DESC
   LIMIT match_count;
 END;
 $$;
+
+-- Create a GIN index on the full-text search fields to improve performance
+CREATE INDEX IF NOT EXISTS idx_assets_fulltext 
+ON assets USING GIN (public.immutable_tsvector_concat(name, description, category, tags));
