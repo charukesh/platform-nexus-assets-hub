@@ -56,8 +56,8 @@ serve(async (req) => {
 
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = 15; // Default to top 15 assets (increased)
-    const matchThreshold = 0.3; // Increased to 30% similarity
+    const matchCount = requestData.matchCount || 15; // Default to top 15 assets (increased)
+    const matchThreshold = requestData.matchThreshold || 0.3; // Increased to 30% similarity
 
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
@@ -116,11 +116,11 @@ serve(async (req) => {
     const matchedAssets = matchResults || [];
     console.log(`Found ${matchedAssets.length} assets via vector similarity`);
 
-    // Process the assets to include only essential fields to reduce payload size
-    // This minimizes data sent to the LLM to improve performance
+    // Process the assets to include essential fields and additional targeting information
     const processedAssets = matchedAssets.map((asset) => ({
       id: asset.id,
       name: asset.name,
+      description: asset.description || "",
       buy_types: asset.buy_types,
       amount: asset.amount !== null ? Number(asset.amount) : null,
       estimated_clicks: Number(asset.estimated_clicks),
@@ -128,6 +128,11 @@ serve(async (req) => {
       platform_name: asset.platform_name,
       platform_industry: asset.platform_industry,
       category: asset.category,
+      placement: asset.placement || "",
+      targeting_options: asset.targeting_options || {},
+      audience_data: asset.audience_data || {},
+      device_split: asset.device_split || {},
+      tags: asset.tags || [],
       similarity: Number(asset.similarity).toFixed(2)
     }));
 
@@ -155,7 +160,7 @@ serve(async (req) => {
           We found ${processedAssets.length} matching assets through semantic search.
           Here's a summary of the top matches:
           ${processedAssets.slice(0, 5).map((asset) => 
-            `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): Buy type: ${asset.buy_types}, Cost: ${asset.amount}, Est. impressions: ${asset.estimated_impressions}, Est. clicks: ${asset.estimated_clicks}`
+            `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): Buy type: ${asset.buy_types}, Cost: ${asset.amount}, Est. impressions: ${asset.estimated_impressions}, Est. clicks: ${asset.estimated_clicks}, Category: ${asset.category}${asset.placement ? `, Placement: ${asset.placement}` : ''}${asset.tags && asset.tags.length > 0 ? `, Tags: ${asset.tags.join(', ')}` : ''}`
           ).join('\n')}
           
           IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
@@ -172,7 +177,7 @@ serve(async (req) => {
           
           2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
           
-          3. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset)
+          3. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset). Include relevant targeting options, audience data, or placement details if available.
           
           4. Marketing plan as a properly formatted table:
           
@@ -227,9 +232,12 @@ When a user provides a query:
    - Platform inclusions ("include Facebook and Instagram")
    - Buy type preferences ("only CPC")
    - Asset category filters ("only video assets")
+   - Targeting options ("only assets with youth targeting")
+   - Placement specifications ("only top banner placements")
    - Budget allocation instructions ("split equally", "70% to Facebook")
-2. Pay attention to the buy type for each asset (from buy_types field) as this is important for the marketing plan.
+2. Pay attention to all available asset properties (targeting_options, audience_data, placement, tags, etc.)
 3. ALWAYS present the marketing plan as a properly formatted markdown table with headings, alignment, and proper cell formatting.
+4. When users request specific targeting or audience requirements, prioritize assets that match those criteria.
 
 Important:
 - If the user requests more assets or platforms than you found, clearly state this limitation
