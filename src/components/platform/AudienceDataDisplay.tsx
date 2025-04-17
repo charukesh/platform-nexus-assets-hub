@@ -10,12 +10,19 @@ interface AudienceDataDisplayProps {
 }
 
 export const AudienceDataDisplay = ({ audienceData }: AudienceDataDisplayProps) => {
-  const renderTargetingStatus = (available: boolean | undefined, values?: string) => (
+  // Helper function to handle values that could be string or string[]
+  const formatTargetingValues = (values?: string | string[]): string => {
+    if (!values) return '';
+    if (Array.isArray(values)) return values.join(', ');
+    return values;
+  };
+
+  const renderTargetingStatus = (available: boolean | undefined, values?: string | string[]) => (
     <div className="flex items-center gap-2">
       {available ? (
         <>
           <Check className="text-green-500" size={20} />
-          <span>{values || 'Available'}</span>
+          <span>{formatTargetingValues(values) || 'Available'}</span>
         </>
       ) : (
         <>
