@@ -34,33 +34,6 @@ export const useEmbeddingSearch = () => {
     }
   };
 
-  const searchHybrid = async (query: string) => {
-    if (!query.trim()) {
-      return null;
-    }
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('hybrid-search', {
-        body: { query }
-      });
-
-      if (error) throw error;
-
-      return data || null;
-    } catch (err: any) {
-      console.error('Error performing hybrid search:', err);
-      toast({
-        title: 'Search error',
-        description: err.message || 'Failed to perform hybrid search',
-        variant: 'destructive',
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const regenerateAllEmbeddings = async () => {
     setLoading(true);
     try {
@@ -89,7 +62,6 @@ export const useEmbeddingSearch = () => {
 
   return {
     searchByEmbedding,
-    searchHybrid,
     regenerateAllEmbeddings,
     loading,
   };
