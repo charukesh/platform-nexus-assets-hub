@@ -139,6 +139,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      immutable_tsvector_concat: {
+        Args: {
+          name: string
+          description: string
+          category: string
+          tags: string[]
+        }
+        Returns: unknown
+      }
       match_assets_by_embedding_only: {
         Args: {
           query_embedding: string
