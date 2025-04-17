@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, FileIcon, Image } from "lucide-react";
 import BuyTypeSelector from "@/components/asset/BuyTypeSelector";
-import { PLACEMENT_OPTIONS } from "@/types/asset";
+import { PLACEMENT_OPTIONS, BUY_TYPE_OPTIONS } from "@/types/asset";
 
 interface Platform {
   id: string;
@@ -61,7 +61,7 @@ const AssetForm: React.FC = () => {
     file_url: "" as string | null,
     thumbnail_url: "" as string | null,
     file_size: "" as string | null,
-    buy_types: 'CPC',
+    buy_types: BUY_TYPE_OPTIONS[0],
     amount: 0,
     estimated_impressions: 0,
     estimated_clicks: 0,

@@ -1,4 +1,3 @@
-
 export interface Asset {
   id: string;
   name: string;
@@ -29,7 +28,6 @@ export interface Asset {
   similarity?: number;
 }
 
-// Add placement options constant
 export const PLACEMENT_OPTIONS = [
   'Homepage Banner',
   'Order Page',
@@ -39,3 +37,30 @@ export const PLACEMENT_OPTIONS = [
 ] as const;
 
 export type Placement = typeof PLACEMENT_OPTIONS[number];
+
+export const BUY_TYPE_OPTIONS = [
+  'Cost Per Bag',
+  'Cost Per Click',
+  'Cost Per Day',
+  'Cost Per Engagement', 
+  'Cost Per Flyer',
+  'Cost Per Impression',
+  'Cost Per Jingle',
+  'Cost Per Lead',
+  'Cost Per Mille',
+  'Cost Per Month',
+  'Cost Per Order',
+  'Cost Per Post',
+  'Cost Per Sample',
+  'Cost Per Scratch',
+  'Cost Per Society',
+  'Cost Per Spot',
+  'Cost Per Story',
+  'Cost Per Trip',
+  'Cost Per Unit',
+  'Cost Per Unlock',
+  'Cost Per t-shirt',
+  'Cost per Activation'
+] as const;
+
+export type BuyType = typeof BUY_TYPE_OPTIONS[number];

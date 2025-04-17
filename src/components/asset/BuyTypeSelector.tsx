@@ -2,7 +2,14 @@
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { BUY_TYPE_OPTIONS } from "@/types/asset";
 
 interface BuyTypeSelectorProps {
   buyType: string;
@@ -29,24 +36,21 @@ const BuyTypeSelector = ({
     <div className="space-y-4">
       <div>
         <Label>Buy Type*</Label>
-        <RadioGroup 
+        <Select 
           value={buyType} 
           onValueChange={(value) => onChange('buy_types', value)}
-          className="mt-2 flex gap-4"
         >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="CPC" id="cpc" />
-            <label htmlFor="cpc" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              CPC
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="CPM" id="cpm" />
-            <label htmlFor="cpm" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              CPM
-            </label>
-          </div>
-        </RadioGroup>
+          <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
+            <SelectValue placeholder="Select buy type" />
+          </SelectTrigger>
+          <SelectContent>
+            {BUY_TYPE_OPTIONS.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div>
