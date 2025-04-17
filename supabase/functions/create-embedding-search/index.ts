@@ -56,8 +56,8 @@ serve(async (req) => {
 
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = requestData.matchCount || 10; // Default to top 10 assets (increased)
-    const matchThreshold = requestData.matchThreshold || 0.1; // Reduced threshold to 0.1 (10%)
+    const matchCount = 15; // Default to top 15 assets (increased)
+    const matchThreshold = 0.3; // Increased to 30% similarity
 
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
@@ -167,6 +167,8 @@ serve(async (req) => {
              - Number of platforms requested
              - Any specific industry filtering instructions (e.g., "only QSR industry")
              - Budget allocation preferences (e.g., "split equally")
+             - Specific platforms to include (e.g., "include Facebook and Instagram")
+             - Any other filtering criteria for rows (e.g., "only CPC buy type", "only video assets")
           
           2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
           
@@ -183,6 +185,8 @@ serve(async (req) => {
           - Use the budget specified in the query (default is 5-8 lakhs if not specified)
           - If specific asset or platform counts are requested, follow those requirements precisely
           - If specific industry filtering is requested, ONLY include assets from that industry
+          - If specific platforms are mentioned to include, prioritize those platforms
+          - If specific buy types, asset categories, or other criteria are mentioned, filter accordingly
           - If you don't have enough assets or platforms, use what you have and explain the limitation
           - If query mentions budget allocation like "split equally", follow this precisely
           - Use amount as base cost
@@ -220,6 +224,9 @@ When a user provides a query:
    - Platform counts ("Y platforms")
    - Asset-platform combinations ("X assets from Y platforms")
    - Industry filters ("only QSR industry")
+   - Platform inclusions ("include Facebook and Instagram")
+   - Buy type preferences ("only CPC")
+   - Asset category filters ("only video assets")
    - Budget allocation instructions ("split equally", "70% to Facebook")
 2. Pay attention to the buy type for each asset (from buy_types field) as this is important for the marketing plan.
 3. ALWAYS present the marketing plan as a properly formatted markdown table with headings, alignment, and proper cell formatting.
