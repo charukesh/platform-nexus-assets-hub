@@ -42,7 +42,6 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing required Supabase configuration');
     }
-
     if (!azureApiKey || !azureInstance || !azureDeployment || !azureEmbeddingDeployment) {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
@@ -62,19 +61,20 @@ serve(async (req) => {
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
-    
+
     // Parse the query to extract core search terms and requirements
+    // We still need this for budget planning and marketing requirements
     const queryInfo = parseMarketingQuery(queryText);
     console.log('Parsed query info:', queryInfo);
-    
+
     // Use core search terms for embedding to improve search relevance
     // If no core terms could be extracted, fall back to the original query
     const searchText = queryInfo.coreSearchTerms && queryInfo.coreSearchTerms.trim() !== '' 
-                      ? queryInfo.coreSearchTerms 
-                      : queryText;
-
+      ? queryInfo.coreSearchTerms 
+      : queryText;
+    
     console.log('Original query:', queryText);
-    console.log('Using search terms for embedding:', searchText);
+    console.log('Using search terms for embedding and text search:', searchText);
 
     // Azure OpenAI setup for embeddings and endpoint
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
@@ -92,21 +92,14 @@ serve(async (req) => {
 
     // Generate embeddings for the query
     console.log('Generating query embeddings...');
-    const [queryEmbedding] = await embeddings.embedDocuments([
-      searchText
-    ]);
+    const [queryEmbedding] = await embeddings.embedDocuments([searchText]);
     console.log('Query embeddings generated successfully with length:', queryEmbedding.length);
-
-    // Query database for similar assets using vector search
-    console.log('Performing vector similarity search with parameters:');
-    console.log('- match_threshold:', matchThreshold, 'type:', typeof matchThreshold);
-    console.log('- match_count:', matchCount, 'type:', typeof matchCount);
 
     // Check if the user requested specific numbers of assets or platforms
     const requestedAssetCount = queryInfo.assetCount || matchCount;
     const requestedPlatformCount = queryInfo.platformCount;
     const assetPlatformCombination = queryInfo.combination;
-    
+
     // Get enough assets to fulfill request, with some buffer for filtering
     const finalMatchCount = Math.max(requestedAssetCount * 2, matchCount);
     
@@ -114,32 +107,35 @@ serve(async (req) => {
     console.log('Requested platform count:', requestedPlatformCount);
     if (assetPlatformCombination) {
       console.log('Requested asset-platform combination:', 
-                 `${assetPlatformCombination.assets} assets from ${assetPlatformCombination.platforms} platforms`);
+        `${assetPlatformCombination.assets} assets from ${assetPlatformCombination.platforms} platforms`);
     }
     console.log('Final match count to use:', finalMatchCount);
 
     // Ensure parameters have the correct types for PostgreSQL
+    // Now we pass both the embedding and the original search text for hybrid search
     const rpcParams = {
       query_embedding: queryEmbedding,
-      query_text: searchText, // Pass the search text for full-text search component
+      query_text: searchText,  // Add the text query for the full-text search component
       match_threshold: parseFloat(matchThreshold.toString()),
-      match_count: finalMatchCount // Use the potentially increased match count
+      match_count: finalMatchCount
     };
 
-    console.log('Calling match_assets_by_embedding_only with properly typed parameters');
-    const { data: matchResults, error: matchError } = await supabaseClient.rpc('match_assets_by_embedding_only', rpcParams);
+    console.log('Calling match_assets_by_embedding_only with hybrid search parameters');
+    const { data: matchResults, error: matchError } = await supabaseClient.rpc(
+      'match_assets_by_embedding_only', 
+      rpcParams
+    );
 
     if (matchError) {
-      console.error('Error in vector similarity search:', matchError);
+      console.error('Error in hybrid search:', matchError);
       throw matchError;
     }
 
     // Process the results to ensure correct data types
     const matchedAssets = matchResults || [];
-    console.log(`Found ${matchedAssets.length} assets via vector similarity`);
+    console.log(`Found ${matchedAssets.length} assets via hybrid search`);
 
     // Process the assets to include only essential fields to reduce payload size
-    // This minimizes data sent to the LLM to improve performance
     const processedAssets = matchedAssets.map((asset) => ({
       id: asset.id,
       name: asset.name,
@@ -170,6 +166,7 @@ serve(async (req) => {
           4. A next step suggestion (1 sentence)
         `;
         break;
+
       default:
         promptContent = `
           Given search query: "${queryText}", I've analyzed it to understand the user's specific marketing needs:
@@ -181,9 +178,9 @@ serve(async (req) => {
           Platform Count Requested: ${queryInfo.platformCount || "Not specified"}
           Budget Allocation: ${queryInfo.budgetAllocation === "equal" ? "Equal split" : "Proportional allocation"}
           
-          We found ${processedAssets.length} matching assets through semantic search.
+          We found ${processedAssets.length} matching assets through hybrid semantic and keyword search.
           Here's a summary of the top matches:
-          ${processedAssets.slice(0, 5).map(asset => 
+          ${processedAssets.slice(0, 5).map((asset) => 
             `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): Buy type: ${asset.buy_types}, Cost: ${asset.amount}, Est. impressions: ${asset.estimated_impressions}, Est. clicks: ${asset.estimated_clicks}`
           ).join('\n')}
           
@@ -247,7 +244,6 @@ Important:
 - Always provide exact amounts in the marketing plan, not just percentages
 - If specific platforms are mentioned by name, prioritize those platforms in your plan`;
     const humanTemplate = "{prompt}";
-
     const chatPrompt = ChatPromptTemplate.fromMessages([
       SystemMessagePromptTemplate.fromTemplate(systemTemplate),
       HumanMessagePromptTemplate.fromTemplate(humanTemplate)
@@ -272,18 +268,20 @@ Important:
 
     // Return the combined response with metadata
     return new Response(JSON.stringify({
-      id: Date.now().toString(), // Since we don't have the direct OpenAI response ID
+      id: Date.now().toString(),
       object: "chat.completion",
       created: Date.now(),
       model: `${azureInstance}/${azureDeployment}`,
-      choices: [{
-        message: {
-          role: "assistant",
-          content: conversationalContent
-        },
-        finish_reason: "stop",
-        index: 0
-      }],
+      choices: [
+        {
+          message: {
+            role: "assistant",
+            content: conversationalContent
+          },
+          finish_reason: "stop",
+          index: 0
+        }
+      ],
       metadata: {
         method: 'asset-search-with-plan',
         query: queryText,
@@ -291,7 +289,8 @@ Important:
         vector_results_count: processedAssets.length,
         mentioned_asset_ids: mentionedAssetIds,
         threshold_used: matchThreshold,
-        prompt_type: promptType
+        prompt_type: promptType,
+        search_type: "hybrid" // Added to indicate hybrid search is being used
       }
     }), {
       headers: {
@@ -334,56 +333,74 @@ function parseMarketingQuery(query) {
       budgetAllocation: "proportional"
     };
   }
-  
+
   try {
-    // Extract product/brand
-    const productMatch = query.match(/(?:for|promoting)\s+([a-z0-9\s]+?)(?:,|\s+to\s+|$)/i);
+    // Enhanced product/brand extraction
+    const productMatch = query.match(/(?:for|about|regarding|promoting|marketing)\s+([a-z0-9\s&]+?)(?:,|\s+to\s+|$)/i);
     const product = productMatch ? productMatch[1].trim() : null;
-    
-    // Extract objective
-    const objectiveMatch = query.match(/to\s+(?:increase|improve|boost|enhance|maximize)\s+([a-z0-9\s]+?)(?:,|$)/i);
+
+    // Enhanced objective extraction
+    const objectiveMatch = query.match(/to\s+(?:increase|improve|boost|enhance|maximize|drive|grow|generate)\s+([a-z0-9\s]+?)(?:,|$)/i);
     const objective = objectiveMatch ? objectiveMatch[1].trim() : null;
-    
-    // Extract budget
-    const budgetMatch = query.match(/(\d+(?:\.\d+)?)\s*(?:lakh|lac|L|cr|crore|k|K|thousand)/i);
+
+    // Enhanced budget extraction
+    const budgetMatch = query.match(/(\d+(?:\s*-\s*\d+)?(?:\s*to\s*\d+)?)\s*(?:lakh|lac|L|cr|crore|k|K|thousand|million|M)/i);
     const budget = budgetMatch ? budgetMatch[0] : "5-8 lakhs"; // Default
-    
+
     // Extract asset count
     const assetMatch = query.match(/(\d+)\s*(?:asset|ad)s?/i);
     const assetCount = assetMatch ? parseInt(assetMatch[1], 10) : null;
-    
+
     // Extract platform count
     const platformMatch = query.match(/(\d+)\s*(?:platform|channel)s?/i);
     const platformCount = platformMatch ? parseInt(platformMatch[1], 10) : null;
-    
+
     // Extract asset-platform combination
     const combinationMatch = query.match(/(\d+)\s*(?:asset|ad)s?\s*(?:from|on)\s*(\d+)\s*(?:platform|channel)/i);
     const combination = combinationMatch ? {
       assets: parseInt(combinationMatch[1], 10),
       platforms: parseInt(combinationMatch[2], 10)
     } : null;
-    
+
     // Extract budget allocation
     const equalBudgetMatch = /(equal|split|same|even)\s*budget/i.test(query);
     const budgetAllocation = equalBudgetMatch ? "equal" : "proportional";
+
+    // Extract mentioned platform names
+    const platformNames = [];
+    const commonPlatforms = [
+      'facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'google',
+      'tiktok', 'snapchat', 'pinterest', 'reddit', 'quora', 'whatsapp'
+    ];
     
+    for (const platform of commonPlatforms) {
+      const regex = new RegExp(`\\b${platform}\\b`, 'i');
+      if (regex.test(query)) {
+        platformNames.push(platform.toLowerCase());
+      }
+    }
+
     // Construct core search terms (for embedding)
     let coreTerms = [];
     if (product) coreTerms.push(product);
     if (objective) coreTerms.push(`increase ${objective}`);
     
+    // Add platform names to core terms for better search
+    if (platformNames.length > 0) {
+      coreTerms = [...coreTerms, ...platformNames];
+    }
+
     // If we couldn't extract specific terms, use keywords from the query
     const keywordExtractionRegex = /\b((?!budget|asset|platform|channel|lakh|lac|cr|crore|k|split|equal|from|on)[a-z]{3,})\b/gi;
     const extractedKeywords = query.match(keywordExtractionRegex) || [];
-    
     if (coreTerms.length === 0 && extractedKeywords.length > 0) {
       // Use top 3-5 keywords as fallback
       coreTerms = extractedKeywords.slice(0, 5);
     }
-    
+
     // Final fallback - use the full query if nothing else works
     const coreSearchTerms = coreTerms.length > 0 ? coreTerms.join(' ') : query;
-    
+
     return {
       originalQuery: query,
       coreSearchTerms,
@@ -393,21 +410,23 @@ function parseMarketingQuery(query) {
       assetCount,
       platformCount,
       combination,
-      budgetAllocation
+      budgetAllocation,
+      mentionedPlatforms: platformNames.length > 0 ? platformNames : null
     };
   } catch (error) {
     console.error("Error parsing marketing query:", error);
     // Return a safe default if parsing fails
     return {
       originalQuery: query,
-      coreSearchTerms: query, // Use original query as fallback
+      coreSearchTerms: query,
       product: null,
       objective: null,
       budget: "5-8 lakhs",
       assetCount: null,
       platformCount: null,
       combination: null,
-      budgetAllocation: "proportional"
+      budgetAllocation: "proportional",
+      mentionedPlatforms: null
     };
   }
 }
