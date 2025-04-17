@@ -8,6 +8,45 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 };
 
+// Function to build searchable content that aligns with our SQL hybrid search approach
+const buildSearchableContent = (asset) => {
+  // Asset core information - align with SQL immutable_tsvector_concat function
+  const assetContent = [
+    asset.name || '',
+    asset.description || '',
+    asset.category || '',
+    Array.isArray(asset.tags) ? asset.tags.join(' ') : ''
+  ].join(' ');
+  
+  // Platform core information
+  const platformContent = asset.platform ? [
+    asset.platform.name || '',
+    asset.platform.industry || ''
+  ].join(' ') : '';
+  
+  // Additional context that might help with semantic understanding
+  const extendedContent = [
+    `Buy Types: ${asset.buy_types || ''}`,
+    `Amount: ${asset.amount || ''}`,
+    `Estimated Clicks: ${asset.estimated_clicks || ''}`,
+    `Estimated Impressions: ${asset.estimated_impressions || ''}`,
+    `Placement: ${asset.placement || ''}`,
+    asset.platform ? `MAU: ${asset.platform.mau || ''}` : '',
+    asset.platform ? `DAU: ${asset.platform.dau || ''}` : '',
+    asset.platform && asset.platform.audience_data ? 
+      `Audience: ${JSON.stringify(asset.platform.audience_data)}` : '',
+    asset.platform && asset.platform.campaign_data ? 
+      `Campaign: ${JSON.stringify(asset.platform.campaign_data)}` : '',
+    asset.platform && asset.platform.device_split ? 
+      `Devices: ${JSON.stringify(asset.platform.device_split)}` : '',
+    asset.platform && asset.platform.restrictions ? 
+      `Restrictions: ${JSON.stringify(asset.platform.restrictions)}` : ''
+  ].filter(item => item).join(' ');
+  
+  // Combine with priority on the core content that matches our SQL function
+  return `${assetContent} ${platformContent} ${extendedContent}`.replace(/\s+/g, ' ').trim();
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -61,31 +100,24 @@ serve(async (req) => {
 
     console.log('Asset fetched successfully:', asset.id);
     
-    // Check if platform exists - if not, no need to generate embeddings
+    // Check if platform exists - if not, still generate embeddings but note it
     if (!asset.platform || !asset.platform.id) {
-      console.log('No platform associated with this asset. Skipping embedding generation.');
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'No embedding needed (no platform association)'
-      }), {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      });
+      console.log('No platform associated with this asset. Will generate embedding with asset data only.');
+    } else {
+      console.log('Associated platform:', asset.platform.name);
     }
-    
-    console.log('Associated platform:', asset.platform.name);
 
     // Get Azure OpenAI configuration
     const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
     const azureInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
     const azureDeployment = Deno.env.get('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME');
+    const azureApiVersion = Deno.env.get('AZURE_OPENAI_API_VERSION') || "2023-05-15";
 
     // Log environment variable status (safely without exposing values)
     console.log('AZURE_OPENAI_API_KEY:', azureApiKey ? '✓ Present' : '✗ Missing');
     console.log('AZURE_OPENAI_API_INSTANCE_NAME:', azureInstance);
     console.log('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:', azureDeployment);
+    console.log('AZURE_OPENAI_API_VERSION:', azureApiVersion);
 
     if (!azureApiKey || !azureInstance || !azureDeployment) {
       throw new Error('Azure OpenAI configuration is incomplete');
@@ -98,57 +130,33 @@ serve(async (req) => {
     // Initialize Azure OpenAI embeddings
     const embeddings = new AzureOpenAIEmbeddings({
       azureOpenAIApiKey: azureApiKey,
-      azureOpenAIApiVersion: "2023-05-15",
+      azureOpenAIApiVersion: azureApiVersion,
       azureOpenAIApiInstanceName: azureInstance,
       azureOpenAIEndpoint: azureEndpoint,
       azureOpenAIApiDeploymentName: azureDeployment,
       modelName: azureDeployment
     });
 
-    // Create a comprehensive content string with all relevant metadata
-    let fullContent = '';
-
-    // Append Asset metadata
-    fullContent += `
-      Name: ${asset.name || ''}
-      Category: ${asset.category || ''}
-      Description: ${asset.description || ''}
-      Type: ${asset.type || ''}
-      Tags: ${Array.isArray(asset.tags) ? asset.tags.join(', ') : ''}
-      Buy Types: ${asset.buy_types || ''}
-      Amount: ${asset.amount || ''}
-      Estimated Clicks: ${asset.estimated_clicks || ''}
-      Estimated Impressions: ${asset.estimated_impressions || ''}
-      Placement: ${asset.placement || ''}
-    `;
-
-    // Append Platform metadata
-    fullContent += `
-      Platform: ${asset.platform.name || ''}
-      Industry: ${asset.platform.industry || ''}
-      MAU: ${asset.platform.mau || ''}
-      DAU: ${asset.platform.dau || ''}
-      Premium Users: ${asset.platform.premium_users || ''}
-      Audience Data: ${JSON.stringify(asset.platform.audience_data || {})}
-      Campaign Data: ${JSON.stringify(asset.platform.campaign_data || {})}
-      Device Split: ${JSON.stringify(asset.platform.device_split || {})}
-      Restrictions: ${JSON.stringify(asset.platform.restrictions || {})}
-    `;
-    
-    // Clean up the content by removing excessive whitespace
-    fullContent = fullContent.replace(/\s+/g, ' ').trim();
+    // Use our structured function to build the content for embedding
+    const fullContent = buildSearchableContent(asset);
     
     console.log('Generating embeddings for asset data...');
     console.log('Content length:', fullContent.length);
     
     if (fullContent.length > 8000) {
       console.log('Content is very long, truncating to 8000 characters...');
-      fullContent = fullContent.substring(0, 8000);
+      // Truncate but try to preserve complete words
+      const truncated = fullContent.substring(0, 8000);
+      // Find the last space before the cutoff
+      const lastSpace = truncated.lastIndexOf(' ');
+      // Use lastSpace if it's reasonably close to the cutoff, otherwise use the full truncation
+      const finalContent = lastSpace > 7500 ? truncated.substring(0, lastSpace) : truncated;
+      console.log(`Truncated to ${finalContent.length} characters`);
     }
 
     // Generate new embedding with comprehensive context
     const [embeddingVector] = await embeddings.embedDocuments([fullContent]);
-    console.log('Embeddings generated successfully');
+    console.log('Embeddings generated successfully with length:', embeddingVector.length);
 
     // Update the asset with the new embedding
     const { error: updateError } = await supabaseClient
@@ -167,7 +175,10 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: true,
-      message: 'Embedding generated and saved successfully'
+      message: 'Embedding generated and saved successfully',
+      asset_id: id,
+      embedding_length: embeddingVector.length,
+      content_length: fullContent.length
     }), {
       headers: {
         ...corsHeaders,
@@ -179,7 +190,8 @@ serve(async (req) => {
     console.error('Error details:', error.stack || 'No stack trace available');
     
     return new Response(JSON.stringify({
-      error: error.message
+      error: error.message,
+      stack: Deno.env.get('NODE_ENV') === 'development' ? error.stack : undefined
     }), {
       status: 500,
       headers: {
