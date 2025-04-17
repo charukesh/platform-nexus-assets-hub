@@ -4,14 +4,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
 import { AzureChatOpenAI } from "npm:@langchain/azure-openai";
 import { ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate } from "npm:@langchain/core/prompts";
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
-
-serve(async (req) => {
+serve(async (req)=>{
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -19,7 +17,6 @@ serve(async (req) => {
       headers: corsHeaders
     });
   }
-
   try {
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -29,7 +26,6 @@ serve(async (req) => {
     const azureDeployment = Deno.env.get('AZURE_OPENAI_API_DEPLOYMENT_NAME');
     const azureEmbeddingDeployment = Deno.env.get('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME');
     const azureApiVersion = Deno.env.get('AZURE_OPENAI_API_VERSION') || '2023-05-15';
-
     // Validate configuration
     console.log('SUPABASE_URL:', supabaseUrl ? '✓ Present' : '✗ Missing');
     console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseKey ? '✓ Present' : '✗ Missing');
@@ -38,39 +34,30 @@ serve(async (req) => {
     console.log('AZURE_OPENAI_API_DEPLOYMENT_NAME:', azureDeployment ? '✓ Present' : '✗ Missing');
     console.log('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME:', azureEmbeddingDeployment ? '✓ Present' : '✗ Missing');
     console.log('AZURE_OPENAI_API_VERSION:', azureApiVersion ? '✓ Present' : '✗ Missing');
-
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing required Supabase configuration');
     }
-
     if (!azureApiKey || !azureInstance || !azureDeployment || !azureEmbeddingDeployment) {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
-
     // Initialize Supabase client
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
     // Parse request data
     const requestData = await req.json();
     console.log('Received request data:', requestData);
-
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = requestData.matchCount || 15; // Default to top 15 assets (increased)
-    const matchThreshold = requestData.matchThreshold || 0.3; // Increased to 30% similarity
-
+    const matchCount = requestData.matchCount || 10; // Default to top 15 assets (increased)
+    const matchThreshold = requestData.matchThreshold || 0.4; // Increased to 30% similarity
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
-
     // Use the entire query text for embedding (no parsing)
     const searchText = queryText.trim();
     console.log('Using search text for embedding:', searchText);
-
     // Azure OpenAI setup for embeddings and endpoint
     const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
     console.log('Using Azure OpenAI endpoint:', azureEndpoint);
-
     // Initialize Azure OpenAI embeddings
     const embeddings = new AzureOpenAIEmbeddings({
       azureOpenAIApiKey: azureApiKey,
@@ -80,22 +67,18 @@ serve(async (req) => {
       azureOpenAIApiDeploymentName: azureEmbeddingDeployment,
       modelName: azureEmbeddingDeployment
     });
-
     // Generate embeddings for the query
     console.log('Generating query embeddings...');
     const [queryEmbedding] = await embeddings.embedDocuments([
       searchText
     ]);
     console.log('Query embeddings generated successfully with length:', queryEmbedding.length);
-
     // Query database for similar assets using vector search
     console.log('Performing vector similarity search with parameters:');
     console.log('- match_threshold:', matchThreshold, 'type:', typeof matchThreshold);
     console.log('- match_count:', matchCount, 'type:', typeof matchCount);
-
     // Get enough assets to fulfill request
     console.log('Final match count to use:', matchCount);
-
     // Ensure parameters have the correct types for PostgreSQL
     const rpcParams = {
       query_embedding: queryEmbedding,
@@ -103,45 +86,39 @@ serve(async (req) => {
       match_threshold: parseFloat(matchThreshold.toString()),
       match_count: matchCount
     };
-
     console.log('Calling match_assets_by_embedding_only with properly typed parameters');
     const { data: matchResults, error: matchError } = await supabaseClient.rpc('match_assets_by_embedding_only', rpcParams);
-
     if (matchError) {
       console.error('Error in vector similarity search:', matchError);
       throw matchError;
     }
-
     // Process the results to ensure correct data types
     const matchedAssets = matchResults || [];
     console.log(`Found ${matchedAssets.length} assets via vector similarity`);
-
     // Process the assets to include essential fields and additional targeting information
-    const processedAssets = matchedAssets.map((asset) => ({
-      id: asset.id,
-      name: asset.name,
-      description: asset.description || "",
-      buy_types: asset.buy_types,
-      amount: asset.amount !== null ? Number(asset.amount) : null,
-      estimated_clicks: Number(asset.estimated_clicks),
-      estimated_impressions: Number(asset.estimated_impressions),
-      platform_name: asset.platform_name,
-      platform_industry: asset.platform_industry,
-      category: asset.category,
-      placement: asset.placement || "",
-      targeting_options: asset.targeting_options || {},
-      audience_data: asset.audience_data || {},
-      device_split: asset.device_split || {},
-      tags: asset.tags || [],
-      similarity: Number(asset.similarity).toFixed(2)
-    }));
-
+    const processedAssets = matchedAssets.map((asset)=>({
+        id: asset.id,
+        name: asset.name,
+        description: asset.description || "",
+        buy_types: asset.buy_types,
+        amount: asset.amount !== null ? Number(asset.amount) : null,
+        estimated_clicks: Number(asset.estimated_clicks),
+        estimated_impressions: Number(asset.estimated_impressions),
+        platform_name: asset.platform_name,
+        platform_industry: asset.platform_industry,
+        category: asset.category,
+        placement: asset.placement || "",
+        targeting_options: asset.targeting_options || {},
+        audience_data: asset.audience_data || {},
+        device_split: asset.device_split || {},
+        tags: asset.tags || [],
+        similarity: Number(asset.similarity).toFixed(2)
+      }));
     // Determine prompt type based only on whether we have results
     let promptType = processedAssets.length === 0 ? "no_results" : "budget_planning";
-
     // Create appropriate prompt based on type
     let promptContent;
-    switch (promptType) {
+    switch(promptType){
       case "no_results":
         promptContent = `
           Search query: "${queryText}" returned no matching assets.
@@ -159,9 +136,17 @@ serve(async (req) => {
           
           We found ${processedAssets.length} matching assets through semantic search.
           Here's a summary of the top matches:
-          ${processedAssets.slice(0, 5).map((asset) => 
-            `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): Buy type: ${asset.buy_types}, Cost: ${asset.amount}, Est. impressions: ${asset.estimated_impressions}, Est. clicks: ${asset.estimated_clicks}, Category: ${asset.category}${asset.placement ? `, Placement: ${asset.placement}` : ''}${asset.tags && asset.tags.length > 0 ? `, Tags: ${asset.tags.join(', ')}` : ''}`
-          ).join('\n')}
+          ${processedAssets.map((asset)=>`- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
+            ID: ${asset.id}
+            Buy type: ${asset.buy_types}
+            Cost: ${asset.amount}
+            Est. impressions: ${asset.estimated_impressions}
+            Est. clicks: ${asset.estimated_clicks}
+            Category: ${asset.category}${asset.placement ? `\n  Placement: ${asset.placement}` : ''}
+            Targeting options: ${JSON.stringify(asset.targeting_options)}
+            Audience data: ${JSON.stringify(asset.audience_data)}
+            Device split: ${JSON.stringify(asset.device_split)}${asset.tags && asset.tags.length > 0 ? `\n  Tags: ${asset.tags.join(', ')}` : ''}
+            Similarity: ${asset.similarity}`).join('\n\n')}
           
           IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
           
@@ -214,9 +199,7 @@ serve(async (req) => {
         `;
         break;
     }
-
     console.log(`Using ${promptType} prompt for Azure OpenAI...`);
-
     // Initialize the Azure OpenAI chat model using LangChain
     const chatModel = new AzureChatOpenAI({
       azureOpenAIApiKey: azureApiKey,
@@ -227,7 +210,6 @@ serve(async (req) => {
       temperature: 0.5,
       maxTokens: 1000
     });
-
     // Create the chat prompt
     const systemTemplate = `You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.
 
@@ -258,30 +240,22 @@ Important:
 - If they request specific industry filtering (e.g., "only QSR industry"), ONLY include assets from that industry
 - Always provide exact amounts in the marketing plan, not just percentages
 - If specific platforms are mentioned by name, prioritize those platforms in your plan`;
-
     const humanTemplate = "{prompt}";
     const chatPrompt = ChatPromptTemplate.fromMessages([
       SystemMessagePromptTemplate.fromTemplate(systemTemplate),
       HumanMessagePromptTemplate.fromTemplate(humanTemplate)
     ]);
-
     // Generate the full prompt with input variables
     const formattedPrompt = await chatPrompt.formatMessages({
       prompt: promptContent
     });
-
     // Invoke the model
     const result = await chatModel.invoke(formattedPrompt);
     const conversationalContent = result.content;
-
     // Extract the asset IDs mentioned in the response for metadata
-    const mentionedAssetIds = processedAssets.filter((asset) =>
-      conversationalContent.includes(asset.id) || conversationalContent.includes(asset.name)
-    ).map((asset) => asset.id);
-
+    const mentionedAssetIds = processedAssets.filter((asset)=>conversationalContent.includes(asset.id) || conversationalContent.includes(asset.name)).map((asset)=>asset.id);
     // Log we've received a response and are about to return
     console.log('LLM response received successfully, preparing response...');
-
     // Return the combined response with metadata
     return new Response(JSON.stringify({
       id: Date.now().toString(),
