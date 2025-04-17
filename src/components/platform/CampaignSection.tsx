@@ -67,11 +67,13 @@ export const CampaignSection = ({
 
   const getGeographyPresenceValue = () => {
     if (!campaignData.geography_presence) return '';
-    return typeof campaignData.geography_presence === 'string'
-      ? campaignData.geography_presence
-      : Array.isArray(campaignData.geography_presence)
-        ? campaignData.geography_presence.join(", ")
-        : '';
+    if (typeof campaignData.geography_presence === 'string') {
+      return campaignData.geography_presence;
+    }
+    if (Array.isArray(campaignData.geography_presence)) {
+      return campaignData.geography_presence.join(", ");
+    }
+    return '';
   };
 
   return (

@@ -1,3 +1,4 @@
+
 export interface PlatformFormData {
   name: string;
   industry: string;
@@ -39,15 +40,15 @@ export interface AudienceData {
   };
   interests?: string[];
   age_targeting_available?: boolean;
-  age_targeting_values?: string;
+  age_targeting_values?: string[] | string;
   gender_targeting_available?: boolean;
-  gender_targeting_values?: string;
+  gender_targeting_values?: string[] | string;
   state_level_targeting?: boolean;
-  state_targeting_values?: string;
+  state_targeting_values?: string[] | string;
   city_level_targeting?: boolean;
-  city_targeting_values?: string;
+  city_targeting_values?: string[] | string;
   pincode_level_targeting?: boolean;
-  pincode_targeting_values?: string;
+  pincode_targeting_values?: string[] | string;
   platform_specific_targeting?: string[];
   demographic?: {
     ageGroups?: DemographicData[];
@@ -74,7 +75,7 @@ export interface CampaignData {
   special_innovations?: string[];
   cta_support?: boolean;
   minimum_spend?: number;
-  geography_presence?: string;
+  geography_presence?: string | string[];
 }
 
 export interface Restrictions {
