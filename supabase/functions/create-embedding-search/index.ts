@@ -39,8 +39,8 @@ serve(async (req)=>{
     const requestData = await req.json();
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
-    const matchCount = requestData.matchCount || 10;
-    const matchThreshold = requestData.matchThreshold || 0.4;
+    const matchCount = requestData.matchCount || 5;
+    const matchThreshold = requestData.matchThreshold || 0.6;
     if (!queryText || typeof queryText !== 'string' || queryText.trim() === '') {
       throw new Error('A valid query is required (use either "query" or "text" parameter)');
     }
@@ -75,6 +75,22 @@ serve(async (req)=>{
     }
     // Process the results to ensure correct data types
     const matchedAssets = matchResults || [];
+    // Helper function to safely extract targeting options from platform.restrictions
+    function extractTargetingOptions(data) {
+      // If null or undefined, return empty object
+      if (!data) return {};
+      // If it's a string, try to parse as JSON
+      if (typeof data === 'string') {
+        try {
+          return JSON.parse(data);
+        } catch (e) {
+          console.error('Error parsing targeting options:', e);
+          return {};
+        }
+      }
+      // If it's already an object, return it
+      return data;
+    }
     // Process the assets to include essential fields and additional targeting information
     const processedAssets = matchedAssets.map((asset)=>({
         id: asset.id,
@@ -88,12 +104,16 @@ serve(async (req)=>{
         platform_industry: asset.platform_industry,
         category: asset.category,
         placement: asset.placement || "",
-        targeting_options: asset.targeting_options || {},
-        audience_data: asset.audience_data || {},
-        device_split: asset.device_split || {},
+        // Extract targeting options from platform_audience_data
+        targeting_options: extractTargetingOptions(asset.platform_audience_data),
+        audience_data: {},
+        device_split: typeof asset.platform_device_split === 'string' ? JSON.parse(asset.platform_device_split || '{}') : asset.platform_device_split || {},
+        audience_data: typeof asset.platform_audience_data === 'string' ? JSON.parse(asset.platform_audience_data || '{}') : asset.platform_audience_data || {},
+        device_split: typeof asset.platform_device_split === 'string' ? JSON.parse(asset.platform_device_split || '{}') : asset.platform_device_split || {},
         tags: asset.tags || [],
         similarity: Number(asset.similarity).toFixed(2)
       }));
+    console.log("processedAssets ===> " + JSON.stringify(processedAssets));
     // Determine prompt type based only on whether we have results
     let promptType = processedAssets.length === 0 ? "no_results" : "budget_planning";
     // Create appropriate prompt based on type
@@ -116,17 +136,36 @@ serve(async (req)=>{
           
           We found ${processedAssets.length} matching assets through semantic search.
           Here's a summary of the matches:
-          ${processedAssets.map((asset)=>`- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
+          ${processedAssets.map((asset)=>{
+          // Extract geographic targeting capabilities for clearer presentation
+          const targetingOpts = asset.targeting_options || {};
+          const geoTargeting = {
+            // Handle both boolean flags and values for targeting options
+            cityLevelAvailable: !!targetingOpts.city_level_targeting,
+            stateLevelAvailable: !!targetingOpts.state_level_targeting,
+            stateValues: typeof targetingOpts.state_targeting_values === 'string' ? targetingOpts.state_targeting_values : '',
+            ageTargetingAvailable: !!targetingOpts.age_targeting_available,
+            genderTargetingAvailable: !!targetingOpts.gender_targeting_available,
+            // Additional fields that might contain values
+            cityValues: typeof targetingOpts.city_targeting_values === 'string' ? targetingOpts.city_targeting_values : '',
+            ageGroups: targetingOpts.age_groups || {},
+            genderValues: targetingOpts.gender || {},
+            interests: Array.isArray(targetingOpts.interests) ? targetingOpts.interests : []
+          };
+          return `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
             ID: ${asset.id}
             Buy type: ${asset.buy_types}
             Base cost: ${asset.amount}
             Est. impressions: ${asset.estimated_impressions}
             Est. clicks: ${asset.estimated_clicks}
             Category: ${asset.category}${asset.placement ? `\n            Placement: ${asset.placement}` : ''}
-            Targeting options: ${JSON.stringify(asset.targeting_options)}
-            Audience data: ${JSON.stringify(asset.audience_data)}
+            Audience & Targeting: ${geoTargeting.stateLevelAvailable ? 'State-level targeting available' : 'No state targeting'}${geoTargeting.stateValues ? ` (States: ${geoTargeting.stateValues})` : ''}${geoTargeting.cityLevelAvailable ? ', City-level targeting available' : ', No city targeting'}${geoTargeting.cityValues ? ` (Cities: ${geoTargeting.cityValues})` : ''}
+            Demographics: ${geoTargeting.ageTargetingAvailable ? 'Age targeting available' : 'No age targeting'}${Object.keys(geoTargeting.ageGroups).length > 0 ? ` (Age groups: ${JSON.stringify(geoTargeting.ageGroups)})` : ''}${geoTargeting.genderTargetingAvailable ? ', Gender targeting available' : ', No gender targeting'}${Object.keys(geoTargeting.genderValues).length > 0 ? ` (Gender: ${JSON.stringify(geoTargeting.genderValues)})` : ''}
+            Interests: ${geoTargeting.interests.length > 0 ? `Available (Interests: ${geoTargeting.interests.join(', ')})` : 'No interest targeting'}
+            Full audience data: ${JSON.stringify(asset.targeting_options)}
             Device split: ${JSON.stringify(asset.device_split)}${asset.tags && asset.tags.length > 0 ? `\n            Tags: ${asset.tags.join(', ')}` : ''}
-            Similarity: ${asset.similarity}`).join('\n\n')}
+            Similarity: ${asset.similarity}`;
+        }).join('\n\n')}
           
           IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
           
@@ -231,7 +270,6 @@ serve(async (req)=>{
     - If no specific industry is mentioned in the query, include assets from all available industries
     - Always provide exact budget amounts in the marketing plan, not just percentages
     - If specific platforms are mentioned by name, prioritize those platforms in your plan`;
-    
     const humanTemplate = "{prompt}";
     const chatPrompt = ChatPromptTemplate.fromMessages([
       SystemMessagePromptTemplate.fromTemplate(systemTemplate),
