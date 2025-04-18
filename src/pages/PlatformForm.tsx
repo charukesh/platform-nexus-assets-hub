@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -219,13 +220,29 @@ const PlatformForm = () => {
       let result;
       
       if (id) {
+        // Update existing platform
         result = await supabase
           .from('platforms')
           .update(supabaseData)
           .eq('id', id)
           .select()
           .single();
+
+        // If update was successful, fetch associated assets
+        if (result.data && !result.error) {
+          const { data: assetsData, error: assetsError } = await supabase
+            .from('assets')
+            .select('*')
+            .eq('platform_id', id);
+
+          if (assetsError) {
+            console.error('Error fetching associated assets:', assetsError);
+          } else {
+            console.log('Associated assets:', assetsData);
+          }
+        }
       } else {
+        // Create new platform
         result = await supabase
           .from('platforms')
           .insert([supabaseData])
