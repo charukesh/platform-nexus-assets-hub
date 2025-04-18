@@ -239,6 +239,16 @@ const PlatformForm = () => {
             console.error('Error fetching associated assets:', assetsError);
           } else {
             console.log('Associated assets:', assetsData);
+            // If assets exist, trigger embeddings generation for each asset
+            if (assetsData && assetsData.length > 0) {
+              assetsData.forEach(asset => {
+                // Fire and forget - no await
+                supabase.functions.invoke('generate-embeddings', {
+                  body: { id: asset.id }
+                });
+              });
+              console.log(`Triggered embeddings generation for ${assetsData.length} assets`);
+            }
           }
         }
       } else {
