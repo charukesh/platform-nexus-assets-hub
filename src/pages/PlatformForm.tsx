@@ -228,17 +228,17 @@ const PlatformForm = () => {
           .select()
           .single();
 
-        // If update was successful, fetch associated assets
+        // If update was successful, fetch associated asset IDs only
         if (result.data && !result.error) {
           const { data: assetsData, error: assetsError } = await supabase
             .from('assets')
-            .select('*')
+            .select('id')
             .eq('platform_id', id);
 
           if (assetsError) {
-            console.error('Error fetching associated assets:', assetsError);
+            console.error('Error fetching associated asset IDs:', assetsError);
           } else {
-            console.log('Associated assets:', assetsData);
+            console.log('Associated asset IDs:', assetsData);
             // If assets exist, trigger embeddings generation for each asset
             if (assetsData && assetsData.length > 0) {
               assetsData.forEach(asset => {
