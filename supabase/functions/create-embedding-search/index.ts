@@ -191,9 +191,9 @@ serve(async (req)=>{
             4. Marketing plan as a properly formatted table:
             
             MARKETING PLAN:
-            | Asset | Platform | Platform Industry | Buy Type | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
-            |-------|----------|-------------------|----------|----------|---------------|--------------------------|---------------------|
-            | [name] | [platform_name] | [platform_industry] | [buy_types] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
+            | Asset | Platform | Platform Industry | Buy Type | Base cost | Est Clicks | Est Impressions | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
+            |-------|----------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
+            | [name] | [platform_name] | [platform_industry] | [buy_types] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
             
             Rules:
             - Use the budget specified in the query (default is 5-8 lakhs if not specified)
@@ -219,23 +219,15 @@ serve(async (req)=>{
             - Provide EXACT calculated amounts for Budget Amount column
             - Include the buy type for each asset (from buy_types field)
 
-             CALCULATION INSTRUCTIONS FOR PROPORTIONAL IMPRESSIONS AND CLICKS:
-            - For each asset, use the following exact formula to calculate proportional values:
-                * Proportional Impressions = (Budget Amount for this asset / Base cost of the asset) × Base Est. Impressions
-                * Proportional Clicks = (Budget Amount for this asset / Base cost of the asset) × Base Est. Clicks
-            - For example, if an asset has:
-                * Base cost: k
-                * Base Est. Impressions: i
-                * Base Est. clicks: c
-                * And you allocate b to this asset
-                * Then:
-                - Proportional Impressions = (b/k) × i
-                - Proportional Clicks = (b/k) × c
-            - Always convert all values to appropriate numeric types before calculation
-            - If the base cost is null or zero, use 1.0 as the ratio (no adjustment)
-            - Round all proportional values to the nearest whole number
-            - Never use strings or formatted numbers in the calculation
-            - Provide EXACT calculated amounts for Proportional Impressions and Proportional Clicks columns
+            STRICT CALCULATION RULES:
+            - First convert ALL values to numeric types
+            - For each asset:
+                * Proportional Impressions = (Budget Amount ÷ Base Cost) × Base Est. Impressions
+                * Proportional Clicks = (Budget Amount ÷ Base Cost) × Base Est. Clicks
+            - VALIDATE all calculations:
+                * If Budget Amount > Base Cost, then proportional values MUST be greater than base values
+                * If Budget Amount = 10 × Base Cost, then proportional values MUST be 10 × base values
+            - SHOW CALCULATION STEPS in a separate section below the table
             
             5. Brief next steps (1-2 points)
             `;
