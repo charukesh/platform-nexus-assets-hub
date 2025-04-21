@@ -237,7 +237,7 @@ const AssetDetail: React.FC = () => {
                     
                     <div>
                       <Label className="text-muted-foreground text-sm">Amount</Label>
-                      <p className="font-medium">{asset?.amount ? `$${asset.amount.toLocaleString()}` : "N/A"}</p>
+                      <p className="font-medium">{asset?.amount ? `₹${asset.amount.toLocaleString()}` : "N/A"}</p>
                     </div>
                     
                     <div>
