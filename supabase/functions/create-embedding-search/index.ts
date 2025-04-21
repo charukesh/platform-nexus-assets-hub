@@ -137,22 +137,22 @@ serve(async (req)=>{
             We found ${processedAssets.length} matching assets through semantic search.
             Here's a summary of the matches:
             ${processedAssets.map((asset)=>{
-            // Extract geographic targeting capabilities for clearer presentation
-            const targetingOpts = asset.targeting_options || {};
-            const geoTargeting = {
-                // Handle both boolean flags and values for targeting options
-                cityLevelAvailable: !!targetingOpts.city_level_targeting,
-                stateLevelAvailable: !!targetingOpts.state_level_targeting,
-                stateValues: typeof targetingOpts.state_targeting_values === 'string' ? targetingOpts.state_targeting_values : '',
-                ageTargetingAvailable: !!targetingOpts.age_targeting_available,
-                genderTargetingAvailable: !!targetingOpts.gender_targeting_available,
-                // Additional fields that might contain values
-                cityValues: typeof targetingOpts.city_targeting_values === 'string' ? targetingOpts.city_targeting_values : '',
-                ageGroups: targetingOpts.age_groups || {},
-                genderValues: targetingOpts.gender || {},
-                interests: Array.isArray(targetingOpts.interests) ? targetingOpts.interests : []
-            };
-            return `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
+          // Extract geographic targeting capabilities for clearer presentation
+          const targetingOpts = asset.targeting_options || {};
+          const geoTargeting = {
+            // Handle both boolean flags and values for targeting options
+            cityLevelAvailable: !!targetingOpts.city_level_targeting,
+            stateLevelAvailable: !!targetingOpts.state_level_targeting,
+            stateValues: typeof targetingOpts.state_targeting_values === 'string' ? targetingOpts.state_targeting_values : '',
+            ageTargetingAvailable: !!targetingOpts.age_targeting_available,
+            genderTargetingAvailable: !!targetingOpts.gender_targeting_available,
+            // Additional fields that might contain values
+            cityValues: typeof targetingOpts.city_targeting_values === 'string' ? targetingOpts.city_targeting_values : '',
+            ageGroups: targetingOpts.age_groups || {},
+            genderValues: targetingOpts.gender || {},
+            interests: Array.isArray(targetingOpts.interests) ? targetingOpts.interests : []
+          };
+          return `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
                 ID: ${asset.id}
                 Buy type: ${asset.buy_types}
                 Base cost: ${asset.amount}
@@ -165,7 +165,7 @@ serve(async (req)=>{
                 Full audience data: ${JSON.stringify(asset.targeting_options)}
                 Device split: ${JSON.stringify(asset.device_split)}${asset.tags && asset.tags.length > 0 ? `\n            Tags: ${asset.tags.join(', ')}` : ''}
                 Similarity: ${asset.similarity}`;
-            }).join('\n\n')}
+        }).join('\n\n')}
             
             IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
             
@@ -219,27 +219,23 @@ serve(async (req)=>{
             - Provide EXACT calculated amounts for Budget Amount column
             - Include the buy type for each asset (from buy_types field)
 
-            CALCULATION INSTRUCTIONS FOR PROPORTIONAL IMPRESSIONS AND CLICKS:
-            - For each asset, use the following formulas to calculate proportional values:
+             CALCULATION INSTRUCTIONS FOR PROPORTIONAL IMPRESSIONS AND CLICKS:
+            - For each asset, use the following exact formula to calculate proportional values:
                 * Proportional Impressions = (Budget Amount for this asset / Base cost of the asset) × Base Est. Impressions
                 * Proportional Clicks = (Budget Amount for this asset / Base cost of the asset) × Base Est. Clicks
             - For example, if an asset has:
-                * Base cost: 100
-                * Base Est. Impressions: 50,000
-                * Base Est. Clicks: 500
-                * And you allocate 500,000 to this asset
+                * Base cost: k
+                * Base Est. Impressions: i
+                * Base Est. clicks: c
+                * And you allocate b to this asset
                 * Then:
-                - Proportional Impressions = (500,000/100) × 50,000 = 250,000,000
-                - Proportional Clicks = (500,000/100) × 500 = 2,500,000
-            - Another example: For a 700 INR asset with 60,000 impressions and 600 clicks, given 100,000 INR budget:
-                - Proportional Impressions = (100,000/700) × 60,000 = 8,571,429 (rounded to 8,571,429)
-                - Proportional Clicks = (100,000/700) × 600 = 85,714 (rounded to 85,714)
-            - Round all values to the nearest whole number
-            - If the base cost is null or zero, use the base values without adjustment
-            - Provide EXACT calculated amounts for Proportional Impressions and Proportional Clicks columns
+                - Proportional Impressions = (b/k) × i
+                - Proportional Clicks = (b/k) × c
+            - Always convert all values to appropriate numeric types before calculation
+            - If the base cost is null or zero, use 1.0 as the ratio (no adjustment)
             - Round all proportional values to the nearest whole number
-            - If the base cost is not provided (null), use 1.0 as the ratio (no adjustment)
-            - Never include placeholder or "not specified" assets in your plan
+            - Never use strings or formatted numbers in the calculation
+            - Provide EXACT calculated amounts for Proportional Impressions and Proportional Clicks columns
             
             5. Brief next steps (1-2 points)
             `;
@@ -282,18 +278,6 @@ serve(async (req)=>{
         C. If no specific locations mentioned, prioritize assets with any geographic targeting capabilities
         D. Never include assets without geographic targeting if the query suggests location is important
         5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
-
-        CALCULATION INSTRUCTIONS FOR PROPORTIONAL IMPRESSIONS AND CLICKS:
-        - For each asset in the plan, calculate proportional impressions and clicks based on the allocated budget using these exact formulas:
-        * Proportional Impressions = (Budget Amount / Base cost) × Base Est. Impressions
-        * Proportional Clicks = (Budget Amount / Base cost) × Base Est. Clicks
-        - This is direct linear scaling based on budget ratio
-        - For example:
-          * For a 100 INR asset with 50,000 base impressions and 500 base clicks, with 500,000 INR budget:
-            - Proportional Impressions = (500,000/100) × 50,000 = 250,000,000
-            - Proportional Clicks = (500,000/100) × 500 = 2,500,000
-        - Round all proportional values to the nearest whole number
-        - If base cost is null or 0, use the base impressions and clicks as the proportional values (no adjustment)
 
         Important:
         - If the user requests more assets or platforms than you found, clearly state this limitation
