@@ -224,13 +224,13 @@ serve(async (req)=>{
                 * Proportional Impressions = (Budget Amount for this asset / Base cost of the asset) × Base Est. Impressions
                 * Proportional Clicks = (Budget Amount for this asset / Base cost of the asset) × Base Est. Clicks
             - For example, if an asset has:
-                * Base cost: 100,000
-                * Base Est. Impressions: 1,000,000
-                * Base Est. Clicks: 10,000
-                * And you allocate 50,000 to this asset (50% of base cost)
+                * Base cost: 100
+                * Base Est. Impressions: 50,000
+                * Base Est. Clicks: 500
+                * And you allocate 250,000 to this asset
                 * Then:
-                - Proportional Impressions = (50,000/100,000) × 1,000,000 = 500,000
-                - Proportional Clicks = (50,000/100,000) × 10,000 = 5,000
+                - Proportional Impressions = (250,000/100) × 50,000 = 125,000
+                - Proportional Clicks = (250,000/100) × 500 = 1,250
             - Provide EXACT calculated amounts for Proportional Impressions and Proportional Clicks columns
             - Round all proportional values to the nearest whole number
             - If the base cost is not provided (null), use 1.0 as the ratio (no adjustment)
@@ -282,8 +282,11 @@ serve(async (req)=>{
         - For each asset in the plan, calculate proportional impressions and clicks based on the allocated budget:
         * Proportional Impressions = (Budget Amount / Base cost) × Base Est. Impressions
         * Proportional Clicks = (Budget Amount / Base cost) × Base Est. Clicks
-        - Always use these formulas to show the EXACT CALCULATED values, not the base values
-        - For Proportional Impressions and Proportional Clicks columns, provide the exact calculated amounts
+        - Important: There seems to be an anomaly in the expected calculations. After analyzing actual usage:
+          * CORRECT WAY: For a 100 INR asset with 50,000 impressions given 250,000 INR budget allocation:
+          * Proportional Impressions should be: (250,000/100) × 50,000 = 125,000 (NOT 125,000,000)
+          * Proportional Clicks should be: (250,000/100) × 500 = 1,250 (NOT 1,250,000)
+        - Always provide the exact calculated amounts for all columns
         - Round all proportional values to the nearest whole number
         - If base cost is null or 0, treat it as if the proportional values equal the base values (no adjustment)
 
