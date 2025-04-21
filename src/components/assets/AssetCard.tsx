@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
-import { FileIcon, Info, Tag, Calendar, ExternalLink, DollarSign } from "lucide-react";
+import { FileIcon, Info, Tag, Calendar, ExternalLink } from "lucide-react";
 import { Asset } from "@/types/asset";
 
 interface AssetCardProps {
@@ -39,7 +40,7 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
               </span>
               {asset.amount !== null && asset.amount !== undefined && (
                 <div className="flex items-center gap-1 text-sm font-medium text-green-600">
-                  <DollarSign size={14} />
+                  <span className="text-xs font-semibold">₹</span>
                   {asset.amount.toLocaleString()}
                 </div>
               )}
@@ -105,3 +106,4 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
 };
 
 export default AssetCard;
+

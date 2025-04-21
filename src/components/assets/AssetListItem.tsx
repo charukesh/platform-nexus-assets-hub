@@ -1,7 +1,8 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import NeuButton from "@/components/NeuButton";
-import { FileIcon, Info, Tag, Calendar, ExternalLink, DollarSign } from "lucide-react";
+import { FileIcon, Info, Tag, Calendar, ExternalLink } from "lucide-react";
 import { Asset } from "@/types/asset";
 
 interface AssetListItemProps {
@@ -48,7 +49,7 @@ const AssetListItem: React.FC<AssetListItemProps> = ({ asset }) => {
             </div>
             {asset.amount !== null && asset.amount !== undefined && (
               <div className="flex items-center gap-1 text-sm font-medium text-green-600">
-                <DollarSign size={14} />
+                <span className="text-xs font-semibold">₹</span>
                 {asset.amount.toLocaleString()}
               </div>
             )}
@@ -103,3 +104,4 @@ const AssetListItem: React.FC<AssetListItemProps> = ({ asset }) => {
 };
 
 export default AssetListItem;
+
