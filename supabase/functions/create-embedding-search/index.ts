@@ -185,16 +185,29 @@ serve(async (req)=>{
                     * Behavioral targeting (e.g., "frequent shoppers", "new customers")
             
             2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
-            
-            3. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset). Include relevant targeting options, audience data, or placement details if available.
-            
-            4. Marketing plan as a properly formatted table:
+                        
+            3. Marketing plan as a properly formatted table:
             
             MARKETING PLAN:
             | Asset | Platform | Platform Industry | Buy Type | Base cost | Est Clicks | Est Impressions | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
             |-------|----------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
             | [name] | [platform_name] | [platform_industry] | [buy_types] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
             
+             4. For each platform in your plan, provide a detailed explanation following this format:
+                
+                ### 1. [Platform Name]
+                :emoji: **Why [Platform Name] makes sense:**
+                - Explain why this platform is perfect for the user's query (1-2 sentences)
+                - Describe how the platform's audience aligns with targeting requirements (1 sentence)
+                - Mention specific targeting capabilities that match the query (1 sentence)
+                - Explain why the budget allocation percentage is appropriate (1 sentence)
+                
+                **Selected Assets:**
+                - **[Asset Name]**: Brief description of this specific asset and why it was chosen (1 sentence)
+                - **[Asset Name]**: Brief description of this specific asset and why it was chosen (1 sentence)
+                
+                :white_check_mark: **Key benefit summary:** [One-line summary of why this platform is valuable]
+
             Rules:
             - Use the budget specified in the query (default is 5-8 lakhs if not specified)
             - If specific asset or platform counts are requested, follow those requirements precisely
