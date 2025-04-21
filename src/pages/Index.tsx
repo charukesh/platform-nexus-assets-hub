@@ -15,7 +15,6 @@ import AssetStatsCard from "@/components/dashboard/AssetStatsCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import AIResponseSection from "@/components/dashboard/AIResponseSection";
 import PlatformList from "@/components/dashboard/PlatformList";
-
 const Dashboard: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);
   const [assets, setAssets] = useState<any[]>([]);
@@ -29,28 +28,29 @@ const Dashboard: React.FC = () => {
   const [searchBrief, setSearchBrief] = useState("");
   const [searchResults, setSearchResults] = useState<any>(null);
   const [searchLoading, setSearchLoading] = useState(false);
-  const { toast } = useToast();
-  const { searchByEmbedding } = useEmbeddingSearch();
-
+  const {
+    toast
+  } = useToast();
+  const {
+    searchByEmbedding
+  } = useEmbeddingSearch();
   useEffect(() => {
     fetchData();
   }, []);
-
   const fetchData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        fetchPlatforms(),
-        fetchAssets()
-      ]);
+      await Promise.all([fetchPlatforms(), fetchAssets()]);
     } finally {
       setLoading(false);
     }
   };
-
   const fetchPlatforms = async () => {
     try {
-      const { data, error } = await supabase.from('platforms').select('*');
+      const {
+        data,
+        error
+      } = await supabase.from('platforms').select('*');
       if (error) throw error;
       if (data) {
         setPlatforms(data);
@@ -65,13 +65,12 @@ const Dashboard: React.FC = () => {
       });
     }
   };
-
   const fetchAssets = async () => {
     try {
-      const { data, error } = await supabase
-        .from('assets')
-        .select('*, platforms(name)');
-
+      const {
+        data,
+        error
+      } = await supabase.from('assets').select('*, platforms(name)');
       if (error) throw error;
       if (data) {
         setAssets(data);
@@ -86,30 +85,22 @@ const Dashboard: React.FC = () => {
       });
     }
   };
-
   const formatUserCount = (count: string | number | null | undefined): string => {
     if (!count) return "N/A";
-    
     const numValue = typeof count === 'string' ? parseInt(count.replace(/,/g, ''), 10) : count;
     if (isNaN(Number(numValue))) return "N/A";
-    
     return `${Math.round(Number(numValue) / 1000000)}M`;
   };
-
   const filteredPlatforms = platforms.filter(platform => {
     const matchesIndustry = industryFilter === "All" || platform.industry === industryFilter;
-    const matchesSearch = platform.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         platform.industry.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = platform.name.toLowerCase().includes(searchQuery.toLowerCase()) || platform.industry.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesIndustry && matchesSearch;
   });
-
   const filteredAssets = assets.filter(asset => {
     const matchesCategory = categoryFilter === "All" || asset.category === categoryFilter;
-    const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         (asset.description && asset.description.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase()) || asset.description && asset.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
   const platformStats = {
     total: platforms.length,
     byIndustry: industries.filter(i => i !== "All").map(industry => ({
@@ -117,7 +108,6 @@ const Dashboard: React.FC = () => {
       count: platforms.filter(p => p.industry === industry).length
     }))
   };
-
   const assetStats = {
     total: assets.length,
     byCategory: assetCategories.filter(c => c !== "All").map(category => ({
@@ -125,10 +115,8 @@ const Dashboard: React.FC = () => {
       count: assets.filter(a => a.category === category).length
     }))
   };
-
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!searchBrief.trim()) {
       toast({
         title: "Error",
@@ -137,14 +125,12 @@ const Dashboard: React.FC = () => {
       });
       return;
     }
-    
     setSearchLoading(true);
     try {
       console.log('Submitting search brief:', searchBrief);
       const results = await searchByEmbedding(searchBrief);
       console.log('Search results:', results);
       setSearchResults(results);
-      
       if (!results) {
         toast({
           title: "No results found",
@@ -164,9 +150,7 @@ const Dashboard: React.FC = () => {
       setSearchLoading(false);
     }
   };
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="animate-fade-in">
         <header className="flex justify-between items-center mb-8">
           <div>
@@ -184,35 +168,13 @@ const Dashboard: React.FC = () => {
         </header>
 
         <Tabs defaultValue="ai" value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList className="neu-flat bg-white p-1">
-            <TabsTrigger value="overview" className="data-[state=active]:neu-pressed">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="platforms" className="data-[state=active]:neu-pressed">
-              Platforms
-            </TabsTrigger>
-            <TabsTrigger value="assets" className="data-[state=active]:neu-pressed">
-              Assets
-            </TabsTrigger>
-            <TabsTrigger value="ai" className="data-[state=active]:neu-pressed">
-              <span className="flex items-center gap-1">AI Response</span>
-            </TabsTrigger>
-          </TabsList>
+          
 
           <TabsContent value="ai" className="mt-6">
-            <AIResponseSection
-              searchBrief={searchBrief}
-              searchResults={searchResults}
-              searchLoading={searchLoading}
-              onSearchSubmit={handleSearchSubmit}
-              onSearchBriefChange={(e) => setSearchBrief(e.target.value)}
-              onClear={() => setSearchBrief('')}
-            />
+            <AIResponseSection searchBrief={searchBrief} searchResults={searchResults} searchLoading={searchLoading} onSearchSubmit={handleSearchSubmit} onSearchBriefChange={e => setSearchBrief(e.target.value)} onClear={() => setSearchBrief('')} />
           </TabsContent>
         </Tabs>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default Dashboard;
