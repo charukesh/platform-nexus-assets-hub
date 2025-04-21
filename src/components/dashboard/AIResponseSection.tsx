@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -17,6 +16,15 @@ interface AIResponseSectionProps {
   onClear: () => void;
 }
 
+// Cycling loader messages for AI response
+const loaderMessages = [
+  "Fetching platforms…",
+  "Fetching assets…",
+  "Understanding…",
+  "Brief…",
+  "Creating plan…"
+];
+
 const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   searchBrief,
   searchResults,
@@ -25,11 +33,33 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   onSearchBriefChange,
   onClear
 }) => {
+  const [loaderMessageIdx, setLoaderMessageIdx] = useState(0);
+  const loaderIntervalRef = useRef<number | null>(null);
+
+  // Cycle messages when loading
+  useEffect(() => {
+    if (searchLoading) {
+      setLoaderMessageIdx(0);
+      loaderIntervalRef.current = window.setInterval(() => {
+        setLoaderMessageIdx(idx => (idx + 1) % loaderMessages.length);
+      }, 1200);
+    } else {
+      if (loaderIntervalRef.current) {
+        clearInterval(loaderIntervalRef.current);
+        loaderIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (loaderIntervalRef.current) {
+        clearInterval(loaderIntervalRef.current);
+        loaderIntervalRef.current = null;
+      }
+    };
+  }, [searchLoading]);
+
   const renderAIResponse = () => {
     if (!searchResults) return null;
-
     const content = searchResults.choices?.[0]?.message?.content || '';
-    
     return (
       <div className="mt-4">
         <ReactMarkdown
@@ -74,8 +104,9 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       </form>
 
       {searchLoading ? (
-        <div className="flex justify-center items-center py-10">
+        <div className="flex flex-col justify-center items-center py-10 gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="text-muted-foreground animate-fade-in">{loaderMessages[loaderMessageIdx]}</span>
         </div>
       ) : searchResults ? (
         <NeuCard>
@@ -87,4 +118,3 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 };
 
 export default AIResponseSection;
-
