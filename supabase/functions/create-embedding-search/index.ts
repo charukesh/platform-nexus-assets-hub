@@ -132,97 +132,111 @@ serve(async (req)=>{
         break;
       default:
         promptContent = `
-          Given search query: "${queryText}", I need to create a relevant marketing plan.
-          
-          We found ${processedAssets.length} matching assets through semantic search.
-          Here's a summary of the matches:
-          ${processedAssets.map((asset)=>{
-          // Extract geographic targeting capabilities for clearer presentation
-          const targetingOpts = asset.targeting_options || {};
-          const geoTargeting = {
-            // Handle both boolean flags and values for targeting options
-            cityLevelAvailable: !!targetingOpts.city_level_targeting,
-            stateLevelAvailable: !!targetingOpts.state_level_targeting,
-            stateValues: typeof targetingOpts.state_targeting_values === 'string' ? targetingOpts.state_targeting_values : '',
-            ageTargetingAvailable: !!targetingOpts.age_targeting_available,
-            genderTargetingAvailable: !!targetingOpts.gender_targeting_available,
-            // Additional fields that might contain values
-            cityValues: typeof targetingOpts.city_targeting_values === 'string' ? targetingOpts.city_targeting_values : '',
-            ageGroups: targetingOpts.age_groups || {},
-            genderValues: targetingOpts.gender || {},
-            interests: Array.isArray(targetingOpts.interests) ? targetingOpts.interests : []
-          };
-          return `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
-            ID: ${asset.id}
-            Buy type: ${asset.buy_types}
-            Base cost: ${asset.amount}
-            Est. impressions: ${asset.estimated_impressions}
-            Est. clicks: ${asset.estimated_clicks}
-            Category: ${asset.category}${asset.placement ? `\n            Placement: ${asset.placement}` : ''}
-            Audience & Targeting: ${geoTargeting.stateLevelAvailable ? 'State-level targeting available' : 'No state targeting'}${geoTargeting.stateValues ? ` (States: ${geoTargeting.stateValues})` : ''}${geoTargeting.cityLevelAvailable ? ', City-level targeting available' : ', No city targeting'}${geoTargeting.cityValues ? ` (Cities: ${geoTargeting.cityValues})` : ''}
-            Demographics: ${geoTargeting.ageTargetingAvailable ? 'Age targeting available' : 'No age targeting'}${Object.keys(geoTargeting.ageGroups).length > 0 ? ` (Age groups: ${JSON.stringify(geoTargeting.ageGroups)})` : ''}${geoTargeting.genderTargetingAvailable ? ', Gender targeting available' : ', No gender targeting'}${Object.keys(geoTargeting.genderValues).length > 0 ? ` (Gender: ${JSON.stringify(geoTargeting.genderValues)})` : ''}
-            Interests: ${geoTargeting.interests.length > 0 ? `Available (Interests: ${geoTargeting.interests.join(', ')})` : 'No interest targeting'}
-            Full audience data: ${JSON.stringify(asset.targeting_options)}
-            Device split: ${JSON.stringify(asset.device_split)}${asset.tags && asset.tags.length > 0 ? `\n            Tags: ${asset.tags.join(', ')}` : ''}
-            Similarity: ${asset.similarity}`;
-        }).join('\n\n')}
-          
-          IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
-          
-          Please:
-          1. First, carefully analyze the query "${queryText}" to identify:
-            - Budget requirements
-            - Number of assets requested
-            - Number of platforms requested
-            - Any specific industry filtering instructions (e.g., "only tech industry", "only finance industry")
-            - Budget allocation preferences (e.g., "split equally")
-            - Specific platforms to include (e.g., "include Facebook and Instagram")
-            - Any other filtering criteria for rows (e.g., "only CPC buy type", "only video assets")
-            - Targeting requirements:
-                * Geographic targeting (e.g., "people from Mumbai", "users in Delhi") - IDENTIFY ALL STATES, CITIES, AND COUNTRIES
-                * Demographic targeting (e.g., "18-24 year olds", "women", "young adults")
-                * Interest-based targeting (e.g., "travelers", "food enthusiasts", "gamers")
-                * Behavioral targeting (e.g., "frequent shoppers", "new customers")
-          
-          2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
-          
-          3. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset). Include relevant targeting options, audience data, or placement details if available.
-          
-          4. Marketing plan as a properly formatted table:
-          
-          MARKETING PLAN:
-          | Asset | Platform | Platform Industry | Buy Type | Budget % | Budget Amount | Est. Impressions | Est. Clicks |
-          |-------|----------|-------------------|----------|----------|---------------|------------------|-------------|
-          | [name] | [platform_name] | [platform_industry] | [buy_types] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
-          
-          Rules:
-          - Use the budget specified in the query (default is 5-8 lakhs if not specified)
-          - If specific asset or platform counts are requested, follow those requirements precisely
-          - If specific industry filtering is requested, ONLY include assets from that industry
-          - If no specific industry filtering is requested, include assets from all industries
-          - If specific platforms are mentioned to include, prioritize those platforms
-          - If specific buy types, asset categories, or other criteria are mentioned, filter accordingly
-          
-          GEOGRAPHIC TARGETING RULES (CRITICAL):
-          - First, analyze the query to identify any specific states, cities, or countries mentioned
-          - STRONG PRIORITY #1: If specific locations are mentioned in the query (e.g., "Karnataka", "Mumbai", "India"), ONLY select assets where targeting_options explicitly includes these exact locations
-          - STRONG PRIORITY #2: If no exact match is possible but specific locations are mentioned, select assets that at least support the TYPE of location mentioned (state/city/country targeting capability)
-          - PRIORITY #3: If no specific locations are mentioned, prioritize assets that have ANY geographic targeting capabilities
-          - Do NOT include assets without relevant geographic targeting if the query suggests location is important
-          
-          - Match demographic targeting mentioned in query (age groups, gender) with suitable assets
-          - Match interest or behavioral targeting in query with relevant assets
-          - If you don't have enough assets or platforms, use what you have and explain the limitation
-          - If query mentions budget allocation like "split equally", follow this precisely
-          - Use the asset's base cost (from "Base cost" field) to proportionally calculate the appropriate Budget Amount
-          - Ensure Budget % totals 100%
-          - Provide EXACT calculated amounts for Budget Amount column
-          - Include the buy type for each asset (from buy_types field)
-          - Adjust impressions/clicks proportionally to budget allocation
-          - Never include placeholder or "not specified" assets in your plan
-          
-          5. Brief next steps (1-2 points)
-        `;
+            Given search query: "${queryText}", I need to create a relevant marketing plan.
+            
+            We found ${processedAssets.length} matching assets through semantic search.
+            Here's a summary of the matches:
+            ${processedAssets.map((asset)=>{
+            // Extract geographic targeting capabilities for clearer presentation
+            const targetingOpts = asset.targeting_options || {};
+            const geoTargeting = {
+                // Handle both boolean flags and values for targeting options
+                cityLevelAvailable: !!targetingOpts.city_level_targeting,
+                stateLevelAvailable: !!targetingOpts.state_level_targeting,
+                stateValues: typeof targetingOpts.state_targeting_values === 'string' ? targetingOpts.state_targeting_values : '',
+                ageTargetingAvailable: !!targetingOpts.age_targeting_available,
+                genderTargetingAvailable: !!targetingOpts.gender_targeting_available,
+                // Additional fields that might contain values
+                cityValues: typeof targetingOpts.city_targeting_values === 'string' ? targetingOpts.city_targeting_values : '',
+                ageGroups: targetingOpts.age_groups || {},
+                genderValues: targetingOpts.gender || {},
+                interests: Array.isArray(targetingOpts.interests) ? targetingOpts.interests : []
+            };
+            return `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
+                ID: ${asset.id}
+                Buy type: ${asset.buy_types}
+                Base cost: ${asset.amount}
+                Est. impressions: ${asset.estimated_impressions}
+                Est. clicks: ${asset.estimated_clicks}
+                Category: ${asset.category}${asset.placement ? `\n            Placement: ${asset.placement}` : ''}
+                Audience & Targeting: ${geoTargeting.stateLevelAvailable ? 'State-level targeting available' : 'No state targeting'}${geoTargeting.stateValues ? ` (States: ${geoTargeting.stateValues})` : ''}${geoTargeting.cityLevelAvailable ? ', City-level targeting available' : ', No city targeting'}${geoTargeting.cityValues ? ` (Cities: ${geoTargeting.cityValues})` : ''}
+                Demographics: ${geoTargeting.ageTargetingAvailable ? 'Age targeting available' : 'No age targeting'}${Object.keys(geoTargeting.ageGroups).length > 0 ? ` (Age groups: ${JSON.stringify(geoTargeting.ageGroups)})` : ''}${geoTargeting.genderTargetingAvailable ? ', Gender targeting available' : ', No gender targeting'}${Object.keys(geoTargeting.genderValues).length > 0 ? ` (Gender: ${JSON.stringify(geoTargeting.genderValues)})` : ''}
+                Interests: ${geoTargeting.interests.length > 0 ? `Available (Interests: ${geoTargeting.interests.join(', ')})` : 'No interest targeting'}
+                Full audience data: ${JSON.stringify(asset.targeting_options)}
+                Device split: ${JSON.stringify(asset.device_split)}${asset.tags && asset.tags.length > 0 ? `\n            Tags: ${asset.tags.join(', ')}` : ''}
+                Similarity: ${asset.similarity}`;
+            }).join('\n\n')}
+            
+            IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
+            
+            Please:
+            1. First, carefully analyze the query "${queryText}" to identify:
+                - Budget requirements
+                - Number of assets requested
+                - Number of platforms requested
+                - Any specific industry filtering instructions (e.g., "only tech industry", "only finance industry")
+                - Budget allocation preferences (e.g., "split equally")
+                - Specific platforms to include (e.g., "include Facebook and Instagram")
+                - Any other filtering criteria for rows (e.g., "only CPC buy type", "only video assets")
+                - Targeting requirements:
+                    * Geographic targeting (e.g., "people from Mumbai", "users in Delhi") - IDENTIFY ALL STATES, CITIES, AND COUNTRIES
+                    * Demographic targeting (e.g., "18-24 year olds", "women", "young adults")
+                    * Interest-based targeting (e.g., "travelers", "food enthusiasts", "gamers")
+                    * Behavioral targeting (e.g., "frequent shoppers", "new customers")
+            
+            2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
+            
+            3. For each asset in your plan, explain WHY it was chosen and how it meets the user's needs (1-2 sentences per asset). Include relevant targeting options, audience data, or placement details if available.
+            
+            4. Marketing plan as a properly formatted table:
+            
+            MARKETING PLAN:
+            | Asset | Platform | Platform Industry | Buy Type | Budget % | Budget Amount | Est. Impressions | Est. Clicks |
+            |-------|----------|-------------------|----------|----------|---------------|------------------|-------------|
+            | [name] | [platform_name] | [platform_industry] | [buy_types] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
+            
+            Rules:
+            - Use the budget specified in the query (default is 5-8 lakhs if not specified)
+            - If specific asset or platform counts are requested, follow those requirements precisely
+            - If specific industry filtering is requested, ONLY include assets from that industry
+            - If no specific industry filtering is requested, include assets from all industries
+            - If specific platforms are mentioned to include, prioritize those platforms
+            - If specific buy types, asset categories, or other criteria are mentioned, filter accordingly
+            
+            GEOGRAPHIC TARGETING RULES (CRITICAL):
+            - First, analyze the query to identify any specific states, cities, or countries mentioned
+            - STRONG PRIORITY #1: If specific locations are mentioned in the query (e.g., "Karnataka", "Mumbai", "India"), ONLY select assets where targeting_options explicitly includes these exact locations
+            - STRONG PRIORITY #2: If no exact match is possible but specific locations are mentioned, select assets that at least support the TYPE of location mentioned (state/city/country targeting capability)
+            - PRIORITY #3: If no specific locations are mentioned, prioritize assets that have ANY geographic targeting capabilities
+            - Do NOT include assets without relevant geographic targeting if the query suggests location is important
+            
+            - Match demographic targeting mentioned in query (age groups, gender) with suitable assets
+            - Match interest or behavioral targeting in query with relevant assets
+            - If you don't have enough assets or platforms, use what you have and explain the limitation
+            - If query mentions budget allocation like "split equally", follow this precisely
+            - Use the asset's base cost (from "Base cost" field) to proportionally calculate the appropriate Budget Amount
+            - Ensure Budget % totals 100%
+            - Provide EXACT calculated amounts for Budget Amount column
+            - Include the buy type for each asset (from buy_types field)
+
+            CALCULATION INSTRUCTIONS FOR PROPORTIONAL IMPRESSIONS AND CLICKS:
+            - For each asset, use the following formulas to calculate proportional values:
+                * Proportional Impressions = (Budget Amount for this asset / Base cost of the asset) × Base Est. Impressions
+                * Proportional Clicks = (Budget Amount for this asset / Base cost of the asset) × Base Est. Clicks
+            - For example, if an asset has:
+                * Base cost: 100,000
+                * Base Est. Impressions: 1,000,000
+                * Base Est. Clicks: 10,000
+                * And you allocate 50,000 to this asset (50% of base cost)
+                * Then:
+                - Proportional Impressions = (50,000/100,000) × 1,000,000 = 500,000
+                - Proportional Clicks = (50,000/100,000) × 10,000 = 5,000
+            - Round all proportional values to the nearest whole number
+            - If the base cost is not provided (null), use 1.0 as the ratio (no adjustment)
+            - Never include placeholder or "not specified" assets in your plan
+            
+            5. Brief next steps (1-2 points)
+            `;
         break;
     }
     // Initialize the Azure OpenAI chat model using LangChain
@@ -237,39 +251,46 @@ serve(async (req)=>{
     });
     // Create the chat prompt
     const systemTemplate = `You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.
+        When a user provides a query:
+        1. Look for specific requirements including:
+        - Budget information
+        - Asset counts ("X assets")
+        - Platform counts ("Y platforms")
+        - Asset-platform combinations ("X assets from Y platforms")
+        - Industry filters ("only tech industry", "only finance industry")
+        - Platform inclusions ("include Facebook and Instagram")
+        - Buy type preferences ("only CPC")
+        - Asset category filters ("only video assets")
+        - Targeting options ("only assets with youth targeting")
+        - Placement specifications ("only top banner placements")
+        - Budget allocation instructions ("split equally", "70% to Facebook")
+        - Geographic targeting in the query (EXTRACT ALL states, cities, countries like "Karnataka", "Mumbai", "India")
+        - Demographic targeting in the query ("18-24 year olds", "women", "young professionals")
+        - Interest-based targeting in the query ("travelers", "food lovers", "tech enthusiasts")
+        - Behavioral targeting in the query ("frequent shoppers", "new customers")
+        2. Pay attention to all available asset properties (targeting_options, audience_data, placement, tags, etc.)
+        3. ALWAYS present the marketing plan as a properly formatted markdown table with headings, alignment, and proper cell formatting.
+        4. FOLLOW THIS STRICT LOCATION TARGETING HIERARCHY:
+        A. If specific locations (states/cities/countries) are mentioned in the query, ONLY use assets that exactly match these locations in their targeting_options
+        B. If exact matches aren't available but locations are mentioned, use assets that at least support the TYPE of location targeting needed (state/city/country capability)
+        C. If no specific locations mentioned, prioritize assets with any geographic targeting capabilities
+        D. Never include assets without geographic targeting if the query suggests location is important
+        5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
 
-    When a user provides a query:
-    1. Look for specific requirements including:
-      - Budget information
-      - Asset counts ("X assets")
-      - Platform counts ("Y platforms")
-      - Asset-platform combinations ("X assets from Y platforms")
-      - Industry filters ("only tech industry", "only finance industry")
-      - Platform inclusions ("include Facebook and Instagram")
-      - Buy type preferences ("only CPC")
-      - Asset category filters ("only video assets")
-      - Targeting options ("only assets with youth targeting")
-      - Placement specifications ("only top banner placements")
-      - Budget allocation instructions ("split equally", "70% to Facebook")
-      - Geographic targeting in the query (EXTRACT ALL states, cities, countries like "Karnataka", "Mumbai", "India")
-      - Demographic targeting in the query ("18-24 year olds", "women", "young professionals")
-      - Interest-based targeting in the query ("travelers", "food lovers", "tech enthusiasts")
-      - Behavioral targeting in the query ("frequent shoppers", "new customers")
-    2. Pay attention to all available asset properties (targeting_options, audience_data, placement, tags, etc.)
-    3. ALWAYS present the marketing plan as a properly formatted markdown table with headings, alignment, and proper cell formatting.
-    4. FOLLOW THIS STRICT LOCATION TARGETING HIERARCHY:
-      A. If specific locations (states/cities/countries) are mentioned in the query, ONLY use assets that exactly match these locations in their targeting_options
-      B. If exact matches aren't available but locations are mentioned, use assets that at least support the TYPE of location targeting needed (state/city/country capability)
-      C. If no specific locations mentioned, prioritize assets with any geographic targeting capabilities
-      D. Never include assets without geographic targeting if the query suggests location is important
-    5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
+        CALCULATION INSTRUCTIONS FOR PROPORTIONAL IMPRESSIONS AND CLICKS:
+        - For each asset in the plan, calculate proportional impressions and clicks based on the allocated budget:
+        * Proportional Impressions = (Budget Amount / Base cost) × Base Est. Impressions
+        * Proportional Clicks = (Budget Amount / Base cost) × Base Est. Clicks
+        - Always use these formulas to show the ADJUSTED values, not the base values
+        - Round all proportional values to the nearest whole number
+        - If base cost is null or 0, treat it as if the proportional values equal the base values (no adjustment)
 
-    Important:
-    - If the user requests more assets or platforms than you found, clearly state this limitation
-    - If they request specific industry filtering (e.g., "only tech industry"), ONLY include assets from that industry
-    - If no specific industry is mentioned in the query, include assets from all available industries
-    - Always provide exact budget amounts in the marketing plan, not just percentages
-    - If specific platforms are mentioned by name, prioritize those platforms in your plan`;
+        Important:
+        - If the user requests more assets or platforms than you found, clearly state this limitation
+        - If they request specific industry filtering (e.g., "only tech industry"), ONLY include assets from that industry
+        - If no specific industry is mentioned in the query, include assets from all available industries
+        - Always provide exact budget amounts in the marketing plan, not just percentages
+        - If specific platforms are mentioned by name, prioritize those platforms in your plan`;
     const humanTemplate = "{prompt}";
     const chatPrompt = ChatPromptTemplate.fromMessages([
       SystemMessagePromptTemplate.fromTemplate(systemTemplate),
