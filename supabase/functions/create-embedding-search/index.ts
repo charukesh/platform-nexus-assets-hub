@@ -210,16 +210,22 @@ serve(async (req) => {
           
           2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
           
-          3. SELECTED ASSETS AND RATIONALE:
-             For each selected asset, present a compelling narrative with specific points on why it's included:
-             - Start with "Asset Name: [Name] - [X]% of budget (₹[exact amount])" 
-             - Include at least 3-4 specific bulleted points about WHY this asset was chosen:
-                • Point 1: Specific platform strength (what this platform uniquely offers)
-                • Point 2: Targeting capabilities that match query requirements
-                • Point 3: Performance metrics that make it valuable 
-                • Point 4: Audience reach or placement advantages
-             - After the bullet points, add a short paragraph explaining how the budget allocation for this 
-               asset strategically maximizes campaign effectiveness and expected outcomes
+          3. PLATFORM SELECTION AND ASSETS:
+             For each selected platform, explain why it's ideal for the campaign and what specific assets within it work best:
+             
+             **[Platform Name] - [X]% of total budget (₹[exact amount])**
+             
+             **Why [Platform Name] makes sense:**
+             * [Point 1]: Focus on how the target audience uses this platform (e.g., "Your audience (developers aged 22-35) are often plugged in with music or podcasts — it's their second screen during coding")
+             * [Point 2]: Highlight the platform's unique storytelling or engagement capabilities (e.g., "Audio + banners allow for emotional, witty storytelling")
+             * [Point 3]: Detail the platform's specific targeting advantages (e.g., "Targeting by age, location, language, and even interests like tech podcasts is precise")
+             * [Brief emotional/strategic summary]: One-line emotional or strategic benefit (e.g., "Emotionally resonant + perfect brand storytelling + urban professional audience")
+             
+             **Within [Platform Name], we'll leverage:**
+             * **[Asset Name] - [X]% of platform budget (₹[exact amount])**: [Brief explanation of why this specific asset within the platform]
+             * **[Asset Name] - [X]% of platform budget (₹[exact amount])**: [Brief explanation of why this specific asset within the platform]
+             
+             With this platform allocation, we expect [X] impressions and [Y] clicks based on our calculations: [show brief calculation example]
           
           4. Marketing plan as a properly formatted table:
           
@@ -329,16 +335,18 @@ serve(async (req) => {
       C. If no specific locations mentioned, prioritize assets with any geographic targeting capabilities
       D. Never include assets without geographic targeting if the query suggests location is important
     5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
-    6. For each asset in your plan, provide specific bulleted points on why it was selected:
-       - Format as "Asset Name: [Name] - [X]% of budget (₹[exact amount])" 
-       - Include 3-4 specific bulleted points about the asset's value:
-         • Platform Strength: What this platform uniquely offers (with specific metrics if available)
-         • Targeting Capabilities: Specific targeting options that align with query requirements
-         • Performance Metrics: CTR, engagement rates, or other metrics that make it valuable
-         • Audience/Placement Advantage: Specific audience reach or placement benefits
-       - Add a concluding paragraph connecting budget allocation to expected performance outcomes
+    6. For each platform in your plan, explain why it's strategically valuable and detail its specific assets:
+       - Format as "Platform Name - X% of total budget (₹exact amount)"
+       - Include 3-4 specific bulleted points about the platform's strategic value:
+         • Audience Behavior: How the target audience uses this platform in their daily lives
+         • Engagement Format: The platform's unique storytelling or engagement capabilities
+         • Targeting Advantages: Specific targeting options that align with query requirements
+         • Brief emotional/strategic summary in one line
+       - Then list specific assets within that platform:
+         • "Asset Name - X% of platform budget (₹exact amount)": Brief explanation of this specific asset
+       - Include expected performance outcomes with calculation demonstration
     
-    7. Provide a clear explanation of your overall budget allocation strategy (4-5 sentences).
+    7. Provide a clear explanation of your overall budget allocation strategy across platforms.
     
     8. Calculate impressions and clicks based on allocated budget amount:
        - Formula: (base_metric / asset.amount) × allocated_budget_amount = adjusted_metric
