@@ -191,8 +191,8 @@ serve(async (req)=>{
             4. Marketing plan as a properly formatted table:
             
             MARKETING PLAN:
-            | Asset | Platform | Platform Industry | Buy Type | Budget % | Budget Amount | Est. Impressions | Est. Clicks |
-            |-------|----------|-------------------|----------|----------|---------------|------------------|-------------|
+            | Asset | Platform | Platform Industry | Buy Type | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
+            |-------|----------|-------------------|----------|----------|---------------|--------------------------|---------------------|
             | [name] | [platform_name] | [platform_industry] | [buy_types] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
             
             Rules:
@@ -231,6 +231,7 @@ serve(async (req)=>{
                 * Then:
                 - Proportional Impressions = (50,000/100,000) × 1,000,000 = 500,000
                 - Proportional Clicks = (50,000/100,000) × 10,000 = 5,000
+            - Provide EXACT calculated amounts for Proportional Impressions and Proportional Clicks columns
             - Round all proportional values to the nearest whole number
             - If the base cost is not provided (null), use 1.0 as the ratio (no adjustment)
             - Never include placeholder or "not specified" assets in your plan
@@ -281,7 +282,8 @@ serve(async (req)=>{
         - For each asset in the plan, calculate proportional impressions and clicks based on the allocated budget:
         * Proportional Impressions = (Budget Amount / Base cost) × Base Est. Impressions
         * Proportional Clicks = (Budget Amount / Base cost) × Base Est. Clicks
-        - Always use these formulas to show the ADJUSTED values, not the base values
+        - Always use these formulas to show the EXACT CALCULATED values, not the base values
+        - For Proportional Impressions and Proportional Clicks columns, provide the exact calculated amounts
         - Round all proportional values to the nearest whole number
         - If base cost is null or 0, treat it as if the proportional values equal the base values (no adjustment)
 
