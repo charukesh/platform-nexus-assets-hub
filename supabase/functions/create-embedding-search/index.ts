@@ -210,12 +210,15 @@ serve(async (req) => {
           
           2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
           
-          3. For each asset in your plan:
-             - Provide DETAILED explanation (3-4 sentences) WHY this specific asset was chosen 
-             - Explain how it aligns with the user's query intent and requirements
-             - Highlight its specific targeting capabilities that match the query
-             - Mention any unique performance metrics that make it valuable (high clicks, impressions, etc.)
-             - Note any specific audience or placement advantages
+          3. SELECTED ASSETS AND RATIONALE:
+             For each selected asset, tell a compelling story about why it's included in the plan:
+             - Start with "Asset Name: [Name] - [X]% of budget (₹[exact amount])" 
+             - Write in a narrative, storytelling style (not bullet points)
+             - Explain WHY this asset was chosen as if you're telling a story about its strategic value
+             - Include at least 3 specific points about this asset's strengths, written as a cohesive narrative
+             - Highlight specifically how its targeting capabilities address the query requirements
+             - Explain how the budget allocation for this specific asset strategically maximizes campaign effectiveness
+             - Mention expected performance outcomes based on the budget allocation
           
           4. Marketing plan as a properly formatted table:
           
@@ -224,17 +227,27 @@ serve(async (req) => {
           |-------|----------|-------------------|----------|----------|---------------|------------------|-------------|
           | [name] | [platform_name] | [platform_industry] | [buy_types] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
           
+          CRITICAL CALCULATION INSTRUCTIONS FOR IMPRESSIONS AND CLICKS:
+          - You MUST show your calculations for at least one example to demonstrate how you derived the values
+          - Formula for impressions: (asset.estimated_impressions) × (budget_percentage / 100)
+          - Formula for clicks: (asset.estimated_clicks) × (budget_percentage / 100)
+          - Example calculation: "For Asset X with base 50,000 impressions receiving 30% of budget: 50,000 × (30/100) = 15,000 adjusted impressions"
+          - Use the exact base values from the asset data and show adjusted values in the table
+          
           5. CRITICAL: EXPLAIN IN DETAIL (4-5 sentences) the rationale behind your budget allocation. For example:
              - Why did you allocate more budget to certain assets?
              - What factors influenced your budget split decision? (targeting capabilities, performance metrics, etc.)
              - How does this allocation optimize for the query's goals?
              - How will this split maximize ROI based on the estimated impressions and clicks?
           
-          6. Instructions for impression and click calculations:
-             - Calculate impressions and clicks proportionally to the budget allocation
-             - For example, if asset's base impressions = 10,000 and you allocate 50% of total budget, adjusted impressions = 5,000
-             - For example, if asset's base clicks = 1,000 and you allocate 20% of total budget, adjusted clicks = 200
-             - Show these proportionally adjusted numbers in the table's Est. Impressions and Est. Clicks columns
+          6. CRITICAL: Impression and click calculations MUST be done as follows:
+             - Calculate impressions using exact formula: (asset.estimated_impressions) × (budget_percentage / 100)
+             - Calculate clicks using exact formula: (asset.estimated_clicks) × (budget_percentage / 100)
+             - Show complete calculations with actual numbers for at least one asset as an example
+             - For example: "Asset X with 75,000 base impressions receiving 40% budget: 75,000 × (40/100) = 30,000 adjusted impressions"
+             - Include similar calculation demonstration for clicks
+             - Show these accurately calculated numbers in the Est. Impressions and Est. Clicks columns
+             - Do not round or approximate these calculations - use exact mathematical results
           
           Rules:
           - Use the budget specified in the query (default is 5-8 lakhs if not specified)
@@ -314,9 +327,19 @@ serve(async (req) => {
       C. If no specific locations mentioned, prioritize assets with any geographic targeting capabilities
       D. Never include assets without geographic targeting if the query suggests location is important
     5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
-    6. For each asset in your plan, provide a DETAILED explanation (3-4 sentences) for why it was selected, highlighting specific targeting capabilities, performance metrics, and relevance to the query.
+    6. For each asset in your plan, tell a COMPELLING STORY about why it was selected. Structure this as:
+       - "Asset Name: [Name] - [X]% of budget (₹[exact amount])" as the heading
+       - Write a cohesive narrative paragraph (not bullet points)
+       - Include at least 3 specific asset strengths in your story
+       - Explain the strategic budget allocation for this specific asset
+       - Connect the budget allocation to expected performance outcomes
+    
     7. Provide a clear, detailed explanation of your budget allocation strategy (4-5 sentences), explaining the factors that influenced your distribution decisions.
-    8. Calculate impressions and clicks proportionally based on budget allocation. For example, if an asset has 10,000 base impressions and you allocate 50% of budget, show 5,000 impressions.
+    
+    8. Calculate and explicitly demonstrate impressions and clicks calculations:
+       - Formula: base_metric × (budget_percentage / 100) = adjusted_metric
+       - Show at least one example calculation with exact numbers
+       - Ensure all table values reflect these calculations
 
     Important:
     - If the user requests more assets or platforms than you found, clearly state this limitation
