@@ -227,14 +227,15 @@ serve(async (req)=>{
                 * Base cost: 100
                 * Base Est. Impressions: 50,000
                 * Base Est. Clicks: 500
-                * And you allocate 250,000 to this asset
+                * And you allocate 500,000 to this asset
                 * Then:
-                - Proportional Impressions = (250,000/100) × 50,000 = 125,000
-                - Proportional Clicks = (250,000/100) × 500 = 1,250
+                - Proportional Impressions = (500,000/100) × 50,000 = 250,000,000
+                - Proportional Clicks = (500,000/100) × 500 = 2,500,000
             - Another example: For a 700 INR asset with 60,000 impressions and 600 clicks, given 100,000 INR budget:
-                - Proportional Impressions = (100,000/700) × 60,000 = 8,571 (rounded)
-                - Proportional Clicks = (100,000/700) × 600 = 86 (rounded)
-            - Always double-check your calculations and round to the nearest whole number
+                - Proportional Impressions = (100,000/700) × 60,000 = 8,571,429 (rounded to 8,571,429)
+                - Proportional Clicks = (100,000/700) × 600 = 85,714 (rounded to 85,714)
+            - Round all values to the nearest whole number
+            - If the base cost is null or zero, use the base values without adjustment
             - Provide EXACT calculated amounts for Proportional Impressions and Proportional Clicks columns
             - Round all proportional values to the nearest whole number
             - If the base cost is not provided (null), use 1.0 as the ratio (no adjustment)
@@ -283,18 +284,16 @@ serve(async (req)=>{
         5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
 
         CALCULATION INSTRUCTIONS FOR PROPORTIONAL IMPRESSIONS AND CLICKS:
-        - For each asset in the plan, calculate proportional impressions and clicks based on the allocated budget:
+        - For each asset in the plan, calculate proportional impressions and clicks based on the allocated budget using these exact formulas:
         * Proportional Impressions = (Budget Amount / Base cost) × Base Est. Impressions
         * Proportional Clicks = (Budget Amount / Base cost) × Base Est. Clicks
-        - Always follow this formula exactly and double-check your math:
-          * Example 1: For a 100 INR asset with 50,000 impressions and 500 clicks, given 250,000 INR budget:
-            - Proportional Impressions = (250,000/100) × 50,000 = 125,000
-            - Proportional Clicks = (250,000/100) × 500 = 1,250
-          * Example 2: For a 700 INR asset with 60,000 impressions and 600 clicks, given 100,000 INR budget:
-            - Proportional Impressions = (100,000/700) × 60,000 = 8,571
-            - Proportional Clicks = (100,000/700) × 600 = 86 (not 857)
-        - Always round proportional values to the nearest whole number
-        - If base cost is null or 0, use the base impressions and clicks as the proportional values
+        - This is direct linear scaling based on budget ratio
+        - For example:
+          * For a 100 INR asset with 50,000 base impressions and 500 base clicks, with 500,000 INR budget:
+            - Proportional Impressions = (500,000/100) × 50,000 = 250,000,000
+            - Proportional Clicks = (500,000/100) × 500 = 2,500,000
+        - Round all proportional values to the nearest whole number
+        - If base cost is null or 0, use the base impressions and clicks as the proportional values (no adjustment)
 
         Important:
         - If the user requests more assets or platforms than you found, clearly state this limitation
