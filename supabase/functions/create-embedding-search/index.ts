@@ -211,14 +211,15 @@ serve(async (req) => {
           2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
           
           3. SELECTED ASSETS AND RATIONALE:
-             For each selected asset, tell a compelling story about why it's included in the plan:
+             For each selected asset, present a compelling narrative with specific points on why it's included:
              - Start with "Asset Name: [Name] - [X]% of budget (₹[exact amount])" 
-             - Write in a narrative, storytelling style (not bullet points)
-             - Explain WHY this asset was chosen as if you're telling a story about its strategic value
-             - Include at least 3 specific points about this asset's strengths, written as a cohesive narrative
-             - Highlight specifically how its targeting capabilities address the query requirements
-             - Explain how the budget allocation for this specific asset strategically maximizes campaign effectiveness
-             - Mention expected performance outcomes based on the budget allocation
+             - Include at least 3-4 specific bulleted points about WHY this asset was chosen:
+                • Point 1: Specific platform strength (what this platform uniquely offers)
+                • Point 2: Targeting capabilities that match query requirements
+                • Point 3: Performance metrics that make it valuable 
+                • Point 4: Audience reach or placement advantages
+             - After the bullet points, add a short paragraph explaining how the budget allocation for this 
+               asset strategically maximizes campaign effectiveness and expected outcomes
           
           4. Marketing plan as a properly formatted table:
           
@@ -241,10 +242,11 @@ serve(async (req) => {
              - How will this split maximize ROI based on the estimated impressions and clicks?
           
           6. CRITICAL: Impression and click calculations MUST be done as follows:
-             - Calculate impressions using exact formula: (asset.estimated_impressions) × (budget_percentage / 100)
-             - Calculate clicks using exact formula: (asset.estimated_clicks) × (budget_percentage / 100)
+             - Calculate impressions using exact formula: (asset.estimated_impressions / asset.amount) × allocated_budget_amount
+             - Calculate clicks using exact formula: (asset.estimated_clicks / asset.amount) × allocated_budget_amount
              - Show complete calculations with actual numbers for at least one asset as an example
-             - For example: "Asset X with 75,000 base impressions receiving 40% budget: 75,000 × (40/100) = 30,000 adjusted impressions"
+             - For example: "Asset X with 75,000 base impressions at base cost ₹250,000 receiving ₹400,000 budget: 
+               (75,000 / 250,000) × 400,000 = 120,000 adjusted impressions"
              - Include similar calculation demonstration for clicks
              - Show these accurately calculated numbers in the Est. Impressions and Est. Clicks columns
              - Do not round or approximate these calculations - use exact mathematical results
@@ -327,19 +329,21 @@ serve(async (req) => {
       C. If no specific locations mentioned, prioritize assets with any geographic targeting capabilities
       D. Never include assets without geographic targeting if the query suggests location is important
     5. Implicitly extract targeting requirements from phrases like "traveling people from Mumbai" (location targeting) or "students aged 18-24" (demographic targeting).
-    6. For each asset in your plan, tell a COMPELLING STORY about why it was selected. Structure this as:
-       - "Asset Name: [Name] - [X]% of budget (₹[exact amount])" as the heading
-       - Write a cohesive narrative paragraph (not bullet points)
-       - Include at least 3 specific asset strengths in your story
-       - Explain the strategic budget allocation for this specific asset
-       - Connect the budget allocation to expected performance outcomes
+    6. For each asset in your plan, provide specific bulleted points on why it was selected:
+       - Format as "Asset Name: [Name] - [X]% of budget (₹[exact amount])" 
+       - Include 3-4 specific bulleted points about the asset's value:
+         • Platform Strength: What this platform uniquely offers (with specific metrics if available)
+         • Targeting Capabilities: Specific targeting options that align with query requirements
+         • Performance Metrics: CTR, engagement rates, or other metrics that make it valuable
+         • Audience/Placement Advantage: Specific audience reach or placement benefits
+       - Add a concluding paragraph connecting budget allocation to expected performance outcomes
     
-    7. Provide a clear, detailed explanation of your budget allocation strategy (4-5 sentences), explaining the factors that influenced your distribution decisions.
+    7. Provide a clear explanation of your overall budget allocation strategy (4-5 sentences).
     
-    8. Calculate and explicitly demonstrate impressions and clicks calculations:
-       - Formula: base_metric × (budget_percentage / 100) = adjusted_metric
-       - Show at least one example calculation with exact numbers
-       - Ensure all table values reflect these calculations
+    8. Calculate impressions and clicks based on allocated budget amount:
+       - Formula: (base_metric / asset.amount) × allocated_budget_amount = adjusted_metric
+       - Show at least one complete calculation example with actual numbers
+       - Ensure all table values reflect these exact calculations
 
     Important:
     - If the user requests more assets or platforms than you found, clearly state this limitation
