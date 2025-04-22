@@ -4,11 +4,29 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
 import { AzureChatOpenAI } from "npm:@langchain/azure-openai";
 import { ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate } from "npm:@langchain/core/prompts";
+// Define CORS headers first
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
+// Helper function to safely extract targeting options
+function extractTargetingOptions(data) {
+  // If null or undefined, return empty object
+  if (!data) return {};
+  // If it's a string, try to parse as JSON
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Error parsing targeting options:', e);
+      return {};
+    }
+  }
+  // If it's already an object, return it
+  return data;
+}
+// Start the server with a handler function
 serve(async (req)=>{
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -21,22 +39,34 @@ serve(async (req)=>{
     // Get environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
-    const azureInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
-    const azureDeployment = Deno.env.get('AZURE_OPENAI_API_DEPLOYMENT_NAME');
+    // Azure OpenAi 
+    const azureApiKey = Deno.env.get('AZURE_OPENAI_CHAT_API_KEY');
+    const azureInstanceName = Deno.env.get('AZURE_OPENAI_CHAT_INSTANCE_NAME');
+    const azureDeployment = Deno.env.get('AZURE_OPENAI_CHAT_DEPLOYMENT_NAME');
+    const azureChatEndpoint = Deno.env.get('AZURE_OPENAI_CHAT_ENDPOINT');
+    const azureApiVersion = Deno.env.get('AZURE_OPENAI_CHAT_API_VERSION');
+    // Embedding
+    const azureEmbeddingInstance = Deno.env.get('AZURE_OPENAI_API_INSTANCE_NAME');
+    const embeddingApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
     const azureEmbeddingDeployment = Deno.env.get('AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME');
-    const azureApiVersion = Deno.env.get('AZURE_OPENAI_API_VERSION') || '2023-05-15';
+    const embeddingApiVersion = Deno.env.get('AZURE_OPENAI_EMBEDDING_API_VERSION');
+    const embeddingAzureEndpoint = `https://${azureEmbeddingInstance}.openai.azure.com`;
     // Validate configuration
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing required Supabase configuration');
     }
-    if (!azureApiKey || !azureInstance || !azureDeployment || !azureEmbeddingDeployment) {
+    if (!azureApiKey || !azureEmbeddingInstance || !azureEmbeddingDeployment) {
       throw new Error('Azure OpenAI configuration is incomplete');
     }
     // Initialize Supabase client
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
-    // Parse request data
-    const requestData = await req.json();
+    // Parse request data safely with error handling
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (parseError) {
+      throw new Error(`Failed to parse request body: ${parseError.message}`);
+    }
     // Accept either 'query' or 'text' parameter
     const queryText = requestData.query || requestData.text;
     const matchCount = requestData.matchCount || 5;
@@ -46,14 +76,12 @@ serve(async (req)=>{
     }
     // Use the entire query text for embedding (no parsing)
     const searchText = queryText.trim();
-    // Azure OpenAI setup for embeddings and endpoint
-    const azureEndpoint = `https://${azureInstance}.openai.azure.com`;
     // Initialize Azure OpenAI embeddings
     const embeddings = new AzureOpenAIEmbeddings({
-      azureOpenAIApiKey: azureApiKey,
-      azureOpenAIApiVersion: azureApiVersion,
-      azureOpenAIApiInstanceName: azureInstance,
-      azureOpenAIEndpoint: azureEndpoint,
+      azureOpenAIApiKey: embeddingApiKey,
+      azureOpenAIApiVersion: embeddingApiVersion,
+      azureOpenAIApiInstanceName: azureEmbeddingInstance,
+      azureOpenAIEndpoint: embeddingAzureEndpoint,
       azureOpenAIApiDeploymentName: azureEmbeddingDeployment,
       modelName: azureEmbeddingDeployment
     });
@@ -75,22 +103,6 @@ serve(async (req)=>{
     }
     // Process the results to ensure correct data types
     const matchedAssets = matchResults || [];
-    // Helper function to safely extract targeting options from platform.restrictions
-    function extractTargetingOptions(data) {
-      // If null or undefined, return empty object
-      if (!data) return {};
-      // If it's a string, try to parse as JSON
-      if (typeof data === 'string') {
-        try {
-          return JSON.parse(data);
-        } catch (e) {
-          console.error('Error parsing targeting options:', e);
-          return {};
-        }
-      }
-      // If it's already an object, return it
-      return data;
-    }
     // Process the assets to include essential fields and additional targeting information
     const processedAssets = matchedAssets.map((asset)=>({
         id: asset.id,
@@ -106,14 +118,11 @@ serve(async (req)=>{
         placement: asset.placement || "",
         // Extract targeting options from platform_audience_data
         targeting_options: extractTargetingOptions(asset.platform_audience_data),
-        audience_data: {},
-        device_split: typeof asset.platform_device_split === 'string' ? JSON.parse(asset.platform_device_split || '{}') : asset.platform_device_split || {},
         audience_data: typeof asset.platform_audience_data === 'string' ? JSON.parse(asset.platform_audience_data || '{}') : asset.platform_audience_data || {},
         device_split: typeof asset.platform_device_split === 'string' ? JSON.parse(asset.platform_device_split || '{}') : asset.platform_device_split || {},
         tags: asset.tags || [],
         similarity: Number(asset.similarity).toFixed(2)
       }));
-    console.log("processedAssets ===> " + JSON.stringify(processedAssets));
     // Determine prompt type based only on whether we have results
     let promptType = processedAssets.length === 0 ? "no_results" : "budget_planning";
     // Create appropriate prompt based on type
@@ -132,11 +141,11 @@ serve(async (req)=>{
         break;
       default:
         promptContent = `
-            Given search query: "${queryText}", I need to create a relevant marketing plan.
-            
-            We found ${processedAssets.length} matching assets through semantic search.
-            Here's a summary of the matches:
-            ${processedAssets.map((asset)=>{
+              Given search query: "${queryText}", I need to create a relevant marketing plan.
+              
+              We found ${processedAssets.length} matching assets through semantic search.
+              Here's a summary of the matches:
+              ${processedAssets.map((asset)=>{
           // Extract geographic targeting capabilities for clearer presentation
           const targetingOpts = asset.targeting_options || {};
           const geoTargeting = {
@@ -153,106 +162,101 @@ serve(async (req)=>{
             interests: Array.isArray(targetingOpts.interests) ? targetingOpts.interests : []
           };
           return `- ${asset.name} (${asset.platform_name}, ${asset.platform_industry}): 
-                ID: ${asset.id}
-                Buy type: ${asset.buy_types}
-                Base cost: ${asset.amount}
-                Est. impressions: ${asset.estimated_impressions}
-                Est. clicks: ${asset.estimated_clicks}
-                Category: ${asset.category}${asset.placement ? `\n            Placement: ${asset.placement}` : ''}
-                Audience & Targeting: ${geoTargeting.stateLevelAvailable ? 'State-level targeting available' : 'No state targeting'}${geoTargeting.stateValues ? ` (States: ${geoTargeting.stateValues})` : ''}${geoTargeting.cityLevelAvailable ? ', City-level targeting available' : ', No city targeting'}${geoTargeting.cityValues ? ` (Cities: ${geoTargeting.cityValues})` : ''}
-                Demographics: ${geoTargeting.ageTargetingAvailable ? 'Age targeting available' : 'No age targeting'}${Object.keys(geoTargeting.ageGroups).length > 0 ? ` (Age groups: ${JSON.stringify(geoTargeting.ageGroups)})` : ''}${geoTargeting.genderTargetingAvailable ? ', Gender targeting available' : ', No gender targeting'}${Object.keys(geoTargeting.genderValues).length > 0 ? ` (Gender: ${JSON.stringify(geoTargeting.genderValues)})` : ''}
-                Interests: ${geoTargeting.interests.length > 0 ? `Available (Interests: ${geoTargeting.interests.join(', ')})` : 'No interest targeting'}
-                Full audience data: ${JSON.stringify(asset.targeting_options)}
-                Device split: ${JSON.stringify(asset.device_split)}${asset.tags && asset.tags.length > 0 ? `\n            Tags: ${asset.tags.join(', ')}` : ''}
-                Similarity: ${asset.similarity}`;
+                  ID: ${asset.id}
+                  Buy type: ${asset.buy_types}
+                  Base cost: ${asset.amount}
+                  Est. impressions: ${asset.estimated_impressions}
+                  Est. clicks: ${asset.estimated_clicks}
+                  Category: ${asset.category}${asset.placement ? `\n          Placement: ${asset.placement}` : ''}
+                  Audience & Targeting: ${geoTargeting.stateLevelAvailable ? 'State-level targeting available' : 'No state targeting'}${geoTargeting.stateValues ? ` (States: ${geoTargeting.stateValues})` : ''}${geoTargeting.cityLevelAvailable ? ', City-level targeting available' : ', No city targeting'}${geoTargeting.cityValues ? ` (Cities: ${geoTargeting.cityValues})` : ''}
+                  Demographics: ${geoTargeting.ageTargetingAvailable ? 'Age targeting available' : 'No age targeting'}${Object.keys(geoTargeting.ageGroups).length > 0 ? ` (Age groups: ${JSON.stringify(geoTargeting.ageGroups)})` : ''}${geoTargeting.genderTargetingAvailable ? ', Gender targeting available' : ', No gender targeting'}${Object.keys(geoTargeting.genderValues).length > 0 ? ` (Gender: ${JSON.stringify(geoTargeting.genderValues)})` : ''}
+                  Interests: ${geoTargeting.interests.length > 0 ? `Available (Interests: ${geoTargeting.interests.join(', ')})` : 'No interest targeting'}
+                  Full audience data: ${JSON.stringify(asset.targeting_options)}
+                  Device split: ${JSON.stringify(asset.device_split)}${asset.tags && asset.tags.length > 0 ? `\n          Tags: ${asset.tags.join(', ')}` : ''}
+                  Similarity: ${asset.similarity}`;
         }).join('\n\n')}
-            
-            IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
-            
-            Please:
-            1. First, carefully analyze the query "${queryText}" to identify:
-                - Budget requirements
-                - Number of assets requested
-                - Number of platforms requested
-                - Any specific industry filtering instructions (e.g., "only tech industry", "only finance industry")
-                - Budget allocation preferences (e.g., "split equally")
-                - Specific platforms to include (e.g., "include Facebook and Instagram")
-                - Any other filtering criteria for rows (e.g., "only CPC buy type", "only video assets")
-                - Targeting requirements:
-                    * Geographic targeting (e.g., "people from Mumbai", "users in Delhi") - IDENTIFY ALL STATES, CITIES, AND COUNTRIES
-                    * Demographic targeting (e.g., "18-24 year olds", "women", "young adults")
-                    * Interest-based targeting (e.g., "travelers", "food enthusiasts", "gamers")
-                    * Behavioral targeting (e.g., "frequent shoppers", "new customers")
-            
-            2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
-                        
-            3. Marketing plan as a properly formatted table:
-            
-            MARKETING PLAN:
-            | Asset | Platform | Platform Industry | Buy Type | Base cost | Est Clicks | Est Impressions | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
-            |-------|----------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
-            | [name] | [platform_name] | [platform_industry] | [buy_types] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
-            
-             4. For each platform in your plan, provide a detailed explanation following this format:
-                
-                ### 1. [Platform Name]
-                :emoji: **Why [Platform Name] makes sense:**
-                - Explain why this platform is perfect for the user's query (1-2 sentences)
-                - Describe how the platform's audience aligns with targeting requirements (1 sentence)
-                - Mention specific targeting capabilities that match the query (1 sentence)
-                - Explain why the budget allocation percentage is appropriate (1 sentence)
-                
-                **Selected Assets:**
-                - **[Asset Name]**: Brief description of this specific asset and why it was chosen (1 sentence)
-                - **[Asset Name]**: Brief description of this specific asset and why it was chosen (1 sentence)
-                
-                :white_check_mark: **Key benefit summary:** [One-line summary of why this platform is valuable]
-
-            Rules:
-            - Use the budget specified in the query (default is 5-8 lakhs if not specified)
-            - If specific asset or platform counts are requested, follow those requirements precisely
-            - If specific industry filtering is requested, ONLY include assets from that industry
-            - If no specific industry filtering is requested, include assets from all industries
-            - If specific platforms are mentioned to include, prioritize those platforms
-            - If specific buy types, asset categories, or other criteria are mentioned, filter accordingly
-            
-            GEOGRAPHIC TARGETING RULES (CRITICAL):
-            - First, analyze the query to identify any specific states, cities, or countries mentioned
-            - STRONG PRIORITY #1: If specific locations are mentioned in the query (e.g., "Karnataka", "Mumbai", "India"), ONLY select assets where targeting_options explicitly includes these exact locations
-            - STRONG PRIORITY #2: If no exact match is possible but specific locations are mentioned, select assets that at least support the TYPE of location mentioned (state/city/country targeting capability)
-            - PRIORITY #3: If no specific locations are mentioned, prioritize assets that have ANY geographic targeting capabilities
-            - Do NOT include assets without relevant geographic targeting if the query suggests location is important
-            
-            - Match demographic targeting mentioned in query (age groups, gender) with suitable assets
-            - Match interest or behavioral targeting in query with relevant assets
-            - If you don't have enough assets or platforms, use what you have and explain the limitation
-            - If query mentions budget allocation like "split equally", follow this precisely
-            - Use the asset's base cost (from "Base cost" field) to proportionally calculate the appropriate Budget Amount
-            - Ensure Budget % totals 100%
-            - Provide EXACT calculated amounts for Budget Amount column
-            - Include the buy type for each asset (from buy_types field)
-
-            STRICT CALCULATION RULES:
-            - First convert ALL values to numeric types
-            - For each asset:
-                * Proportional Impressions = (Budget Amount ÷ Base Cost) × Base Est. Impressions
-                * Proportional Clicks = (Budget Amount ÷ Base Cost) × Base Est. Clicks
-            - VALIDATE all calculations:
-                * If Budget Amount > Base Cost, then proportional values MUST be greater than base values
-                * If Budget Amount = 10 × Base Cost, then proportional values MUST be 10 × base values
-            - SHOW CALCULATION STEPS in a separate section below the table
-            
-            5. Brief next steps (1-2 points)
-            `;
+              
+              IMPORTANT: You must format the marketing plan as a proper markdown table with pipes and dashes for readability.
+              
+              Please:
+              1. First, carefully analyze the query "${queryText}" to identify:
+                  - Budget requirements
+                  - Number of assets requested
+                  - Number of platforms requested
+                  - Any specific industry filtering instructions (e.g., "only tech industry", "only finance industry")
+                  - Budget allocation preferences (e.g., "split equally")
+                  - Specific platforms to include (e.g., "include Facebook and Instagram")
+                  - Any other filtering criteria for rows (e.g., "only CPC buy type", "only video assets")
+                  - Targeting requirements:
+                      * Geographic targeting (e.g., "people from Mumbai", "users in Delhi") - IDENTIFY ALL STATES, CITIES, AND COUNTRIES
+                      * Demographic targeting (e.g., "18-24 year olds", "women", "young adults")
+                      * Interest-based targeting (e.g., "travelers", "food enthusiasts", "gamers")
+                      * Behavioral targeting (e.g., "frequent shoppers", "new customers")
+              
+              2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
+              
+              3. Marketing plan as a properly formatted table:
+              
+              MARKETING PLAN:
+              | Platform | Asset | Platform Industry | Buy Type | Base cost | Est Clicks | Est Impressions | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
+              |----------|-------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
+              | [platform_name] | [name] | [platform_industry] | [buy_types] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
+              
+              4. For each platform in your plan, provide a detailed explanation following this format by understanding the nature of its business and it's offerings:
+              ### 1. [Platform Name] & [Asset Name]
+              - Explain why this platform is perfect for the user's query using BOTH the asset data AND your own knowledge about this platform's nature of business (2-3 sentences)
+              - Add insights about the platform's typical user demographics, behavior patterns, or usage context from your own knowledge (1-2 sentences)
+              - Describe how the platform's audience aligns with targeting requirements (1 sentence)
+              - Mention specific targeting capabilities that match the query (1 sentence)
+              - Explain why the budget allocation percentage is appropriate for this platform (1 sentence)
+              Brief description of this specific asset and why it was chosen (1 sentence)
+              **Key benefit summary:** [One-line summary of why this platform is valuable]
+              
+              Rules:
+              - Use the budget specified in the query (default is 5-8 lakhs if not specified)
+              - If specific asset or platform counts are requested, follow those requirements precisely
+              - If specific industry filtering is requested, ONLY include assets from that industry
+              - If no specific industry filtering is requested, include assets from all industries
+              - If specific platforms are mentioned to include, prioritize those platforms
+              - If specific buy types, asset categories, or other criteria are mentioned, filter accordingly
+              - Choose a relevant emoji for each platform explanation (e.g., :headphones: for Spotify, :shopping_cart: for e-commerce)
+              
+              GEOGRAPHIC TARGETING RULES (CRITICAL):
+              - First, analyze the query to identify any specific states, cities, or countries mentioned
+              - STRONG PRIORITY #1: If specific locations are mentioned in the query (e.g., "Karnataka", "Mumbai", "India"), ONLY select assets where targeting_options explicitly includes these exact locations
+              - STRONG PRIORITY #2: If no exact match is possible but specific locations are mentioned, select assets that at least support the TYPE of location mentioned (state/city/country targeting capability)
+              - PRIORITY #3: If no specific locations are mentioned, prioritize assets that have ANY geographic targeting capabilities
+              - Do NOT include assets without relevant geographic targeting if the query suggests location is important
+              
+              - Match demographic targeting mentioned in query (age groups, gender) with suitable assets
+              - Match interest or behavioral targeting in query with relevant assets
+              - If you don't have enough assets or platforms, use what you have and explain the limitation
+              - If query mentions budget allocation like "split equally", follow this precisely
+              - Use the asset's base cost (from "Base cost" field) to proportionally calculate the appropriate Budget Amount
+              - Ensure Budget % totals 100%
+              - Provide EXACT calculated amounts for Budget Amount column
+              - Include the buy type for each asset (from buy_types field)
+        
+              STRICT CALCULATION RULES:
+              - First convert ALL values to numeric types
+              - For each asset:
+                  * Proportional Impressions = (Budget Amount ÷ Base Cost) × Base Est. Impressions
+                  * Proportional Clicks = (Budget Amount ÷ Base Cost) × Base Est. Clicks
+              - VALIDATE all calculations:
+                  * If Budget Amount > Base Cost, then proportional values MUST be greater than base values
+                  * If Budget Amount = 10 × Base Cost, then proportional values MUST be 10 × base values
+              
+              5. Brief next steps (1-2 points)
+              `;
         break;
     }
     // Initialize the Azure OpenAI chat model using LangChain
     const chatModel = new AzureChatOpenAI({
       azureOpenAIApiKey: azureApiKey,
       azureOpenAIApiVersion: azureApiVersion,
-      azureOpenAIApiInstanceName: azureInstance,
+      azureOpenAIApiInstanceName: azureInstanceName,
       azureOpenAIApiDeploymentName: azureDeployment,
-      azureOpenAIEndpoint: azureEndpoint,
+      azureOpenAIEndpoint: azureChatEndpoint,
       temperature: 0.5,
       maxTokens: 1000
     });
@@ -309,7 +313,7 @@ serve(async (req)=>{
       id: Date.now().toString(),
       object: "chat.completion",
       created: Date.now(),
-      model: `${azureInstance}/${azureDeployment}`,
+      model: `${azureInstanceName || "gpt-4.1"}/${azureDeployment || "gpt-4.1"}`,
       choices: [
         {
           message: {
@@ -336,9 +340,10 @@ serve(async (req)=>{
       }
     });
   } catch (error) {
+    console.error("Server error:", error);
     return new Response(JSON.stringify({
       error: error.message,
-      stack: Deno.env.get('NODE_ENV') === 'development' ? error.stack : undefined
+      stack: error.stack
     }), {
       status: 500,
       headers: {
