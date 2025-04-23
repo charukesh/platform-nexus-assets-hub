@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -6,6 +7,7 @@ import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
+import emoji from 'node-emoji';
 
 interface AIResponseSectionProps {
   searchBrief: string;
@@ -16,7 +18,6 @@ interface AIResponseSectionProps {
   onClear: () => void;
 }
 
-// Cycling loader messages for AI response
 const loaderMessages = [
   "Fetching platforms…",
   "Fetching assets…",
@@ -36,7 +37,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const [loaderMessageIdx, setLoaderMessageIdx] = useState(0);
   const loaderIntervalRef = useRef<number | null>(null);
 
-  // Cycle messages when loading
   useEffect(() => {
     if (searchLoading) {
       setLoaderMessageIdx(0);
@@ -60,6 +60,8 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const renderAIResponse = () => {
     if (!searchResults) return null;
     const content = searchResults.choices?.[0]?.message?.content || '';
+    // Emojify markdown content (convert :shortcode: to emoji)
+    const emojifiedContent = emoji.emojify(content);
     return (
       <div className="mt-4">
         <ReactMarkdown
@@ -67,7 +69,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           rehypePlugins={[rehypeRaw]}
           className="prose prose-sm max-w-full dark:prose-invert"
         >
-          {content || "No content received"}
+          {emojifiedContent || "No content received"}
         </ReactMarkdown>
       </div>
     );
@@ -118,3 +120,4 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 };
 
 export default AIResponseSection;
+
