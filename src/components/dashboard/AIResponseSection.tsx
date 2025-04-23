@@ -7,7 +7,7 @@ import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
-import emoji from 'node-emoji';
+import * as emoji from 'node-emoji';
 
 interface AIResponseSectionProps {
   searchBrief: string;
@@ -120,4 +120,3 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 };
 
 export default AIResponseSection;
-
