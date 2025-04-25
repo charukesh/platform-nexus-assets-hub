@@ -193,7 +193,9 @@ serve(async (req)=>{
                             * Interest-based targeting (e.g., "travelers", "food enthusiasts", "gamers")
                             * Behavioral targeting (e.g., "frequent shoppers", "new customers")
                     
-                    2. Brief response to the query (2-3 sentences). If the user requested specific requirements you can't fulfill, clearly state this.
+                    2. Brief response to the query (2-3 sentences), understand the client's nature of business and try to match the platforms that will fulfill the brief. Explain the client's in general marketing strategies or messaging if exists and try to narrate it to match with brief. If the user requested specific requirements you can't fulfill, clearly state this.
+
+
                     
                     3. Create THREE different marketing plans, each with MAX 3 ASSETS (regardless of how many results were found):
                     
