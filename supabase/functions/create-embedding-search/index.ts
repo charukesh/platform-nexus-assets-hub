@@ -295,11 +295,11 @@ serve(async (req)=>{
                     For each asset:
                     - Calculate Estimated Impressions and Estimated Clicks based on buyType:
                         - If buyType is CPM (Cost Per Mille):
-                            - Estimated Impressions = (Budget Amount ÷ Asset Amount) × 1000
+                            - Estimated Impressions = (Budget Amount ÷ Base Cost) × 1000
                             - If CTR exists:
                                 - Estimated Clicks = (Estimated Impressions × CTR) ÷ 100
                         - If buyType is CPC (Cost Per Click):
-                            - Estimated Clicks = Budget Amount ÷ Asset Amount
+                            - Estimated Clicks = Budget Amount ÷ Base Cost
                             - If CTR exists:
                                 - Estimated Impressions = (Estimated Clicks × 100) ÷ CTR
                         - If buyType is CPT (Cost Per Trip):
