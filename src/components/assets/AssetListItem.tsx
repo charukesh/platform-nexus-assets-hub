@@ -56,12 +56,12 @@ const AssetListItem: React.FC<AssetListItemProps> = ({ asset }) => {
           </div>
           <div className="flex gap-4">
             <div className="text-sm">
-              <span className="text-muted-foreground">Impressions:</span>{' '}
-              <span className="font-medium">{asset.estimated_impressions.toLocaleString()}</span>
+              <span className="text-muted-foreground">Type:</span>{' '}
+              <span className="font-medium">{asset.type}</span>
             </div>
             <div className="text-sm">
-              <span className="text-muted-foreground">Clicks:</span>{' '}
-              <span className="font-medium">{asset.estimated_clicks.toLocaleString()}</span>
+              <span className="text-muted-foreground">Placement:</span>{' '}
+              <span className="font-medium">{asset.placement || "N/A"}</span>
             </div>
           </div>
         </div>
@@ -104,4 +104,3 @@ const AssetListItem: React.FC<AssetListItemProps> = ({ asset }) => {
 };
 
 export default AssetListItem;
-

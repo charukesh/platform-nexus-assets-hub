@@ -58,12 +58,12 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-neugray-100 p-2 rounded">
-                <div className="text-xs text-muted-foreground">Impressions</div>
-                <div className="font-medium">{asset.estimated_impressions.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Type</div>
+                <div className="font-medium">{asset.type}</div>
               </div>
               <div className="bg-neugray-100 p-2 rounded">
-                <div className="text-xs text-muted-foreground">Clicks</div>
-                <div className="font-medium">{asset.estimated_clicks.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground">Placement</div>
+                <div className="font-medium">{asset.placement || "N/A"}</div>
               </div>
             </div>
           </div>
@@ -106,4 +106,3 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
 };
 
 export default AssetCard;
-
