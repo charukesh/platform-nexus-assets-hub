@@ -10,8 +10,6 @@ export interface Asset {
   created_at: string;
   buy_types: string;
   amount?: number;
-  estimated_impressions: number;
-  estimated_clicks: number;
   tags?: string[];
   platforms?: {
     name: string;
@@ -44,7 +42,6 @@ export const BUY_TYPE_OPTIONS = [
   'Cost Per Day',
   'Cost Per Engagement', 
   'Cost Per Flyer',
-  'Cost Per Impression',
   'Cost Per Jingle',
   'Cost Per Lead',
   'Cost Per Mille',

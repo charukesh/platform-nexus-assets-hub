@@ -34,8 +34,6 @@ interface FormData {
   file_size: string | null;
   buy_types: string;
   amount: number;
-  estimated_impressions: number;
-  estimated_clicks: number;
   placement: string;
 }
 
@@ -63,8 +61,6 @@ const AssetForm: React.FC = () => {
     file_size: "" as string | null,
     buy_types: BUY_TYPE_OPTIONS[0],
     amount: 0,
-    estimated_impressions: 0,
-    estimated_clicks: 0,
     placement: PLACEMENT_OPTIONS[0],
   });
   
@@ -137,14 +133,6 @@ const AssetForm: React.FC = () => {
       if (error) throw error;
       
       if (assetData) {
-        const estimatedImpressions = typeof assetData.estimated_impressions === 'number' 
-          ? assetData.estimated_impressions 
-          : 0;
-        
-        const estimatedClicks = typeof assetData.estimated_clicks === 'number' 
-          ? assetData.estimated_clicks 
-          : 0;
-          
         const amount = typeof assetData.amount === 'number'
           ? assetData.amount
           : 0;
@@ -164,8 +152,6 @@ const AssetForm: React.FC = () => {
           file_size: assetData.file_size || null,
           buy_types: assetData.buy_types || "CPC",
           amount,
-          estimated_impressions: estimatedImpressions,
-          estimated_clicks: estimatedClicks,
           placement
         });
       }
@@ -394,8 +380,6 @@ const AssetForm: React.FC = () => {
         updated_at: new Date().toISOString(),
         buy_types: formData.buy_types,
         amount: formData.amount,
-        estimated_impressions: formData.estimated_impressions,
-        estimated_clicks: formData.estimated_clicks,
         placement: formData.placement
       };
       
@@ -619,8 +603,6 @@ const AssetForm: React.FC = () => {
             <BuyTypeSelector
               buyType={formData.buy_types}
               amount={formData.amount}
-              estimatedImpressions={formData.estimated_impressions}
-              estimatedClicks={formData.estimated_clicks}
               onChange={handleFieldChange}
             />
           </NeuCard>

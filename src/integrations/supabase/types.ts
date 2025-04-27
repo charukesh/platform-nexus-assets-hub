@@ -166,8 +166,6 @@ export type Database = {
           tags: string[]
           buy_types: string
           amount: number
-          estimated_clicks: number
-          estimated_impressions: number
           platform_id: string
           platform_name: string
           platform_industry: string

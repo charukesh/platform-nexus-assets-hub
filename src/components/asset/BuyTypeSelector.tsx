@@ -14,16 +14,12 @@ import { BUY_TYPE_OPTIONS } from "@/types/asset";
 interface BuyTypeSelectorProps {
   buyType: string;
   amount: number;
-  estimatedImpressions: number;
-  estimatedClicks: number;
   onChange: (field: string, value: any) => void;
 }
 
 const BuyTypeSelector = ({
   buyType,
   amount,
-  estimatedImpressions,
-  estimatedClicks,
   onChange
 }: BuyTypeSelectorProps) => {
   const handleNumericChange = (field: string, value: string) => {
@@ -60,30 +56,6 @@ const BuyTypeSelector = ({
           type="number"
           value={amount}
           onChange={(e) => handleNumericChange('amount', e.target.value)}
-          className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="estimated_impressions">Estimated Impressions*</Label>
-        <Input
-          id="estimated_impressions"
-          type="number"
-          value={estimatedImpressions}
-          onChange={(e) => handleNumericChange('estimated_impressions', e.target.value)}
-          className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="estimated_clicks">Estimated Clicks*</Label>
-        <Input
-          id="estimated_clicks"
-          type="number"
-          value={estimatedClicks}
-          onChange={(e) => handleNumericChange('estimated_clicks', e.target.value)}
           className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
           required
         />
