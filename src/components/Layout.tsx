@@ -9,7 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navItems = [
   {
-    name: "Dashboard",
+    name: "Create Plan", // Updated from "Dashboard"
     path: "/",
     icon: Home
   },

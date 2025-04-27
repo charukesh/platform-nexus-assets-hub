@@ -80,7 +80,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       <form onSubmit={onSearchSubmit} className="flex gap-2 mb-4">
         <div className="relative flex-grow">
           <Input
-            placeholder="Describe the assets you're looking for..."
+            placeholder="enter your detailed brief with the client name"
             value={searchBrief}
             onChange={onSearchBriefChange}
             className="pr-10"
@@ -101,7 +101,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           ) : (
             <Search className="mr-2 h-4 w-4" />
           )}
-          Search
+          Generate Media Plan
         </NeuButton>
       </form>
 
