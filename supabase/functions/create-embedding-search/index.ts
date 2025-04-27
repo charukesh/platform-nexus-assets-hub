@@ -292,12 +292,29 @@ serve(async (req)=>{
 
                     STRICT CALCULATION RULES:
                     - First convert ALL values to numeric types
-                    - For each asset:
-                        * Proportional Impressions = (Budget Amount ÷ Base Cost) × Base Est. Impressions
-                        * Proportional Clicks = (Budget Amount ÷ Base Cost) × Base Est. Clicks
-                    - VALIDATE all calculations:
-                        * If Budget Amount > Base Cost, then proportional values MUST be greater than base values
-                        * If Budget Amount = 10 × Base Cost, then proportional values MUST be 10 × base values
+                    For each asset:
+                    - Calculate Estimated Impressions and Estimated Clicks based on buyType:
+                        - If buyType is CPM (Cost Per Mille):
+                            - Estimated Impressions = (Budget Amount ÷ Asset Amount) × 1000
+                            - If CTR exists:
+                                - Estimated Clicks = (Estimated Impressions × CTR) ÷ 100
+                        - If buyType is CPC (Cost Per Click):
+                            - Estimated Clicks = Budget Amount ÷ Asset Amount
+                            - If CTR exists:
+                                - Estimated Impressions = (Estimated Clicks × 100) ÷ CTR
+                        - If buyType is CPT (Cost Per Trip):
+                            - Set both Estimated Impressions and Estimated Clicks as "N/A"
+
+                    Validate all calculations:
+                    - For CPC and CPM buy types only:
+                        - If Budget Amount > Base Cost:
+                            - Estimated Impressions MUST be greater than Base Estimated Impressions
+                            - Estimated Clicks MUST be greater than Base Estimated Clicks
+                        - If Budget Amount = 10 × Base Cost:
+                            - Estimated Impressions MUST be 10 × Base Estimated Impressions
+                            - Estimated Clicks MUST be 10 × Base Estimated Clicks
+                    - For CPT buy type:
+                        - Skip validation for Estimated Impressions and Estimated Clicks
                     
                     6. Brief next steps (1-2 points)
                 `;
