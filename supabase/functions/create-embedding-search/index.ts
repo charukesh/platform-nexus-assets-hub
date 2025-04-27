@@ -110,7 +110,7 @@ serve(async (req)=>{
         description: asset.description || "",
         buy_types: asset.buy_types,
         amount: asset.amount !== null ? Number(asset.amount) : null,
-        ctr: Number(asset.ctr),
+        ctr: asset.ctr !== null ? Number(asset.ctr) : null,
         platform_name: asset.platform_name,
         platform_industry: asset.platform_industry,
         category: asset.category,
