@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
@@ -14,7 +14,7 @@ interface AIResponseSectionProps {
   searchResults: any;
   searchLoading: boolean;
   onSearchSubmit: (e: React.FormEvent) => void;
-  onSearchBriefChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearchBriefChange: (e: ChangeEvent<HTMLTextAreaElement>) => void; // Updated to HTMLTextAreaElement
   onClear: () => void;
 }
 
