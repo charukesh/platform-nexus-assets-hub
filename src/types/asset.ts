@@ -1,4 +1,3 @@
-
 export interface Asset {
   id: string;
   name: string;
@@ -12,6 +11,7 @@ export interface Asset {
   buy_types: string;
   amount?: number;
   tags?: string[];
+  ctr?: number;
   platforms?: {
     name: string;
     industry?: string;
@@ -25,9 +25,6 @@ export interface Asset {
   };
   platform_id?: string;
   similarity?: number;
-  ctr?: number;
-  estimated_impressions?: number;
-  estimated_clicks?: number;
 }
 
 export const PLACEMENT_OPTIONS = [

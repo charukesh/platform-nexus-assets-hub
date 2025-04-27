@@ -18,8 +18,6 @@ export type Database = {
           ctr: number | null
           description: string | null
           embedding: string | null
-          estimated_clicks: number
-          estimated_impressions: number
           file_size: string | null
           file_url: string | null
           id: string
@@ -40,8 +38,6 @@ export type Database = {
           ctr?: number | null
           description?: string | null
           embedding?: string | null
-          estimated_clicks?: number
-          estimated_impressions?: number
           file_size?: string | null
           file_url?: string | null
           id?: string
@@ -62,8 +58,6 @@ export type Database = {
           ctr?: number | null
           description?: string | null
           embedding?: string | null
-          estimated_clicks?: number
-          estimated_impressions?: number
           file_size?: string | null
           file_url?: string | null
           id?: string
@@ -169,6 +163,7 @@ export type Database = {
           tags: string[]
           buy_types: string
           amount: number
+          ctr: number
           platform_id: string
           platform_name: string
           platform_industry: string
