@@ -32,8 +32,6 @@ RETURNS TABLE (
   tags text[],
   buy_types text,
   amount integer,                     -- Changed from numeric to integer
-  estimated_clicks integer,
-  estimated_impressions integer,
   platform_id uuid,
   platform_name text,
   platform_industry text,
