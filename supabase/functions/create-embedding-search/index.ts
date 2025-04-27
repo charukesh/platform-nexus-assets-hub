@@ -198,9 +198,9 @@ serve(async (req)=>{
                     3. Create THREE different marketing plans, each with MAX 3 ASSETS (regardless of how many results were found):
                     
                     ## OPTION 1: BUDGET-FRIENDLY PLAN (70-80% of specified/assumed budget)
-                    | Platform | Asset | Platform Industry | Buy Type | Base cost | Est Clicks | Est Impressions | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
+                    | Platform | Asset | Platform Industry | Buy Type | Base cost | CTR % | Est Clicks | Est Impressions | Budget % | Budget Amount |
                     |----------|-------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
-                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
+                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [ctr] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
                     
                     **Total Budget: [70-80% of specified budget]**
                     
