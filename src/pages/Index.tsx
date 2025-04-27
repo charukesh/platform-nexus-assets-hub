@@ -154,8 +154,8 @@ const Dashboard: React.FC = () => {
       <div className="animate-fade-in">
         <header className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Platform Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Manage all your platforms and assets</p>
+            <h1 className="text-3xl font-bold">Create a Media Plan</h1>
+            <p className="text-muted-foreground mt-1">Enter your brief and get the media plan from your uploaded Platforms &amp; Assets.</p>
           </div>
           <div className="flex gap-2">
             <Link to="/platforms/new">
