@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import { Loader2, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import * as emoji from 'node-emoji';
@@ -79,17 +79,18 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     <div>
       <form onSubmit={onSearchSubmit} className="flex gap-2 mb-4">
         <div className="relative flex-grow">
-          <Input
+          <Textarea
             placeholder="enter your detailed brief with the client name"
             value={searchBrief}
             onChange={onSearchBriefChange}
-            className="pr-10"
+            className="pr-10 min-h-[40px] max-h-[144px] overflow-y-auto resize-none"
+            style={{ lineHeight: '24px' }}
           />
           {searchBrief && (
             <button 
               type="button" 
               onClick={onClear} 
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-destructive"
+              className="absolute right-3 top-3 text-muted-foreground hover:text-destructive"
             >
               ✕
             </button>
