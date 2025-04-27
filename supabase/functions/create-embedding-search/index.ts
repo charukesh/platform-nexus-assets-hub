@@ -110,8 +110,7 @@ serve(async (req)=>{
         description: asset.description || "",
         buy_types: asset.buy_types,
         amount: asset.amount !== null ? Number(asset.amount) : null,
-        estimated_clicks: Number(asset.estimated_clicks),
-        estimated_impressions: Number(asset.estimated_impressions),
+        ctr: Number(asset.ctr),
         platform_name: asset.platform_name,
         platform_industry: asset.platform_industry,
         category: asset.category,
@@ -165,8 +164,7 @@ serve(async (req)=>{
                         ID: ${asset.id}
                         Buy type: ${asset.buy_types}
                         Base cost: ${asset.amount}
-                        Est. impressions: ${asset.estimated_impressions}
-                        Est. clicks: ${asset.estimated_clicks}
+                        CTR Percentage: ${asset.ctr}
                         Category: ${asset.category}${asset.placement ? `\n      Placement: ${asset.placement}` : ''}
                         Audience & Targeting: ${geoTargeting.stateLevelAvailable ? 'State-level targeting available' : 'No state targeting'}${geoTargeting.stateValues ? ` (States: ${geoTargeting.stateValues})` : ''}${geoTargeting.cityLevelAvailable ? ', City-level targeting available' : ', No city targeting'}${geoTargeting.cityValues ? ` (Cities: ${geoTargeting.cityValues})` : ''}
                         Demographics: ${geoTargeting.ageTargetingAvailable ? 'Age targeting available' : 'No age targeting'}${Object.keys(geoTargeting.ageGroups).length > 0 ? ` (Age groups: ${JSON.stringify(geoTargeting.ageGroups)})` : ''}${geoTargeting.genderTargetingAvailable ? ', Gender targeting available' : ', No gender targeting'}${Object.keys(geoTargeting.genderValues).length > 0 ? ` (Gender: ${JSON.stringify(geoTargeting.genderValues)})` : ''}
@@ -218,9 +216,9 @@ serve(async (req)=>{
                     [Repeat for each asset in Budget-Friendly Plan]
                     
                     ## OPTION 2: OPTIMAL PLAN (100% of specified/assumed budget)
-                    | Platform | Asset | Platform Industry | Buy Type | Base cost | Est Clicks | Est Impressions | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
+                    | Platform | Asset | Platform Industry | Buy Type | Base cost | CTR % | Est Clicks | Est Impressions | Budget % | Budget Amount |
                     |----------|-------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
-                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
+                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [ctr] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
                     
                     **Total Budget: [exact specified budget]**
                     
@@ -236,9 +234,9 @@ serve(async (req)=>{
                     [Repeat for each asset in Optimal Plan]
                     
                     ## OPTION 3: PREMIUM PLAN (120-130% of specified/assumed budget)
-                    | Platform | Asset | Platform Industry | Buy Type | Base cost | Est Clicks | Est Impressions | Budget % | Budget Amount | Proportional Impressions | Proportional Clicks |
+                    | Platform | Asset | Platform Industry | Buy Type | Base cost | CTR % | Est Clicks | Est Impressions | Budget % | Budget Amount |
                     |----------|-------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
-                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] | [proportional impressions] | [proportional clicks] |
+                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [ctr] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
                     
                     **Total Budget: [120-130% of specified budget]**
                     
