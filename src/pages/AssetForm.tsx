@@ -35,6 +35,7 @@ interface FormData {
   buy_types: string;
   amount: number;
   placement: string;
+  ctr: number;
 }
 
 const AssetForm: React.FC = () => {
@@ -62,6 +63,7 @@ const AssetForm: React.FC = () => {
     buy_types: BUY_TYPE_OPTIONS[0],
     amount: 0,
     placement: PLACEMENT_OPTIONS[0],
+    ctr: 0,
   });
   
   const [files, setFiles] = useState<{
@@ -380,7 +382,8 @@ const AssetForm: React.FC = () => {
         updated_at: new Date().toISOString(),
         buy_types: formData.buy_types,
         amount: formData.amount,
-        placement: formData.placement
+        placement: formData.placement,
+        ctr: formData.ctr
       };
       
       console.log("Saving asset data:", assetData);
@@ -671,6 +674,27 @@ const AssetForm: React.FC = () => {
           </div>
         </NeuCard>
         
+          <NeuCard>
+            <h2 className="text-xl font-bold mb-4">Performance Metrics</h2>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="ctr">CTR (%)</Label>
+                <Input
+                  id="ctr"
+                  name="ctr"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="Enter CTR percentage"
+                  value={formData.ctr}
+                  onChange={(e) => handleFieldChange('ctr', parseFloat(e.target.value) || 0)}
+                  className="mt-1.5 bg-white border-none neu-pressed focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+              </div>
+            </div>
+          </NeuCard>
+          
           <div className="flex justify-end gap-3">
             <NeuButton
               type="button"

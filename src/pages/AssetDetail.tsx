@@ -239,6 +239,11 @@ const AssetDetail: React.FC = () => {
                       <Label className="text-muted-foreground text-sm">Amount</Label>
                       <p className="font-medium">{asset?.amount ? `₹${asset.amount.toLocaleString()}` : "N/A"}</p>
                     </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">CTR (%)</Label>
+                      <p className="font-medium">{asset?.ctr ? `${asset.ctr.toFixed(2)}%` : "N/A"}</p>
+                    </div>
                   </div>
                 </NeuCard>
               </div>

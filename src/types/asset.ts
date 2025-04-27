@@ -1,3 +1,4 @@
+
 export interface Asset {
   id: string;
   name: string;
@@ -24,6 +25,7 @@ export interface Asset {
   };
   platform_id?: string;
   similarity?: number;
+  ctr?: number;
 }
 
 export const PLACEMENT_OPTIONS = [
