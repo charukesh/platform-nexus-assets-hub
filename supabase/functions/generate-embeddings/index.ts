@@ -102,6 +102,7 @@ const buildSearchableContent = (asset)=>{
   const extendedContent = [
     `Buy Types: ${asset.buy_types || ''}`,
     `Amount: ${asset.amount || ''}`,
+    `CTR%: ${asset.ctr || ''}`,
     `Placement: ${asset.placement || ''}`,
     asset.platform ? `MAU: ${asset.platform.mau || ''}` : '',
     asset.platform ? `DAU: ${asset.platform.dau || ''}` : '',
