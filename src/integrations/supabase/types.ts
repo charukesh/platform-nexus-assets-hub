@@ -15,6 +15,7 @@ export type Database = {
           buy_types: string
           category: string
           created_at: string | null
+          ctr: number | null
           description: string | null
           embedding: string | null
           estimated_clicks: number
@@ -36,6 +37,7 @@ export type Database = {
           buy_types?: string
           category: string
           created_at?: string | null
+          ctr?: number | null
           description?: string | null
           embedding?: string | null
           estimated_clicks?: number
@@ -57,6 +59,7 @@ export type Database = {
           buy_types?: string
           category?: string
           created_at?: string | null
+          ctr?: number | null
           description?: string | null
           embedding?: string | null
           estimated_clicks?: number

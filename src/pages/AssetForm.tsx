@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -142,9 +141,7 @@ const AssetForm: React.FC = () => {
         
         const placement = assetData.placement || PLACEMENT_OPTIONS[0];
         
-        // Use optional chaining and nullish coalescing to safely access ctr
-        // This will handle cases where ctr doesn't exist in the database yet
-        const ctr = assetData.ctr ?? 0;
+        const ctr = typeof assetData.ctr === 'number' ? assetData.ctr : 0;
         
         setFormData({
           name: assetData.name || "",
