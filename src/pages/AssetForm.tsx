@@ -140,6 +140,7 @@ const AssetForm: React.FC = () => {
           : 0;
         
         const placement = assetData.placement || PLACEMENT_OPTIONS[0];
+        const ctr = typeof assetData.ctr === 'number' ? assetData.ctr : 0;
         
         setFormData({
           name: assetData.name || "",
@@ -154,7 +155,8 @@ const AssetForm: React.FC = () => {
           file_size: assetData.file_size || null,
           buy_types: assetData.buy_types || "CPC",
           amount,
-          placement
+          placement,
+          ctr
         });
       }
     } catch (error: any) {
