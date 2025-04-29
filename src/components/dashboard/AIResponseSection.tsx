@@ -66,7 +66,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
               ✕
             </button>}
         </div>
-        <NeuButton type="submit" disabled={searchLoading}>
+        <NeuButton type="submit" disabled={searchLoading} size="sm" className="self-start mt-2">
           {searchLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
           Generate Media Plan
         </NeuButton>
