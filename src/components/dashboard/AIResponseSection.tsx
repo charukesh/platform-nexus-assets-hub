@@ -61,7 +61,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         <div className="relative flex-grow">
           <Textarea placeholder="enter your detailed brief with the client name" value={searchBrief} onChange={onSearchBriefChange} style={{
           lineHeight: '24px'
-        }} className="pr-10 min-h-[40px] max-h-[144px] overflow-y-auto resize-none3" />
+        }} className="pr-10 min-h-[240px] max-h-[400px] overflow-y-auto resize-none" />
           {searchBrief && <button type="button" onClick={onClear} className="absolute right-3 top-3 text-muted-foreground hover:text-destructive">
               ✕
             </button>}
