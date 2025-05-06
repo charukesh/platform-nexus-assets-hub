@@ -1,3 +1,4 @@
+
 export interface Asset {
   id: string;
   name: string;
@@ -15,6 +16,7 @@ export interface Asset {
   platforms?: {
     name: string;
     industry?: string;
+    description?: string;  // Added platform description field
     audience_data?: any;
     campaign_data?: any;
     device_split?: any;

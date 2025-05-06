@@ -75,6 +75,12 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
             <span>{asset.platforms?.name || "No platform"}</span>
           </div>
           
+          {asset.platforms?.description && (
+            <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+              <span className="font-medium">Platform:</span> {asset.platforms.description}
+            </p>
+          )}
+          
           <div className="flex flex-wrap gap-1 mb-3">
             {asset.tags && asset.tags.map((tag: string, idx: number) => (
               <span key={idx} className="text-xs bg-neugray-200 py-0.5 px-1.5 rounded">

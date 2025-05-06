@@ -166,10 +166,10 @@ export type Database = {
           tags: string[]
           buy_types: string
           amount: number
-          ctr: number
           platform_id: string
           platform_name: string
           platform_industry: string
+          platform_description: string
           platform_audience_data: Json
           platform_campaign_data: Json
           platform_device_split: Json
