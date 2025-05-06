@@ -47,7 +47,7 @@ const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
             </div>
           </div>
           
-          <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{asset.description || "No description"}</p>
+          <p className="text-muted-foreground text-sm mb-3 line-clamp-3">{asset.description || "No description"}</p>
           
           <div className="space-y-2 mb-3">
             <div className="flex items-center gap-2 text-xs">

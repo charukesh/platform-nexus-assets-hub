@@ -38,7 +38,7 @@ const AssetListItem: React.FC<AssetListItemProps> = ({ asset }) => {
       </div>
       
       <div className="md:col-span-2">
-        <p className="text-sm text-muted-foreground mb-2">{asset.description || "No description"}</p>
+        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{asset.description || "No description"}</p>
         <div className="space-y-2 mb-2">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 text-xs">

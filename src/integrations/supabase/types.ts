@@ -86,6 +86,7 @@ export type Database = {
           campaign_data: Json | null
           created_at: string | null
           dau: string | null
+          description: string | null
           device_split: Json | null
           embedding: string | null
           id: string
@@ -102,6 +103,7 @@ export type Database = {
           campaign_data?: Json | null
           created_at?: string | null
           dau?: string | null
+          description?: string | null
           device_split?: Json | null
           embedding?: string | null
           id?: string
@@ -118,6 +120,7 @@ export type Database = {
           campaign_data?: Json | null
           created_at?: string | null
           dau?: string | null
+          description?: string | null
           device_split?: Json | null
           embedding?: string | null
           id?: string

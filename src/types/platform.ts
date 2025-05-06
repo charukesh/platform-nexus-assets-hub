@@ -2,6 +2,7 @@
 export interface PlatformFormData {
   name: string;
   industry: string;
+  description?: string;  // Added description field
   mau: string;
   dau: string;
   premium_users: number | null;

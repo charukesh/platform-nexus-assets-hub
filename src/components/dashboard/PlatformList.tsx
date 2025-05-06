@@ -73,6 +73,10 @@ const PlatformList: React.FC<PlatformListProps> = ({
               <ChevronRight size={18} className="text-muted-foreground" />
             </div>
             
+            {platform.description && (
+              <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{platform.description}</p>
+            )}
+            
             <div className="mt-4 grid grid-cols-2 gap-2">
               <div className="neu-pressed p-2 rounded-lg">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
