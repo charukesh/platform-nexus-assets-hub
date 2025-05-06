@@ -12,7 +12,7 @@ interface BasicInfoSectionProps {
   formData: {
     name: string;
     industry: string;
-    description: string;
+    description?: string; // Changed from required to optional
     premium_users: number | null;
     mau: string;
     dau: string;
