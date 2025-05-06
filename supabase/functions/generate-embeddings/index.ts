@@ -19,7 +19,7 @@ const buildSearchableContent = (asset)=>{
   const platformContent = asset.platform ? [
     asset.platform.name || '',
     asset.platform.industry || '',
-    asset.platform.description || '' // Add platform description here
+    asset.platform.description || '' // Include platform description here
   ].join(' ') : '';
   // Extract and enhance targeting data for better searchability
   let targetingContent = '';

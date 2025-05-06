@@ -35,6 +35,7 @@ RETURNS TABLE (
   platform_id uuid,
   platform_name text,
   platform_industry text,
+  platform_description text,          -- Added platform description field
   platform_audience_data jsonb,
   platform_campaign_data jsonb,
   platform_device_split jsonb,
@@ -60,11 +61,10 @@ BEGIN
     a.tags,
     a.buy_types,
     a.amount::integer,               -- Cast existing amount to integer
-    a.estimated_clicks,
-    a.estimated_impressions,
     a.platform_id,
     p.name AS platform_name,
     p.industry AS platform_industry,
+    p.description AS platform_description,  -- Added platform description field
     p.audience_data AS platform_audience_data,
     p.campaign_data AS platform_campaign_data,
     p.device_split AS platform_device_split,
@@ -96,3 +96,4 @@ $$;
 -- Create a GIN index on the full-text search fields to improve performance
 CREATE INDEX IF NOT EXISTS idx_assets_fulltext 
 ON assets USING GIN (public.immutable_tsvector_concat(name, description, category, tags));
+
