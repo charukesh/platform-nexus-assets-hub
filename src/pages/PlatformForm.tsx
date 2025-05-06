@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -33,6 +32,7 @@ const PlatformForm = () => {
   const [formData, setFormData] = useState<PlatformFormData>({
     name: '',
     industry: '',
+    description: '',  // Added description field with default empty string
     mau: '',
     dau: '',
     premium_users: null,
@@ -134,6 +134,7 @@ const PlatformForm = () => {
       setFormData({
         name: platformData.name,
         industry: platformData.industry,
+        description: platformData.description || '',  // Added description field
         audience_data: audienceData ?
           {
             age_groups: (audienceData as any)?.age_groups || defaultAudienceData.age_groups,
@@ -207,6 +208,7 @@ const PlatformForm = () => {
       const supabaseData = {
         name: formData.name,
         industry: formData.industry,
+        description: formData.description,  // Added description field
         audience_data: formData.audience_data as unknown as Json,
         device_split: formData.device_split as unknown as Json,
         campaign_data: formData.campaign_data as unknown as Json,
@@ -310,6 +312,18 @@ const PlatformForm = () => {
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Platform Description</Label>
+                <NeuInput
+                  id="description"
+                  as="textarea"
+                  rows={4}
+                  value={formData.description || ''}
+                  onChange={(e) => handleChange('description', e.target.value)}
+                  placeholder="Enter a description of the platform"
                 />
               </div>
 
