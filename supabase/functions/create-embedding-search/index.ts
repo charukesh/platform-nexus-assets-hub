@@ -113,6 +113,7 @@ serve(async (req)=>{
         ctr: asset.ctr !== null ? Number(asset.ctr) : null,
         platform_name: asset.platform_name,
         platform_industry: asset.platform_industry,
+        platform_description: asset.platform_description,
         category: asset.category,
         placement: asset.placement || "",
         // Extract targeting options from platform_audience_data
@@ -200,7 +201,7 @@ serve(async (req)=>{
                     ## OPTION 1: BUDGET-FRIENDLY PLAN (70-80% of specified/assumed budget)
                     | Platform | Asset | Platform Industry | Buy Type | Base cost | CTR % | Est Clicks | Est Impressions | Budget % | Budget Amount |
                     |----------|-------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
-                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [ctr] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
+                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [base cost asset] | [ctr] | [asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
                     
                     **Total Budget: [70-80% of specified budget]**
                     
@@ -218,7 +219,7 @@ serve(async (req)=>{
                     ## OPTION 2: OPTIMAL PLAN (100% of specified/assumed budget)
                     | Platform | Asset | Platform Industry | Buy Type | Base cost | CTR % | Est Clicks | Est Impressions | Budget % | Budget Amount |
                     |----------|-------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
-                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [ctr] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
+                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [base cost asset]  | [ctr] | [asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
                     
                     **Total Budget: [exact specified budget]**
                     
@@ -236,7 +237,7 @@ serve(async (req)=>{
                     ## OPTION 3: PREMIUM PLAN (120-130% of specified/assumed budget)
                     | Platform | Asset | Platform Industry | Buy Type | Base cost | CTR % | Est Clicks | Est Impressions | Budget % | Budget Amount |
                     |----------|-------|-------------------|----------|-----------|------------|-----------------|----------|---------------|--------------------------|---------------------|
-                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [ctr] | [base cost asset] |[asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
+                    | [platform_name] | [name] | [platform_industry] | [buy_types] | [base cost asset]  | [ctr] | [asset est clicks] | [asset est impressions] | [%] | [calculated budget amount] |
                     
                     **Total Budget: [120-130% of specified budget]**
                     
@@ -330,6 +331,7 @@ serve(async (req)=>{
       temperature: 0.5,
       maxTokens: 3000
     });
+    console.log('chatModel', chatModel);
     // Create the chat prompt
     const systemTemplate = `You are a helpful marketing asset assistant. Your job is to help users find the perfect marketing assets for their needs and create actionable marketing plans. Be concise and focused in your recommendations.
         When a user provides a query:
@@ -410,7 +412,7 @@ serve(async (req)=>{
       }
     });
   } catch (error) {
-    console.error("Server error:", error);
+    console.error("Server error:", error, JSON.stringify(error));
     return new Response(JSON.stringify({
       error: error.message,
       stack: error.stack

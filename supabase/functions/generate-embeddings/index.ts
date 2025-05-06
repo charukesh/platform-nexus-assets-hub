@@ -18,7 +18,8 @@ const buildSearchableContent = (asset)=>{
   // Platform core information
   const platformContent = asset.platform ? [
     asset.platform.name || '',
-    asset.platform.industry || ''
+    asset.platform.industry || '',
+    asset.platform.description || '' // Add platform description here
   ].join(' ') : '';
   // Extract and enhance targeting data for better searchability
   let targetingContent = '';
