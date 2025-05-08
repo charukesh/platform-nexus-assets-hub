@@ -28,81 +28,16 @@ const MediaPlanGenerator: React.FC = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-media-plan", {
-        body: { 
-          prompt,
-          format: "include_tables" // Request tables in the response
-        }
+        body: { prompt }
       });
 
       if (error) throw error;
 
       if (data?.mediaPlan) {
         const plan = data.mediaPlan;
-        
-        // Format the response with markdown tables
-        let formattedResponse = "";
-        
-        // Process each section
-        Object.entries(plan).forEach(([key, value]) => {
-          const sectionTitle = key.replace(/([A-Z])/g, ' $1').toLowerCase();
-          formattedResponse += `## ${sectionTitle}\n\n`;
-          
-          // Check if the value is an array (potential table data)
-          if (Array.isArray(value) && typeof value[0] === 'object') {
-            // It's a table, format as markdown table
-            const headers = Object.keys(value[0]);
-            formattedResponse += `| ${headers.join(' | ')} |\n`;
-            formattedResponse += `| ${headers.map(() => '---').join(' | ')} |\n`;
-            
-            value.forEach(row => {
-              formattedResponse += `| ${headers.map(h => {
-                if (typeof row[h] === 'number') {
-                  // Format numbers with dollar signs if they look like currency
-                  return h.toLowerCase().includes('budget') || h.toLowerCase().includes('cost') || h.toLowerCase().includes('spend') || h.toLowerCase().includes('amount')
-                    ? `$${row[h].toFixed(2)}`
-                    : row[h].toString();
-                }
-                return row[h] || '';
-              }).join(' | ')} |\n`;
-            });
-            
-            // Add a total row if this looks like numeric data
-            const hasNumbers = headers.some(header => 
-              value.some(row => typeof row[header] === 'number')
-            );
-            
-            if (hasNumbers) {
-              const totals = headers.map(header => {
-                if (typeof value[0][header] === 'number') {
-                  const sum = value.reduce((acc: number, row: any) => acc + (row[header] || 0), 0);
-                  
-                  // Format with dollar sign if appropriate
-                  if (header.toLowerCase().includes('budget') || header.toLowerCase().includes('cost') || 
-                      header.toLowerCase().includes('spend') || header.toLowerCase().includes('amount')) {
-                    return `$${sum.toFixed(2)}`;
-                  }
-                  return typeof sum === 'number' ? sum.toFixed(2) : sum;
-                }
-                return header === headers[0] ? 'Total' : '';
-              });
-              
-              formattedResponse += `| ${totals.join(' | ')} |\n`;
-            }
-          } else if (typeof value === 'object' && value !== null) {
-            // Handle nested objects by converting them to tables
-            formattedResponse += `| Key | Value |\n`;
-            formattedResponse += `| --- | --- |\n`;
-            
-            Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-              formattedResponse += `| ${nestedKey} | ${nestedValue} |\n`;
-            });
-          } else {
-            // Regular text
-            formattedResponse += `${value}\n`;
-          }
-          
-          formattedResponse += '\n\n';
-        });
+        const formattedResponse = Object.entries(plan)
+          .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').toLowerCase()}\n${value}`)
+          .join('\n\n');
         
         setResponse(formattedResponse);
       }
