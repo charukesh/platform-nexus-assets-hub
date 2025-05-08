@@ -6,7 +6,6 @@ import NeuCard from "@/components/NeuCard";
 import { useToast } from "@/hooks/use-toast";
 import PromptInput from "@/components/media-plan/PromptInput";
 import ResponseDisplay from "@/components/media-plan/ResponseDisplay";
-import { Table } from "lucide-react";
 
 const MediaPlanGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState("");
@@ -59,7 +58,7 @@ const MediaPlanGenerator: React.FC = () => {
               formattedResponse += `| ${headers.map(h => {
                 if (typeof row[h] === 'number') {
                   // Format numbers with dollar signs if they look like currency
-                  return h.toLowerCase().includes('budget') || h.toLowerCase().includes('cost') || h.toLowerCase().includes('spend')
+                  return h.toLowerCase().includes('budget') || h.toLowerCase().includes('cost') || h.toLowerCase().includes('spend') || h.toLowerCase().includes('amount')
                     ? `$${row[h].toFixed(2)}`
                     : row[h].toString();
                 }
@@ -78,7 +77,8 @@ const MediaPlanGenerator: React.FC = () => {
                   const sum = value.reduce((acc: number, row: any) => acc + (row[header] || 0), 0);
                   
                   // Format with dollar sign if appropriate
-                  if (header.toLowerCase().includes('budget') || header.toLowerCase().includes('cost') || header.toLowerCase().includes('spend')) {
+                  if (header.toLowerCase().includes('budget') || header.toLowerCase().includes('cost') || 
+                      header.toLowerCase().includes('spend') || header.toLowerCase().includes('amount')) {
                     return `$${sum.toFixed(2)}`;
                   }
                   return typeof sum === 'number' ? sum.toFixed(2) : sum;

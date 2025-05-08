@@ -78,21 +78,47 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
       return;
     }
     
-    // Try to convert input to number if it was a number before
+    // Get the cell being edited
     const cell = newTables[tableIndex][rowIndex][cellIndex];
+    const cellHeader = cell.header?.toLowerCase() || '';
+    
+    // Try to convert input to number if it was a number before
     if (cell.isNumber) {
       // Remove non-numeric characters and convert to number
       const numValue = parseFloat(value.replace(/[$,%]/g, ''));
       if (!isNaN(numValue)) {
+        // Store the original value for ratio calculations
+        const oldValue = cell.value;
+        
+        // Update cell value
         cell.value = numValue;
-        // Preserve formatting ($ or % if present in original)
-        const originalRaw = cell.raw;
-        if (originalRaw.includes('$')) {
+        
+        // Format with appropriate unit
+        if (cellHeader.includes('budget') || cellHeader.includes('cost') || cellHeader.includes('spend') || 
+            cellHeader.includes('amount')) {
           cell.raw = `$${numValue.toFixed(2)}`;
-        } else if (originalRaw.includes('%')) {
-          cell.raw = `${numValue.toFixed(2)}%`;
         } else {
           cell.raw = numValue.toString();
+        }
+        
+        // Special handling for Budget Amount - adjust other metrics proportionally
+        if (cellHeader.includes('budget amount') || cellHeader.includes('amount')) {
+          const changeRatio = numValue / oldValue;
+          
+          // Find columns that should be adjusted when budget changes
+          for (let colIndex = 0; colIndex < newTables[tableIndex][rowIndex].length; colIndex++) {
+            const currentCell = newTables[tableIndex][rowIndex][colIndex];
+            const currentHeader = currentCell.header?.toLowerCase() || '';
+            
+            // Adjust impressions, clicks, etc. based on budget change ratio
+            if (colIndex !== cellIndex && currentCell.isNumber && 
+                (currentHeader.includes('impressions') || currentHeader.includes('clicks'))) {
+                  
+              const newCellValue = Math.round(currentCell.value * changeRatio);
+              currentCell.value = newCellValue;
+              currentCell.raw = newCellValue.toString();
+            }
+          }
         }
       }
     } else {
@@ -126,14 +152,16 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
           if (newTables[tableIndex][totalRowIndex][col]) {
             const cell = newTables[tableIndex][totalRowIndex][col];
             cell.value = sum;
+            
             // Preserve formatting ($ or % if present)
-            const originalRaw = cell.raw;
-            if (originalRaw.includes('$')) {
+            const header = cell.header?.toLowerCase() || '';
+            if (header.includes('budget') || header.includes('cost') || header.includes('amount') ||
+                cell.raw?.includes('$')) {
               cell.raw = `$${sum.toFixed(2)}`;
-            } else if (originalRaw.includes('%')) {
+            } else if (cell.raw?.includes('%')) {
               cell.raw = `${sum.toFixed(2)}%`;
             } else {
-              cell.raw = sum.toString();
+              cell.raw = Math.round(sum).toString();
             }
           }
         }
@@ -174,19 +202,28 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
                           
                           return (
                             <TableRow key={rowIndex} className={isTotal ? "font-bold bg-muted/20" : ""}>
-                              {row.map((cell, cellIndex) => (
-                                <TableCell key={cellIndex}>
-                                  {cellIndex === 0 || isTotal ? (
-                                    cell.raw
-                                  ) : (
-                                    <Input
-                                      value={cell.raw}
-                                      onChange={(e) => handleCellChange(tableIndex, rowIndex, cellIndex, e.target.value)}
-                                      className="w-full h-8 p-1 text-right"
-                                    />
-                                  )}
-                                </TableCell>
-                              ))}
+                              {row.map((cell, cellIndex) => {
+                                // Check if this is a budget cell that should be editable
+                                const isBudgetCell = cell.header?.toLowerCase().includes('budget amount') || 
+                                                   (cell.header?.toLowerCase().includes('amount') && 
+                                                    cell.raw?.includes('$'));
+                                const isEditable = !isTotal && (cellIndex > 0) && 
+                                                  (isBudgetCell || cell.isNumber);
+                                                  
+                                return (
+                                  <TableCell key={cellIndex}>
+                                    {isEditable ? (
+                                      <Input
+                                        value={cell.raw}
+                                        onChange={(e) => handleCellChange(tableIndex, rowIndex, cellIndex, e.target.value)}
+                                        className={`w-full h-8 p-1 ${isBudgetCell ? 'font-bold bg-blue-50 dark:bg-blue-900/20' : ''} text-right`}
+                                      />
+                                    ) : (
+                                      <span>{cell.raw}</span>
+                                    )}
+                                  </TableCell>
+                                );
+                              })}
                             </TableRow>
                           );
                         });
