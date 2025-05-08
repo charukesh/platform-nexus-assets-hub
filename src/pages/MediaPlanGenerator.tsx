@@ -46,7 +46,7 @@ const MediaPlanGenerator: React.FC = () => {
         // Process each section
         Object.entries(plan).forEach(([key, value]) => {
           const sectionTitle = key.replace(/([A-Z])/g, ' $1').toLowerCase();
-          formattedResponse += `${sectionTitle}\n`;
+          formattedResponse += `## ${sectionTitle}\n\n`;
           
           // Check if the value is an array (potential table data)
           if (Array.isArray(value) && typeof value[0] === 'object') {
@@ -56,7 +56,15 @@ const MediaPlanGenerator: React.FC = () => {
             formattedResponse += `| ${headers.map(() => '---').join(' | ')} |\n`;
             
             value.forEach(row => {
-              formattedResponse += `| ${headers.map(h => row[h] || '').join(' | ')} |\n`;
+              formattedResponse += `| ${headers.map(h => {
+                if (typeof row[h] === 'number') {
+                  // Format numbers with dollar signs if they look like currency
+                  return h.toLowerCase().includes('budget') || h.toLowerCase().includes('cost') || h.toLowerCase().includes('spend')
+                    ? `$${row[h].toFixed(2)}`
+                    : row[h].toString();
+                }
+                return row[h] || '';
+              }).join(' | ')} |\n`;
             });
             
             // Add a total row if this looks like numeric data
@@ -68,6 +76,11 @@ const MediaPlanGenerator: React.FC = () => {
               const totals = headers.map(header => {
                 if (typeof value[0][header] === 'number') {
                   const sum = value.reduce((acc: number, row: any) => acc + (row[header] || 0), 0);
+                  
+                  // Format with dollar sign if appropriate
+                  if (header.toLowerCase().includes('budget') || header.toLowerCase().includes('cost') || header.toLowerCase().includes('spend')) {
+                    return `$${sum.toFixed(2)}`;
+                  }
                   return typeof sum === 'number' ? sum.toFixed(2) : sum;
                 }
                 return header === headers[0] ? 'Total' : '';
@@ -75,6 +88,14 @@ const MediaPlanGenerator: React.FC = () => {
               
               formattedResponse += `| ${totals.join(' | ')} |\n`;
             }
+          } else if (typeof value === 'object' && value !== null) {
+            // Handle nested objects by converting them to tables
+            formattedResponse += `| Key | Value |\n`;
+            formattedResponse += `| --- | --- |\n`;
+            
+            Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+              formattedResponse += `| ${nestedKey} | ${nestedValue} |\n`;
+            });
           } else {
             // Regular text
             formattedResponse += `${value}\n`;

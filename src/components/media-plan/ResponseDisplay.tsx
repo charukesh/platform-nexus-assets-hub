@@ -64,14 +64,19 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
     const extracted = extractTables(response);
     setParsedContent(extracted);
     
-    // Initialize editable tables with the same data
-    const tables = extracted.filter(item => item.isTable).map(item => item.tableData);
+    // Initialize editable tables with the extracted table data
+    const tables = extracted.filter(item => item.isTable).map(item => item.tableData || []);
     setEditableTables(tables);
   }, [response]);
 
   const handleCellChange = (tableIndex: number, rowIndex: number, cellIndex: number, value: string) => {
     // Make a deep copy of the editable tables
     const newTables = JSON.parse(JSON.stringify(editableTables));
+    
+    if (!newTables[tableIndex] || !newTables[tableIndex][rowIndex] || !newTables[tableIndex][rowIndex][cellIndex]) {
+      console.error("Invalid table cell reference", { tableIndex, rowIndex, cellIndex, tables: newTables });
+      return;
+    }
     
     // Try to convert input to number if it was a number before
     const cell = newTables[tableIndex][rowIndex][cellIndex];
@@ -80,7 +85,15 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
       const numValue = parseFloat(value.replace(/[$,%]/g, ''));
       if (!isNaN(numValue)) {
         cell.value = numValue;
-        cell.raw = value.includes('$') ? `$${numValue}` : value;
+        // Preserve formatting ($ or % if present in original)
+        const originalRaw = cell.raw;
+        if (originalRaw.includes('$')) {
+          cell.raw = `$${numValue.toFixed(2)}`;
+        } else if (originalRaw.includes('%')) {
+          cell.raw = `${numValue.toFixed(2)}%`;
+        } else {
+          cell.raw = numValue.toString();
+        }
       }
     } else {
       cell.raw = value;
@@ -140,20 +153,23 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
             {section.isTable ? (
               <div className="overflow-auto">
                 <Table>
-                  {editableTables[parsedContent.findIndex((item, idx) => idx <= sectionIndex && item.isTable)]?.length > 0 && (
-                    <>
-                      <TableHeader>
-                        <TableRow>
-                          {editableTables[parsedContent.findIndex((item, idx) => idx <= sectionIndex && item.isTable)][0].map((cell: any, cellIndex: number) => (
-                            <TableHead key={cellIndex} className="font-bold">
-                              {cell.header}
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {editableTables[parsedContent.findIndex((item, idx) => idx <= sectionIndex && item.isTable)].map((row: any[], rowIndex: number) => {
-                          const tableIndex = parsedContent.findIndex((item, idx) => idx <= sectionIndex && item.isTable);
+                  <TableHeader>
+                    <TableRow>
+                      {section.tableData && section.tableData[0]?.map((cell: any, cellIndex: number) => (
+                        <TableHead key={cellIndex} className="font-bold">
+                          {cell.header}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const tableIndex = parsedContent.slice(0, sectionIndex + 1)
+                        .filter(item => item.isTable)
+                        .length - 1;
+                      
+                      if (tableIndex >= 0 && editableTables[tableIndex]) {
+                        return editableTables[tableIndex].map((row: any[], rowIndex: number) => {
                           const isTotal = row[0]?.raw?.toLowerCase().includes('total');
                           
                           return (
@@ -173,10 +189,11 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
                               ))}
                             </TableRow>
                           );
-                        })}
-                      </TableBody>
-                    </>
-                  )}
+                        });
+                      }
+                      return null;
+                    })()}
+                  </TableBody>
                 </Table>
               </div>
             ) : (
