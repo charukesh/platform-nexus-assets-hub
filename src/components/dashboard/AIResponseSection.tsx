@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -120,8 +119,12 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       const updatedData = [...tableData];
       
       // Convert to numeric values for calculations
-      const originalValue = Number(updatedData[rowIndex][columnKey]);
-      const newValue = Number(editValue);
+      const rawOriginalValue = updatedData[rowIndex][columnKey];
+      const originalValue = typeof rawOriginalValue === 'number' ? 
+        rawOriginalValue : 
+        parseFloat(String(rawOriginalValue).replace(/[^0-9.-]+/g, ""));
+      
+      const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
       
       if (columnKey === "budget" && !isNaN(newValue) && !isNaN(originalValue)) {
         // Calculate the ratio between new and old budget
@@ -132,18 +135,40 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         
         // Update related metrics proportionally
         if (updatedData[rowIndex].impressions !== undefined) {
-          updatedData[rowIndex].impressions = Math.round(Number(updatedData[rowIndex].impressions) * ratio);
+          const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
+            updatedData[rowIndex].impressions : 
+            parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
+            
+          if (!isNaN(impressionsValue)) {
+            updatedData[rowIndex].impressions = Math.round(impressionsValue * ratio);
+          }
         }
+        
         if (updatedData[rowIndex].clicks !== undefined) {
-          updatedData[rowIndex].clicks = Math.round(Number(updatedData[rowIndex].clicks) * ratio);
+          const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
+            updatedData[rowIndex].clicks : 
+            parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
+            
+          if (!isNaN(clicksValue)) {
+            updatedData[rowIndex].clicks = Math.round(clicksValue * ratio);
+          }
         }
         
         // Recalculate CPC and CTR based on new values
-        if (updatedData[rowIndex].clicks > 0) {
-          updatedData[rowIndex].cpc = newValue / Number(updatedData[rowIndex].clicks);
+        const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
+          updatedData[rowIndex].clicks : 
+          parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
+        
+        const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
+          updatedData[rowIndex].impressions : 
+          parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
+        
+        if (!isNaN(clicksValue) && clicksValue > 0) {
+          updatedData[rowIndex].cpc = newValue / clicksValue;
         }
-        if (updatedData[rowIndex].impressions > 0) {
-          updatedData[rowIndex].ctr = Number(updatedData[rowIndex].clicks) / Number(updatedData[rowIndex].impressions);
+        
+        if (!isNaN(clicksValue) && !isNaN(impressionsValue) && impressionsValue > 0) {
+          updatedData[rowIndex].ctr = clicksValue / impressionsValue;
         }
       } else {
         updatedData[rowIndex][columnKey] = editValue;
