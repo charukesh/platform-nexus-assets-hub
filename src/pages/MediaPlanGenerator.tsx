@@ -33,8 +33,12 @@ const MediaPlanGenerator: React.FC = () => {
 
       if (error) throw error;
 
+      console.log("Received media plan data:", data);
+      
       if (data?.mediaPlan) {
         setResponse(data.mediaPlan);
+      } else {
+        throw new Error("No media plan data received");
       }
     } catch (err: any) {
       console.error("Error generating media plan:", err);

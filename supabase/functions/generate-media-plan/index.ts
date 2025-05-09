@@ -45,8 +45,8 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: `You are a media planning assistant that creates JSON-formatted media plans. 
-              Always respond with structured JSON data in the following format:
+              content: `You are a media planning assistant that creates detailed JSON media plans. 
+              Always return a valid JSON array of media plan items in the following format ONLY:
               
               [
                 {
@@ -69,10 +69,15 @@ serve(async (req) => {
                 }
               ]
               
-              Make sure all fields are included. Use realistic values for all metrics based on industry standards. 
-              Return budget values as plain numbers, not formatted strings.
-              Always calculate CTR as clicks/impressions and CPC as budget/clicks.
-              Ensure all values are consistent - e.g. budget divided by clicks should equal CPC.`
+              IMPORTANT GUIDELINES:
+              1. Make sure all fields are included with appropriate numeric values.
+              2. Return budget values as plain numbers (no currency symbols).
+              3. Return CTR as a decimal (e.g., 0.02 for 2%).
+              4. Ensure all calculations are consistent (budget/clicks = CPC, clicks/impressions = CTR).
+              5. DO NOT include any explanatory text or markdown formatting - ONLY return the JSON array directly.
+              6. ALWAYS return at least 3-5 platforms for diversification.
+              7. Use realistic industry CPM/CPC values based on the platforms mentioned.
+              8. Prioritize JSON formatting correctness above all else - this must be parseable JSON.`
             },
             {
               role: 'user',
@@ -105,10 +110,27 @@ serve(async (req) => {
         // Try parsing the entire content as JSON
         mediaPlan = JSON.parse(content);
       }
+      
+      // Validate the structure and ensure it's an array
+      if (!Array.isArray(mediaPlan)) {
+        throw new Error('Response is not a valid array');
+      }
     } catch (error) {
       console.error("Error parsing JSON from AI response:", error);
-      // If parsing fails, return the original content
-      mediaPlan = content;
+      console.log("Raw content:", content);
+      
+      // Fallback: Try to extract any array-looking content from the response
+      const fallbackMatch = content.match(/\[\s*{[\s\S]*}\s*\]/);
+      if (fallbackMatch) {
+        try {
+          mediaPlan = JSON.parse(fallbackMatch[0]);
+        } catch (e) {
+          console.error("Failed to parse fallback JSON:", e);
+          mediaPlan = [];
+        }
+      } else {
+        mediaPlan = [];
+      }
     }
     
     return new Response(
@@ -127,7 +149,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An error occurred during media plan generation',
-        stack: Deno.env.get('NODE_ENV') === 'development' ? error.stack : undefined
+        mediaPlan: [] // Return empty array in case of error
       }),
       { 
         status: 500,
