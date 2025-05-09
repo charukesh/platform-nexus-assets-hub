@@ -9,7 +9,7 @@ import ResponseDisplay from "@/components/media-plan/ResponseDisplay";
 
 const MediaPlanGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState("");
-  const [response, setResponse] = useState("");
+  const [response, setResponse] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
@@ -24,7 +24,7 @@ const MediaPlanGenerator: React.FC = () => {
     }
 
     setIsGenerating(true);
-    setResponse("");
+    setResponse(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-media-plan", {
@@ -34,12 +34,7 @@ const MediaPlanGenerator: React.FC = () => {
       if (error) throw error;
 
       if (data?.mediaPlan) {
-        const plan = data.mediaPlan;
-        const formattedResponse = Object.entries(plan)
-          .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').toLowerCase()}\n${value}`)
-          .join('\n\n');
-        
-        setResponse(formattedResponse);
+        setResponse(data.mediaPlan);
       }
     } catch (err: any) {
       console.error("Error generating media plan:", err);
@@ -74,7 +69,7 @@ const MediaPlanGenerator: React.FC = () => {
           />
         </NeuCard>
 
-        <ResponseDisplay response={response} />
+        {response && <ResponseDisplay response={response} />}
       </div>
     </Layout>
   );

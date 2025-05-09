@@ -1,5 +1,4 @@
 
-# This is the main configuration file for Supabase.
 project_id = "lkenxwnqoazfdoabrpxl"
 
 [api]
@@ -10,6 +9,7 @@ max_rows = 1000
 
 [db]
 port = 54322
+shadow_port = 54320
 major_version = 15
 
 [studio]
@@ -23,37 +23,34 @@ pop3_port = 54326
 [storage]
 file_size_limit = "50MiB"
 
-# Define storage buckets
-[[storage.buckets]]
-name = "platform-logos"
-public = true
-file_size_limit = "5MB"
-allowed_mime_types = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"]
-
 [auth]
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["https://localhost:3000"]
 jwt_expiry = 3600
-enable_signup = true
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
 
 [auth.email]
 enable_signup = true
+double_confirm_changes = true
 enable_confirmations = false
 
 [auth.sms]
 enable_signup = true
-enable_confirmations = false
+enable_confirmations = true
 
-# Define function settings
 [functions]
-verify_jwt = true
+serve_port = 54328
+function_timeout_seconds = 30
 
-# Individual function settings
 [functions.generate-embeddings]
+verify_jwt = false
+
+[functions.regenerate-embeddings]
 verify_jwt = false
 
 [functions.create-embedding-search]
 verify_jwt = false
 
-[functions.regenerate-embeddings]
+[functions.generate-media-plan]
 verify_jwt = false
