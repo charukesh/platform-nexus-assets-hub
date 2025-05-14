@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -164,7 +163,7 @@ const AssetForm: React.FC = () => {
         const amount = typeof assetData.amount === 'number' ? assetData.amount : 0;
         const placement = assetData.placement || PLACEMENT_OPTIONS[0];
         const ctr = typeof assetData.ctr === 'number' ? assetData.ctr : 0;
-        const vtr = typeof assetData.vtr === 'number' ? assetData.vtr : 0;
+        const vtr = typeof assetData.vtr === 'number' ? assetData.vtr || 0 : 0;
         
         setFormData({
           name: assetData.name || "",
