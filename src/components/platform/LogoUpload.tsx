@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Upload, Image as ImageIcon } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import NeuButton from '@/components/NeuButton';
@@ -15,6 +15,12 @@ interface LogoUploadProps {
 const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerFileInput = () => {
+    // Programmatically click the hidden file input
+    fileInputRef.current?.click();
+  };
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -86,39 +92,49 @@ const LogoUpload = ({ currentLogoUrl, onUpload, platformId }: LogoUploadProps) =
             alt="Platform logo" 
             className="w-16 h-16 rounded-lg object-cover"
           />
-          <label className="cursor-pointer">
-            <NeuButton type="button" variant="outline" className="flex items-center gap-2">
-              <Upload size={16} />
-              {uploading ? 'Uploading...' : 'Change Logo'}
-            </NeuButton>
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={handleUpload}
-              disabled={uploading}
-            />
-          </label>
-        </div>
-      ) : (
-        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-neugray-100 dark:hover:bg-gray-800">
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <ImageIcon className="w-8 h-8 mb-3 text-gray-400" />
-            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-              {uploading ? 'Uploading...' : 'Click to upload platform logo'}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              PNG, JPG, GIF up to 2MB
-            </p>
-          </div>
+          <NeuButton 
+            type="button" 
+            variant="outline" 
+            className="flex items-center gap-2"
+            onClick={triggerFileInput}
+          >
+            <Upload size={16} />
+            {uploading ? 'Uploading...' : 'Change Logo'}
+          </NeuButton>
           <input
+            ref={fileInputRef}
             type="file"
             className="hidden"
             accept="image/*"
             onChange={handleUpload}
             disabled={uploading}
           />
-        </label>
+        </div>
+      ) : (
+        <div>
+          <label 
+            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-neugray-100 dark:hover:bg-gray-800"
+            onClick={triggerFileInput}
+          >
+            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+              <ImageIcon className="w-8 h-8 mb-3 text-gray-400" />
+              <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                {uploading ? 'Uploading...' : 'Click to upload platform logo'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                PNG, JPG, GIF up to 2MB
+              </p>
+            </div>
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+        </div>
       )}
     </div>
   );
