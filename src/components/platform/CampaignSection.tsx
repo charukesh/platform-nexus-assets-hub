@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { CampaignData, AD_FORMAT_OPTIONS, PLACEMENT_OPTIONS, FUNNEL_STAGE_OPTIONS } from "@/types/platform";
+import { toast } from '@/hooks/use-toast';
 
 interface CampaignSectionProps {
   campaignData: CampaignData;
@@ -32,6 +33,44 @@ export const CampaignSection: React.FC<CampaignSectionProps> = ({
     }
     
     onCampaignDataChange(field, newValues);
+  };
+
+  // Added this specifically to debug funnel stage selection
+  const handleFunnelStageClick = (stage: string) => {
+    console.log('Funnel stage clicked:', stage);
+    console.log('Current funnel stages:', campaignData.funnel_stage);
+    
+    // Ensure funnel_stage is always treated as an array
+    const currentStages = Array.isArray(campaignData.funnel_stage) 
+      ? campaignData.funnel_stage 
+      : campaignData.funnel_stage ? [campaignData.funnel_stage as string] : [];
+    
+    let newStages;
+    if (currentStages.includes(stage)) {
+      newStages = currentStages.filter(s => s !== stage);
+    } else {
+      newStages = [...currentStages, stage];
+    }
+    
+    console.log('New funnel stages:', newStages);
+    onCampaignDataChange('funnel_stage', newStages);
+    
+    // Add a toast notification for confirmation
+    toast({
+      title: currentStages.includes(stage) ? "Removed" : "Added",
+      description: `${stage} ${currentStages.includes(stage) ? "removed from" : "added to"} funnel stages`,
+    });
+  };
+
+  // Helper to check if a stage is selected
+  const isFunnelStageSelected = (stage: string): boolean => {
+    if (!campaignData.funnel_stage) return false;
+    
+    if (Array.isArray(campaignData.funnel_stage)) {
+      return campaignData.funnel_stage.includes(stage);
+    }
+    
+    return campaignData.funnel_stage === stage;
   };
 
   return (
@@ -84,14 +123,12 @@ export const CampaignSection: React.FC<CampaignSectionProps> = ({
             {FUNNEL_STAGE_OPTIONS.map((stage) => (
               <div 
                 key={stage}
-                onClick={() => handleMultiSelectChange('funnel_stage', stage)}
+                onClick={() => handleFunnelStageClick(stage)}
                 className={`
                   cursor-pointer rounded-md p-2 border border-gray-300 text-center
-                  ${Array.isArray(campaignData.funnel_stage) 
-                    ? campaignData.funnel_stage.includes(stage)
-                    : campaignData.funnel_stage === stage
-                      ? 'bg-primary/10 border-primary' 
-                      : 'bg-white hover:bg-gray-50'}
+                  ${isFunnelStageSelected(stage)
+                    ? 'bg-primary/10 border-primary' 
+                    : 'bg-white hover:bg-gray-50'}
                 `}
               >
                 {stage}
