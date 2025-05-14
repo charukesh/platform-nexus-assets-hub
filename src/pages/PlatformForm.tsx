@@ -3,14 +3,15 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
-import NeuCard from '@/components/NeuCard';
 import { ArrowLeft } from 'lucide-react';
 import { CampaignSection } from '@/components/platform/CampaignSection';
 import { TargetingSection } from '@/components/platform/TargetingSection';
 import BasicInfoSection from '@/components/platform/BasicInfoSection';
-import DeviceDistributionSection from '@/components/platform/DeviceDistributionSection';
+import PerformanceMetricsSection from '@/components/platform/PerformanceMetricsSection';
+import CommentsSection from '@/components/platform/CommentsSection';
 import FormActions from '@/components/platform/FormActions';
 import { usePlatformForm } from '@/hooks/usePlatformForm';
+import { toast } from '@/hooks/use-toast';
 
 const PlatformForm = () => {
   const { id } = useParams();
@@ -38,10 +39,38 @@ const PlatformForm = () => {
     handleAudienceDataChange,
     handleCampaignDataChange,
     handleDeviceSplitChange,
-    handleSubmit
+    handleSubmit,
+    isSubmitting
   } = usePlatformForm({ platformData, id });
 
-  if (isLoading) return <Layout>Loading...</Layout>;
+  if (isLoading) return (
+    <Layout>
+      <div className="flex justify-center items-center h-[80vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    </Layout>
+  );
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.name.trim()) {
+      toast({ title: "Error", description: "Platform name is required", variant: "destructive" });
+      return;
+    }
+    
+    if (!formData.industry) {
+      toast({ title: "Error", description: "Industry is required", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      await handleSubmit(e);
+    } catch (error) {
+      console.error("Form submission error:", error);
+    }
+  };
 
   return (
     <Layout>
@@ -57,12 +86,17 @@ const PlatformForm = () => {
           </div>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleFormSubmit} className="space-y-6">
           <BasicInfoSection 
             formData={formData} 
             handleChange={handleChange} 
-            handleAudienceDataChange={handleAudienceDataChange}
             platformId={id}
+          />
+
+          <PerformanceMetricsSection 
+            formData={formData}
+            handleChange={handleChange}
+            handleDeviceSplitChange={handleDeviceSplitChange}
           />
 
           <TargetingSection
@@ -75,12 +109,16 @@ const PlatformForm = () => {
             onCampaignDataChange={handleCampaignDataChange}
           />
 
-          <DeviceDistributionSection 
-            deviceSplit={formData.device_split}
-            onDeviceSplitChange={handleDeviceSplitChange}
+          <CommentsSection 
+            comments={formData.comments}
+            onChange={(value) => handleChange('comments', value)}
           />
 
-          <FormActions isEditing={!!id} onCancel={() => navigate('/platforms')} />
+          <FormActions 
+            isEditing={!!id} 
+            onCancel={() => navigate('/platforms')} 
+            isSubmitting={isSubmitting}
+          />
         </form>
       </div>
     </Layout>

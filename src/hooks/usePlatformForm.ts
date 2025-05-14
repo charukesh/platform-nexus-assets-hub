@@ -14,22 +14,36 @@ interface UsePlatformFormProps {
 export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState<PlatformFormData>({
     name: '',
     industry: '',
-    description: '',  // Include description field
+    description: '',
     mau: '',
     dau: '',
     premium_users: null,
+    est_reach: null,
+    impressions: null,
     audience_data: {
       age_groups: {},
       gender: {},
       interests: [],
       age_targeting_available: false,
+      age_targeting_values: {
+        min: 13,
+        max: 65
+      },
       gender_targeting_available: false,
+      gender_targeting_values: [],
+      geography_presence: [],
+      states: [],
+      cities: [],
+      pincodes: [],
+      cohorts: [],
       state_level_targeting: false,
       city_level_targeting: false,
+      pincode_level_targeting: false,
       platform_specific_targeting: [],
     },
     device_split: {
@@ -41,15 +55,16 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
       funnel_stage: [],
       buying_model: '',
       ad_formats: [],
-      special_innovations: [],
+      available_placements: [],
+      special_innovations: '',
       cta_support: false,
       minimum_spend: 0,
-      geography_presence: '',
     },
     restrictions: {
       restricted_categories: [],
     },
     logo_url: '',
+    comments: ''
   });
 
   useEffect(() => {
@@ -70,10 +85,23 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
         },
         interests: [],
         age_targeting_available: false,
+        age_targeting_values: {
+          min: 13,
+          max: 65
+        },
         gender_targeting_available: false,
+        gender_targeting_values: [],
+        geography_presence: [],
+        states: [],
+        cities: [],
+        pincodes: [],
+        cohorts: [],
         state_level_targeting: false,
         city_level_targeting: false,
+        pincode_level_targeting: false,
         platform_specific_targeting: [],
+        demographic: undefined,
+        geographic: undefined
       };
 
       const defaultDeviceSplit = {
@@ -86,10 +114,10 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
         funnel_stage: [],
         buying_model: '',
         ad_formats: [],
-        special_innovations: [],
+        available_placements: [],
+        special_innovations: '',
         cta_support: false,
         minimum_spend: 0,
-        geography_presence: '',
       };
 
       const defaultRestrictions = {
@@ -104,17 +132,33 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
       setFormData({
         name: platformData.name,
         industry: platformData.industry,
-        description: platformData.description || '',  // Include description field
+        description: platformData.description || '',
+        est_reach: (platformData as any)?.est_reach || null,
+        impressions: (platformData as any)?.impressions || null,
+        comments: (platformData as any)?.comments || '',
         audience_data: audienceData ?
           {
             age_groups: (audienceData as any)?.age_groups || defaultAudienceData.age_groups,
             gender: (audienceData as any)?.gender || defaultAudienceData.gender,
             interests: (audienceData as any)?.interests || defaultAudienceData.interests,
             age_targeting_available: (audienceData as any)?.age_targeting_available || defaultAudienceData.age_targeting_available,
+            age_targeting_values: (audienceData as any)?.age_targeting_values || defaultAudienceData.age_targeting_values,
             gender_targeting_available: (audienceData as any)?.gender_targeting_available || defaultAudienceData.gender_targeting_available,
+            gender_targeting_values: (audienceData as any)?.gender_targeting_values || defaultAudienceData.gender_targeting_values,
+            geography_presence: (audienceData as any)?.geography_presence || defaultAudienceData.geography_presence,
+            states: (audienceData as any)?.states || defaultAudienceData.states,
+            cities: (audienceData as any)?.cities || defaultAudienceData.cities,
+            pincodes: (audienceData as any)?.pincodes || defaultAudienceData.pincodes,
+            cohorts: (audienceData as any)?.cohorts || defaultAudienceData.cohorts,
             state_level_targeting: (audienceData as any)?.state_level_targeting || defaultAudienceData.state_level_targeting,
+            state_targeting_values: (audienceData as any)?.state_targeting_values || defaultAudienceData.state_targeting_values,
             city_level_targeting: (audienceData as any)?.city_level_targeting || defaultAudienceData.city_level_targeting,
+            city_targeting_values: (audienceData as any)?.city_targeting_values || defaultAudienceData.city_targeting_values,
+            pincode_level_targeting: (audienceData as any)?.pincode_level_targeting || defaultAudienceData.pincode_level_targeting,
+            pincode_targeting_values: (audienceData as any)?.pincode_targeting_values || defaultAudienceData.pincode_targeting_values,
             platform_specific_targeting: (audienceData as any)?.platform_specific_targeting || defaultAudienceData.platform_specific_targeting,
+            demographic: (audienceData as any)?.demographic,
+            geographic: (audienceData as any)?.geographic
           } : defaultAudienceData,
         device_split: deviceSplit ?
           {
@@ -127,6 +171,7 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
             funnel_stage: (campaignData as any)?.funnel_stage || defaultCampaignData.funnel_stage,
             buying_model: (campaignData as any)?.buying_model || defaultCampaignData.buying_model,
             ad_formats: (campaignData as any)?.ad_formats || defaultCampaignData.ad_formats,
+            available_placements: (campaignData as any)?.available_placements || defaultCampaignData.available_placements,
             special_innovations: (campaignData as any)?.special_innovations || defaultCampaignData.special_innovations,
             cta_support: (campaignData as any)?.cta_support || defaultCampaignData.cta_support,
             minimum_spend: (campaignData as any)?.minimum_spend || defaultCampaignData.minimum_spend,
@@ -180,12 +225,13 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setIsSubmitting(true);
     
     try {
       const supabaseData = {
         name: formData.name,
         industry: formData.industry,
-        description: formData.description,  // Include description field
+        description: formData.description,
         audience_data: formData.audience_data as unknown as Json,
         device_split: formData.device_split as unknown as Json,
         campaign_data: formData.campaign_data as unknown as Json,
@@ -193,7 +239,10 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
         mau: formData.mau,
         dau: formData.dau,
         premium_users: formData.premium_users,
+        est_reach: formData.est_reach,
+        impressions: formData.impressions,
         logo_url: formData.logo_url,
+        comments: formData.comments
       };
       
       let result;
@@ -253,6 +302,9 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
         description: error.message,
         variant: "destructive",
       });
+      setIsSubmitting(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -262,6 +314,7 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
     handleAudienceDataChange,
     handleCampaignDataChange,
     handleDeviceSplitChange,
-    handleSubmit
+    handleSubmit,
+    isSubmitting
   };
 };

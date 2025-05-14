@@ -1,177 +1,139 @@
 
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import NeuInput from "@/components/NeuInput";
-import { Switch } from "@/components/ui/switch";
+import React from 'react';
 import NeuCard from "@/components/NeuCard";
-import { CampaignData } from "@/types/platform";
-import CommaSeparatedInput from "@/components/CommaSeparatedInput";
+import NeuInput from "@/components/NeuInput";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { CampaignData, AD_FORMAT_OPTIONS, PLACEMENT_OPTIONS, FUNNEL_STAGE_OPTIONS } from "@/types/platform";
 
 interface CampaignSectionProps {
   campaignData: CampaignData;
   onCampaignDataChange: (field: string, value: any) => void;
 }
 
-export const CampaignSection = ({
+export const CampaignSection: React.FC<CampaignSectionProps> = ({
   campaignData,
   onCampaignDataChange,
-}: CampaignSectionProps) => {
-  const funnelStages = [
-    "Awareness",
-    "Consideration",
-    "Conversion",
-    "Branding & Call-to-Action",
-  ];
-
-  const buyingModels = [
-    "CPC (Cost Per Click)",
-    "CPM (Cost Per Mille)",
-    "CPO (Cost Per Order)",
-    "CPS (Cost Per Scratch)",
-  ];
-
-  const handleFunnelStageChange = (stage: string, checked: boolean) => {
-    const currentStages = campaignData.funnel_stage ? 
-      (typeof campaignData.funnel_stage === 'string' ? [campaignData.funnel_stage] : campaignData.funnel_stage) : 
-      [];
+}) => {
+  // Helper function for multi-select options
+  const handleMultiSelectChange = (field: string, value: string) => {
+    const currentValues = campaignData[field as keyof CampaignData] as string[] || [];
+    let newValues;
     
-    const updatedStages = checked
-      ? [...currentStages, stage]
-      : currentStages.filter((s: string) => s !== stage);
+    if (Array.isArray(currentValues)) {
+      if (currentValues.includes(value)) {
+        newValues = currentValues.filter(v => v !== value);
+      } else {
+        newValues = [...currentValues, value];
+      }
+    } else {
+      newValues = [value];
+    }
     
-    onCampaignDataChange("funnel_stage", updatedStages);
-  };
-
-  // Convert arrays to comma-separated strings for the input component
-  const getAdFormatsValue = () => {
-    if (!campaignData.ad_formats) return '';
-    return Array.isArray(campaignData.ad_formats) 
-      ? campaignData.ad_formats.join(", ") 
-      : campaignData.ad_formats;
-  };
-
-  const getSpecialInnovationsValue = () => {
-    if (!campaignData.special_innovations) return '';
-    return Array.isArray(campaignData.special_innovations) 
-      ? campaignData.special_innovations.join(", ") 
-      : campaignData.special_innovations;
-  };
-
-  const getGeographyPresenceValue = () => {
-    if (!campaignData.geography_presence) return '';
-    if (typeof campaignData.geography_presence === 'string') {
-      return campaignData.geography_presence;
-    }
-    if (Array.isArray(campaignData.geography_presence)) {
-      return campaignData.geography_presence.join(", ");
-    }
-    return '';
+    onCampaignDataChange(field, newValues);
   };
 
   return (
     <NeuCard>
-      <h2 className="text-xl font-semibold mb-4">Campaign Settings</h2>
+      <h2 className="text-xl font-semibold mb-4">Capabilities & Innovation</h2>
       <div className="space-y-6">
         <div>
-          <Label className="text-base mb-3 block">Campaign Funnel Stages</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {funnelStages.map((stage) => {
-              const isChecked = Array.isArray(campaignData.funnel_stage) && 
-                campaignData.funnel_stage.includes(stage);
-                
-              return (
-                <div key={stage} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`stage-${stage}`}
-                    checked={isChecked}
-                    onCheckedChange={(checked) => 
-                      handleFunnelStageChange(stage, checked === true)
-                    }
-                  />
-                  <Label htmlFor={`stage-${stage}`}>{stage}</Label>
-                </div>
-              );
-            })}
+          <Label className="block mb-2">Ad Formats</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+            {AD_FORMAT_OPTIONS.map((format) => (
+              <div 
+                key={format}
+                onClick={() => handleMultiSelectChange('ad_formats', format)}
+                className={`
+                  cursor-pointer rounded-md p-2 border border-gray-300 text-center
+                  ${(campaignData.ad_formats || []).includes(format) 
+                    ? 'bg-primary/10 border-primary' 
+                    : 'bg-white hover:bg-gray-50'}
+                `}
+              >
+                {format}
+              </div>
+            ))}
           </div>
         </div>
 
         <div>
-          <Label>Buying Model</Label>
-          <Select
-            value={campaignData.buying_model || "undefined-model"}
-            onValueChange={(value) => onCampaignDataChange("buying_model", value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select buying model" />
-            </SelectTrigger>
-            <SelectContent>
-              {buyingModels.map((model) => (
-                <SelectItem key={model} value={model}>
-                  {model}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label className="block mb-2">Available Placements</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {PLACEMENT_OPTIONS.map((placement) => (
+              <div 
+                key={placement}
+                onClick={() => handleMultiSelectChange('available_placements', placement)}
+                className={`
+                  cursor-pointer rounded-md p-2 border border-gray-300
+                  ${(campaignData.available_placements || []).includes(placement) 
+                    ? 'bg-primary/10 border-primary' 
+                    : 'bg-white hover:bg-gray-50'}
+                `}
+              >
+                {placement}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div>
-          <Label>Ad Formats</Label>
-          <CommaSeparatedInput 
-            placeholder="Enter ad formats (e.g., Banner, Video, Interstitial)"
-            value={getAdFormatsValue()}
-            onChange={(value) => {
-              const formatsArray = value ? value.split(",").map(v => v.trim()).filter(Boolean) : [];
-              onCampaignDataChange("ad_formats", formatsArray);
-            }}
-          />
+          <Label className="block mb-2">Funnel Stages</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+            {FUNNEL_STAGE_OPTIONS.map((stage) => (
+              <div 
+                key={stage}
+                onClick={() => handleMultiSelectChange('funnel_stage', stage)}
+                className={`
+                  cursor-pointer rounded-md p-2 border border-gray-300 text-center
+                  ${Array.isArray(campaignData.funnel_stage) 
+                    ? campaignData.funnel_stage.includes(stage)
+                    : campaignData.funnel_stage === stage
+                      ? 'bg-primary/10 border-primary' 
+                      : 'bg-white hover:bg-gray-50'}
+                `}
+              >
+                {stage}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div>
-          <Label>Special Innovations</Label>
-          <CommaSeparatedInput 
-            placeholder="Enter special innovations (e.g., AR, Interactive ads)"
-            value={getSpecialInnovationsValue()}
-            onChange={(value) => {
-              const innovationsArray = value ? value.split(",").map(v => v.trim()).filter(Boolean) : [];
-              onCampaignDataChange("special_innovations", innovationsArray);
-            }}
-          />
+          <div className="flex items-center justify-between mb-2">
+            <Label htmlFor="cta_support">CTA Support</Label>
+            <Switch
+              id="cta_support"
+              checked={campaignData.cta_support || false}
+              onCheckedChange={(checked) => onCampaignDataChange('cta_support', checked)}
+            />
+          </div>
         </div>
 
         <div>
-          <Label>Minimum Campaign Spend (INR)</Label>
-          <NeuInput
+          <Label htmlFor="minimum_spend">Minimum Campaign Spend (₹)</Label>
+          <Input
+            id="minimum_spend"
             type="number"
-            placeholder="e.g., 500000"
-            value={campaignData.minimum_spend || ""}
-            onChange={(e) => onCampaignDataChange("minimum_spend", e.target.value ? parseInt(e.target.value) : null)}
+            min="0"
+            value={campaignData.minimum_spend || ''}
+            onChange={(e) => onCampaignDataChange('minimum_spend', e.target.value ? parseInt(e.target.value) : 0)}
+            className="mt-1"
+            placeholder="Enter minimum campaign spend"
           />
         </div>
 
         <div>
-          <Label>Geography Presence</Label>
-          <CommaSeparatedInput 
-            placeholder="Enter geography (e.g., India, South Asia, Global)"
-            value={getGeographyPresenceValue()}
-            onChange={(value) => onCampaignDataChange("geography_presence", value)}
+          <Label htmlFor="special_innovations">Special Innovations</Label>
+          <NeuInput
+            id="special_innovations"
+            as="textarea"
+            value={campaignData.special_innovations || ''}
+            onChange={(e) => onCampaignDataChange('special_innovations', e.target.value)}
+            placeholder="Describe any special innovations or unique offerings"
+            rows={3}
           />
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="cta-support"
-            checked={campaignData.cta_support}
-            onCheckedChange={(checked) => onCampaignDataChange("cta_support", checked)}
-          />
-          <Label htmlFor="cta-support">Call-to-Action (CTA) Support</Label>
         </div>
       </div>
     </NeuCard>
