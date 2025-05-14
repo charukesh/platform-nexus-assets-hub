@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -7,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-import { FileIcon, Pencil, Trash2, Calendar, FileType, Tag, Info, ExternalLink, Eye } from "lucide-react";
+import { FileIcon, Pencil, Trash2, Calendar, FileType, Tag, Info, ExternalLink, Eye, DollarSign, BarChart } from "lucide-react";
 import EditHistoryComponent from "@/components/EditHistoryComponent";
 
 const AssetDetail: React.FC = () => {
@@ -164,6 +165,9 @@ const AssetDetail: React.FC = () => {
             <TabsTrigger value="details" className="data-[state=active]:neu-pressed">
               Details
             </TabsTrigger>
+            <TabsTrigger value="pricing" className="data-[state=active]:neu-pressed">
+              Pricing & Metrics
+            </TabsTrigger>
             <TabsTrigger value="preview" className="data-[state=active]:neu-pressed">
               Preview
             </TabsTrigger>
@@ -211,6 +215,16 @@ const AssetDetail: React.FC = () => {
                     </div>
                     
                     <div>
+                      <Label className="text-muted-foreground text-sm">Ad Format</Label>
+                      <p className="font-medium">{asset?.ad_format || "Not specified"}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Ad Type</Label>
+                      <p className="font-medium">{asset?.ad_type || "Not specified"}</p>
+                    </div>
+                    
+                    <div>
                       <Label className="text-muted-foreground text-sm">File Size</Label>
                       <p className="font-medium">{asset?.file_size || "Unknown"}</p>
                     </div>
@@ -223,26 +237,6 @@ const AssetDetail: React.FC = () => {
                     <div>
                       <Label className="text-muted-foreground text-sm">Last Updated</Label>
                       <p className="font-medium">{new Date(asset?.updated_at).toLocaleDateString()}</p>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-muted-foreground text-sm">Placement</Label>
-                      <p className="font-medium">{asset?.placement || "Not specified"}</p>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-muted-foreground text-sm">Buy Type</Label>
-                      <p className="font-medium">{asset?.buy_types}</p>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-muted-foreground text-sm">Amount</Label>
-                      <p className="font-medium">{asset?.amount ? `₹${asset.amount.toLocaleString()}` : "N/A"}</p>
-                    </div>
-                    
-                    <div>
-                      <Label className="text-muted-foreground text-sm">CTR (%)</Label>
-                      <p className="font-medium">{asset?.ctr ? `${asset.ctr.toFixed(2)}%` : "N/A"}</p>
                     </div>
                   </div>
                 </NeuCard>
@@ -259,6 +253,26 @@ const AssetDetail: React.FC = () => {
                     </div>
                     
                     <div>
+                      <Label className="text-muted-foreground text-sm">Deliverables</Label>
+                      <p className="mt-1">{asset?.deliverables || "Not specified"}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Call to Action</Label>
+                      <p className="mt-1">{asset?.cta || "Not specified"}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Placement</Label>
+                      <p className="mt-1">{asset?.placement || "Not specified"}</p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Snapshot Reference</Label>
+                      <p className="mt-1">{asset?.snapshot_ref || "Not specified"}</p>
+                    </div>
+                    
+                    <div>
                       <Label className="text-muted-foreground text-sm">Tags</Label>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {asset?.tags && asset.tags.length > 0 ? (
@@ -272,36 +286,6 @@ const AssetDetail: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    
-                    <div>
-                      <Label className="text-muted-foreground text-sm">Metadata</Label>
-                      <NeuCard className="mt-2 p-4 bg-neugray-200 border-none">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">ID</p>
-                            <p className="font-mono text-xs truncate">{asset?.id}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Created By</p>
-                            <p className="font-mono text-xs">{asset?.uploaded_by || "Unknown"}</p>
-                          </div>
-                        </div>
-                      </NeuCard>
-                    </div>
-                    
-                    {asset?.file_url && (
-                      <div>
-                        <Label className="text-muted-foreground text-sm">Actions</Label>
-                        <div className="flex gap-2 mt-2">
-                          <Link to="#preview" onClick={() => setActiveTab("preview")}>
-                            <NeuButton variant="outline" className="flex items-center gap-2">
-                              <Eye size={16} />
-                              Preview Asset
-                            </NeuButton>
-                          </Link>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </NeuCard>
               </div>
@@ -327,6 +311,22 @@ const AssetDetail: React.FC = () => {
                     <div className="flex items-center gap-2 mt-1">
                       <Tag size={18} className="text-primary" />
                       <p className="font-medium">{asset?.category}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Ad Format</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Info size={18} className="text-primary" />
+                      <p className="font-medium">{asset?.ad_format || "Not specified"}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Ad Type</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Info size={18} className="text-primary" />
+                      <p className="font-medium">{asset?.ad_type || "Not specified"}</p>
                     </div>
                   </div>
                   
@@ -407,6 +407,58 @@ const AssetDetail: React.FC = () => {
                   </Link>
                 </div>
               )}
+            </NeuCard>
+          </TabsContent>
+          
+          <TabsContent value="pricing" className="space-y-6">
+            <NeuCard>
+              <h3 className="text-lg font-bold mb-4">Pricing Information</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Buy Type</Label>
+                    <p className="font-medium mt-1">{asset?.buy_types || "Not specified"}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Amount</Label>
+                    <p className="font-medium mt-1">{asset?.amount ? `₹${asset.amount.toLocaleString()}` : "Not specified"}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Minimum Cost</Label>
+                    <p className="font-medium mt-1">{asset?.minimum_cost ? `₹${asset.minimum_cost.toLocaleString()}` : "Not specified"}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">MOQ (Min Order Quantity)</Label>
+                    <p className="font-medium mt-1">{asset?.moq || "Not specified"}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Rate in INR</Label>
+                    <p className="font-medium mt-1">{asset?.rate_inr ? `₹${asset.rate_inr.toLocaleString()}` : "Not specified"}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">GTM Rate</Label>
+                    <p className="font-medium mt-1">{asset?.gtm_rate ? `₹${asset.gtm_rate.toLocaleString()}` : "Not specified"}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">CTR (%)</Label>
+                    <p className="font-medium mt-1">{asset?.ctr ? `${asset.ctr.toFixed(2)}%` : "Not specified"}</p>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-muted-foreground text-sm">VTR (%)</Label>
+                    <p className="font-medium mt-1">{asset?.vtr ? `${asset.vtr.toFixed(2)}%` : "Not specified"}</p>
+                  </div>
+                </div>
+              </div>
             </NeuCard>
           </TabsContent>
           

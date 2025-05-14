@@ -1,5 +1,4 @@
 
-
 export interface Asset {
   id: string;
   name: string;
@@ -129,4 +128,3 @@ export const CTA_OPTIONS = [
 ] as const;
 
 export type CTA = typeof CTA_OPTIONS[number];
-

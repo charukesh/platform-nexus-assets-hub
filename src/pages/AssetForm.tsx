@@ -160,18 +160,28 @@ const AssetForm: React.FC = () => {
       if (error) throw error;
       
       if (assetData) {
+        // Convert null values to defaults
         const amount = typeof assetData.amount === 'number' ? assetData.amount : 0;
         const placement = assetData.placement || PLACEMENT_OPTIONS[0];
         const ctr = typeof assetData.ctr === 'number' ? assetData.ctr : 0;
-        const vtr = typeof assetData.vtr === 'number' ? assetData.vtr || 0 : 0;
+        const vtr = typeof assetData.vtr === 'number' ? assetData.vtr : 0;
+        const ad_format = assetData.ad_format || AD_FORMAT_OPTIONS[0];
+        const ad_type = assetData.ad_type || AD_TYPE_OPTIONS[0];
+        const deliverables = assetData.deliverables || DELIVERABLES_OPTIONS[0];
+        const cta = assetData.cta || CTA_OPTIONS[0];
+        const snapshot_ref = assetData.snapshot_ref || "";
+        const minimum_cost = typeof assetData.minimum_cost === 'number' ? assetData.minimum_cost : 0;
+        const moq = assetData.moq || "";
+        const rate_inr = typeof assetData.rate_inr === 'number' ? assetData.rate_inr : 0;
+        const gtm_rate = typeof assetData.gtm_rate === 'number' ? assetData.gtm_rate : 0;
         
         setFormData({
           name: assetData.name || "",
           description: assetData.description || "",
           category: assetData.category || CATEGORY_OPTIONS[0],
           type: assetData.type || "",
-          ad_format: assetData.ad_format || AD_FORMAT_OPTIONS[0],
-          ad_type: assetData.ad_type || AD_TYPE_OPTIONS[0],
+          ad_format,
+          ad_type,
           platform_id: assetData.platform_id || "",
           tags: assetData.tags || [],
           tagInput: "",
@@ -183,13 +193,13 @@ const AssetForm: React.FC = () => {
           placement,
           ctr,
           vtr,
-          deliverables: assetData.deliverables || DELIVERABLES_OPTIONS[0],
-          cta: assetData.cta || CTA_OPTIONS[0],
-          snapshot_ref: assetData.snapshot_ref || "",
-          minimum_cost: assetData.minimum_cost || 0,
-          moq: assetData.moq || "",
-          rate_inr: assetData.rate_inr || 0,
-          gtm_rate: assetData.gtm_rate || 0
+          deliverables,
+          cta,
+          snapshot_ref,
+          minimum_cost,
+          moq,
+          rate_inr,
+          gtm_rate
         });
       }
     } catch (error: any) {

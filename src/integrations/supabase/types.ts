@@ -11,64 +11,94 @@ export type Database = {
     Tables: {
       assets: {
         Row: {
+          ad_format: string | null
+          ad_type: string | null
           amount: number | null
           buy_types: string
           category: string
           created_at: string | null
+          cta: string | null
           ctr: number | null
+          deliverables: string | null
           description: string | null
           embedding: string | null
           file_size: string | null
           file_url: string | null
+          gtm_rate: number | null
           id: string
+          minimum_cost: number | null
+          moq: string | null
           name: string
           placement: string | null
           platform_id: string
+          rate_inr: number | null
+          snapshot_ref: string | null
           tags: string[] | null
           thumbnail_url: string | null
           type: string
           updated_at: string | null
           uploaded_by: string | null
+          vtr: number | null
         }
         Insert: {
+          ad_format?: string | null
+          ad_type?: string | null
           amount?: number | null
           buy_types?: string
           category: string
           created_at?: string | null
+          cta?: string | null
           ctr?: number | null
+          deliverables?: string | null
           description?: string | null
           embedding?: string | null
           file_size?: string | null
           file_url?: string | null
+          gtm_rate?: number | null
           id?: string
+          minimum_cost?: number | null
+          moq?: string | null
           name: string
           placement?: string | null
           platform_id: string
+          rate_inr?: number | null
+          snapshot_ref?: string | null
           tags?: string[] | null
           thumbnail_url?: string | null
           type: string
           updated_at?: string | null
           uploaded_by?: string | null
+          vtr?: number | null
         }
         Update: {
+          ad_format?: string | null
+          ad_type?: string | null
           amount?: number | null
           buy_types?: string
           category?: string
           created_at?: string | null
+          cta?: string | null
           ctr?: number | null
+          deliverables?: string | null
           description?: string | null
           embedding?: string | null
           file_size?: string | null
           file_url?: string | null
+          gtm_rate?: number | null
           id?: string
+          minimum_cost?: number | null
+          moq?: string | null
           name?: string
           placement?: string | null
           platform_id?: string
+          rate_inr?: number | null
+          snapshot_ref?: string | null
           tags?: string[] | null
           thumbnail_url?: string | null
           type?: string
           updated_at?: string | null
           uploaded_by?: string | null
+          vtr?: number | null
         }
         Relationships: [
           {
@@ -84,12 +114,15 @@ export type Database = {
         Row: {
           audience_data: Json | null
           campaign_data: Json | null
+          comments: string | null
           created_at: string | null
           dau: string | null
           description: string | null
           device_split: Json | null
           embedding: string | null
+          est_reach: number | null
           id: string
+          impressions: number | null
           industry: string
           logo_url: string | null
           mau: string | null
@@ -101,12 +134,15 @@ export type Database = {
         Insert: {
           audience_data?: Json | null
           campaign_data?: Json | null
+          comments?: string | null
           created_at?: string | null
           dau?: string | null
           description?: string | null
           device_split?: Json | null
           embedding?: string | null
+          est_reach?: number | null
           id?: string
+          impressions?: number | null
           industry: string
           logo_url?: string | null
           mau?: string | null
@@ -118,12 +154,15 @@ export type Database = {
         Update: {
           audience_data?: Json | null
           campaign_data?: Json | null
+          comments?: string | null
           created_at?: string | null
           dau?: string | null
           description?: string | null
           device_split?: Json | null
           embedding?: string | null
+          est_reach?: number | null
           id?: string
+          impressions?: number | null
           industry?: string
           logo_url?: string | null
           mau?: string | null
