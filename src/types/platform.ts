@@ -51,7 +51,7 @@ export interface AudienceData {
   age_targeting_values?: {
     min: number;
     max: number;
-  };
+  } | string | string[];
   gender_targeting_available?: boolean;
   gender_targeting_values?: string[] | string;
   geography_presence?: string[];
@@ -89,7 +89,7 @@ export interface CampaignData {
   buying_model?: string;
   ad_formats?: string[];
   available_placements?: string[];
-  special_innovations?: string;
+  special_innovations?: string | string[];
   cta_support?: boolean;
   minimum_spend?: number;
   geography_presence?: string | string[];

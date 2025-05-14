@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -42,8 +41,11 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
       pincodes: [],
       cohorts: [],
       state_level_targeting: false,
+      state_targeting_values: [],
       city_level_targeting: false,
+      city_targeting_values: [],
       pincode_level_targeting: false,
+      pincode_targeting_values: [],
       platform_specific_targeting: [],
     },
     device_split: {
@@ -59,6 +61,7 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
       special_innovations: '',
       cta_support: false,
       minimum_spend: 0,
+      geography_presence: [],
     },
     restrictions: {
       restricted_categories: [],
@@ -97,8 +100,11 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
         pincodes: [],
         cohorts: [],
         state_level_targeting: false,
+        state_targeting_values: [],
         city_level_targeting: false,
+        city_targeting_values: [],
         pincode_level_targeting: false,
+        pincode_targeting_values: [],
         platform_specific_targeting: [],
         demographic: undefined,
         geographic: undefined
@@ -118,6 +124,7 @@ export const usePlatformForm = ({ platformData, id }: UsePlatformFormProps) => {
         special_innovations: '',
         cta_support: false,
         minimum_spend: 0,
+        geography_presence: [],
       };
 
       const defaultRestrictions = {

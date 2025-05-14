@@ -65,12 +65,19 @@ export const CampaignDisplay = ({ campaignData }: CampaignDisplayProps) => {
           </div>
         )}
 
-        {campaignData.special_innovations && campaignData.special_innovations.length > 0 && (
+        {campaignData.special_innovations && typeof campaignData.special_innovations === 'string' && (
+          <div>
+            <Label className="block mb-2">Special Innovations</Label>
+            <p className="text-sm">{campaignData.special_innovations}</p>
+          </div>
+        )}
+
+        {campaignData.special_innovations && Array.isArray(campaignData.special_innovations) && campaignData.special_innovations.length > 0 && (
           <div>
             <Label className="block mb-2">Special Innovations</Label>
             <div className="flex flex-wrap gap-2">
-              {campaignData.special_innovations.map((innovation) => (
-                <Badge key={innovation} variant="outline">
+              {campaignData.special_innovations.map((innovation, index) => (
+                <Badge key={index} variant="outline">
                   {innovation}
                 </Badge>
               ))}

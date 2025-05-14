@@ -96,7 +96,6 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
               
               {audienceData.state_level_targeting && (
                 <CommaSeparatedInput
-                  id="state_targeting_values"
                   placeholder="Enter states separated by commas"
                   value={Array.isArray(audienceData.state_targeting_values) 
                     ? audienceData.state_targeting_values.join(', ') 
@@ -118,7 +117,6 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
               
               {audienceData.city_level_targeting && (
                 <CommaSeparatedInput
-                  id="city_targeting_values"
                   placeholder="Enter cities separated by commas"
                   value={Array.isArray(audienceData.city_targeting_values) 
                     ? audienceData.city_targeting_values.join(', ') 
@@ -140,7 +138,6 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
               
               {audienceData.pincode_level_targeting && (
                 <CommaSeparatedInput
-                  id="pincode_targeting_values"
                   placeholder="Enter pincodes separated by commas"
                   value={Array.isArray(audienceData.pincode_targeting_values) 
                     ? audienceData.pincode_targeting_values.join(', ') 
@@ -236,7 +233,6 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
             <div>
               <Label htmlFor="interests" className="block mb-2">Interests</Label>
               <CommaSeparatedInput
-                id="interests"
                 placeholder="Enter interests separated by commas"
                 value={(audienceData.interests || []).join(', ')}
                 onChange={(value) => onAudienceDataChange('interests', value.split(',').map(s => s.trim()))}

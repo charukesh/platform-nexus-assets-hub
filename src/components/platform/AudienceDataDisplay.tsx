@@ -17,12 +17,20 @@ export const AudienceDataDisplay = ({ audienceData }: AudienceDataDisplayProps) 
     return values;
   };
 
-  const renderTargetingStatus = (available: boolean | undefined, values?: string | string[]) => (
+  const formatAgeRange = (values?: any): string => {
+    if (!values) return '';
+    if (typeof values === 'object' && 'min' in values && 'max' in values) {
+      return `${values.min} - ${values.max}`;
+    }
+    return formatTargetingValues(values as string | string[]);
+  };
+
+  const renderTargetingStatus = (available: boolean | undefined, values?: any) => (
     <div className="flex items-center gap-2">
       {available ? (
         <>
           <Check className="text-green-500" size={20} />
-          <span>{formatTargetingValues(values) || 'Available'}</span>
+          <span>{values && typeof values === 'object' && 'min' in values ? formatAgeRange(values) : formatTargetingValues(values as string | string[]) || 'Available'}</span>
         </>
       ) : (
         <>
