@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -6,6 +5,7 @@ import { Home, Database, FileImage, BarChart4, Settings, Menu, X } from "lucide-
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import Disclaimer from "@/components/Disclaimer";
 
 const navItems = [
   {
@@ -127,16 +127,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         className={cn(
           "flex-1 p-4 md:p-8 overflow-auto dark:bg-gray-900 dark:text-white",
           isMobile && sidebarOpen ? "ml-64" : "",
-          isMobile && !sidebarOpen ? "w-full" : ""
+          isMobile && !sidebarOpen ? "w-full" : "",
+          "pb-12" // Added padding to bottom to make space for the disclaimer
         )}
       >
         {/* Mobile top spacing when menu is collapsed */}
         {isMobile && !sidebarOpen && <div className="h-12"></div>}
         {children}
       </main>
+
+      {/* Disclaimer strip */}
+      <Disclaimer />
     </div>
   );
 };
 
 export default Layout;
-
