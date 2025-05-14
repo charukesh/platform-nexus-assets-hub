@@ -8,7 +8,8 @@ import {
   AudienceData, 
   GENDER_OPTIONS,
   GEOGRAPHY_OPTIONS,
-  COHORT_OPTIONS 
+  COHORT_OPTIONS,
+  INDIAN_STATES
 } from "@/types/platform";
 import CommaSeparatedInput from "@/components/CommaSeparatedInput";
 import { 
@@ -25,6 +26,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Toggle } from "@/components/ui/toggle";
+import { ChevronDown } from "lucide-react";
 
 interface TargetingSectionProps {
   audienceData: AudienceData;
@@ -50,6 +61,42 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
     }
 
     onAudienceDataChange(field, newValues);
+  };
+
+  const handleStateSelection = (state: string) => {
+    const currentStates = Array.isArray(audienceData.state_targeting_values) 
+      ? audienceData.state_targeting_values 
+      : audienceData.state_targeting_values 
+        ? [audienceData.state_targeting_values as string] 
+        : [];
+        
+    if (currentStates.includes(state)) {
+      onAudienceDataChange('state_targeting_values', currentStates.filter(s => s !== state));
+    } else {
+      onAudienceDataChange('state_targeting_values', [...currentStates, state]);
+    }
+  };
+
+  const isStateSelected = (state: string) => {
+    const stateValues = audienceData.state_targeting_values;
+    if (Array.isArray(stateValues)) {
+      return stateValues.includes(state);
+    }
+    return stateValues === state;
+  };
+
+  const getSelectedStatesText = () => {
+    const stateValues = audienceData.state_targeting_values;
+    if (!stateValues || (Array.isArray(stateValues) && stateValues.length === 0)) {
+      return "Select states";
+    }
+    
+    const states = Array.isArray(stateValues) ? stateValues : [stateValues as string];
+    
+    if (states.length <= 2) {
+      return states.join(", ");
+    }
+    return `${states.length} states selected`;
   };
 
   const handleAgeRangeChange = (min: number, max: number) => {
@@ -113,13 +160,34 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
               </div>
               
               {audienceData.state_level_targeting && (
-                <CommaSeparatedInput
-                  placeholder="Enter states separated by commas"
-                  value={Array.isArray(audienceData.state_targeting_values) 
-                    ? audienceData.state_targeting_values.join(', ') 
-                    : audienceData.state_targeting_values || ''}
-                  onChange={(value) => onAudienceDataChange('state_targeting_values', value.split(',').map(s => s.trim()))}
-                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button 
+                      className="flex items-center justify-between w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                    >
+                      <span>{getSelectedStatesText()}</span>
+                      <ChevronDown className="h-4 w-4 opacity-50" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    className="w-full max-h-[300px] overflow-auto p-0 bg-white"
+                    align="start"
+                  >
+                    <DropdownMenuLabel>Indian States</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <div className="overflow-y-auto max-h-[250px]">
+                      {INDIAN_STATES.map((state) => (
+                        <DropdownMenuCheckboxItem
+                          key={state}
+                          checked={isStateSelected(state)}
+                          onCheckedChange={() => handleStateSelection(state)}
+                        >
+                          {state}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
 

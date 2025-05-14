@@ -13,7 +13,12 @@ export const AudienceDataDisplay = ({ audienceData }: AudienceDataDisplayProps) 
   // Helper function to handle values that could be string or string[]
   const formatTargetingValues = (values?: string | string[]): string => {
     if (!values) return '';
-    if (Array.isArray(values)) return values.join(', ');
+    if (Array.isArray(values)) {
+      if (values.length > 3) {
+        return `${values.slice(0, 3).join(', ')} +${values.length - 3} more`;
+      }
+      return values.join(', ');
+    }
     return values;
   };
 
