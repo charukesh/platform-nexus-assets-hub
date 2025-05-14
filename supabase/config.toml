@@ -41,7 +41,7 @@ enable_confirmations = true
 
 [functions]
 serve_port = 54328
-function_timeout_seconds = 30
+function_timeout_seconds = 60
 
 [functions.generate-embeddings]
 verify_jwt = false

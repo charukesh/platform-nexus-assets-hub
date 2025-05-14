@@ -16,9 +16,9 @@ $$;
 
 -- Updated PostgreSQL function for hybrid vector + full-text similarity search
 CREATE OR REPLACE FUNCTION match_assets_by_embedding_only(
-  query_embedding vector(1536),       -- Vector embedding of the query text
+  query_embedding extensions.vector,       -- Vector embedding of the query text
   query_text text,                    -- Original query text for full-text search
-  match_threshold float,              -- Similarity threshold (0.0 to 1.0)
+  match_threshold double precision,          -- Similarity threshold (0.0 to 1.0)
   match_count int                     -- Maximum number of records to return
 )
 RETURNS TABLE (
@@ -44,6 +44,15 @@ RETURNS TABLE (
   platform_premium_users smallint,
   platform_restrictions jsonb,
   placement text,
+  ctr numeric,                        -- Added CTR field
+  vtr numeric,                        -- Added VTR field
+  minimum_cost numeric,               -- Added minimum_cost field
+  rate_inr numeric,                   -- Added rate_inr field
+  gtm_rate numeric,                   -- Added GTM rate field
+  cta text,                           -- Added call to action field
+  ad_format text,                     -- Added ad format field
+  ad_type text,                       -- Added ad type field
+  moq text,                           -- Added MOQ field
   similarity float
 )
 LANGUAGE plpgsql
@@ -73,6 +82,15 @@ BEGIN
     p.premium_users AS platform_premium_users,
     p.restrictions AS platform_restrictions,
     a.placement,
+    a.ctr,                           -- Added CTR field
+    a.vtr,                           -- Added VTR field
+    a.minimum_cost,                  -- Added minimum_cost field
+    a.rate_inr,                      -- Added rate_inr field
+    a.gtm_rate,                      -- Added gtm_rate field
+    a.cta,                           -- Added call to action field
+    a.ad_format,                     -- Added ad format field
+    a.ad_type,                       -- Added ad type field
+    a.moq,                           -- Added MOQ field
     (
       0.7 * (1 - (a.embedding <=> query_embedding)) + 
       0.3 * ts_rank(
@@ -96,4 +114,3 @@ $$;
 -- Create a GIN index on the full-text search fields to improve performance
 CREATE INDEX IF NOT EXISTS idx_assets_fulltext 
 ON assets USING GIN (public.immutable_tsvector_concat(name, description, category, tags));
-

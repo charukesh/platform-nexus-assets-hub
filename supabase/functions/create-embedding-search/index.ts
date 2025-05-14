@@ -1,15 +1,18 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { AzureOpenAIEmbeddings } from "npm:@langchain/azure-openai";
 import { AzureChatOpenAI } from "npm:@langchain/azure-openai";
 import { ChatPromptTemplate, HumanMessagePromptTemplate, SystemMessagePromptTemplate } from "npm:@langchain/core/prompts";
+
 // Define CORS headers first
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
+
 // Helper function to safely extract targeting options
 function extractTargetingOptions(data) {
   // If null or undefined, return empty object
@@ -26,6 +29,7 @@ function extractTargetingOptions(data) {
   // If it's already an object, return it
   return data;
 }
+
 // Start the server with a handler function
 serve(async (req)=>{
   // Handle CORS preflight requests
@@ -111,11 +115,19 @@ serve(async (req)=>{
         buy_types: asset.buy_types,
         amount: asset.amount !== null ? Number(asset.amount) : null,
         ctr: asset.ctr !== null ? Number(asset.ctr) : null,
+        vtr: asset.vtr !== null ? Number(asset.vtr) : null,
+        minimum_cost: asset.minimum_cost !== null ? Number(asset.minimum_cost) : null,
+        rate_inr: asset.rate_inr !== null ? Number(asset.rate_inr) : null,
+        gtm_rate: asset.gtm_rate !== null ? Number(asset.gtm_rate) : null,
         platform_name: asset.platform_name,
         platform_industry: asset.platform_industry,
         platform_description: asset.platform_description,
         category: asset.category,
         placement: asset.placement || "",
+        cta: asset.cta || null,
+        ad_format: asset.ad_format || null,
+        ad_type: asset.ad_type || null,
+        moq: asset.moq || null,
         // Extract targeting options from platform_audience_data
         targeting_options: extractTargetingOptions(asset.platform_audience_data),
         audience_data: typeof asset.platform_audience_data === 'string' ? JSON.parse(asset.platform_audience_data || '{}') : asset.platform_audience_data || {},
@@ -166,7 +178,12 @@ serve(async (req)=>{
                         Buy type: ${asset.buy_types}
                         Base cost: ${asset.amount}
                         CTR Percentage: ${asset.ctr}
+                        VTR Percentage: ${asset.vtr}
+                        Minimum cost: ${asset.minimum_cost}
+                        Rate INR: ${asset.rate_inr}
+                        GTM Rate: ${asset.gtm_rate}
                         Category: ${asset.category}${asset.placement ? `\n      Placement: ${asset.placement}` : ''}
+                        CTA: ${asset.cta ? 'Yes' : 'No'}${asset.ad_format ? `\n      Ad Format: ${asset.ad_format}` : ''}${asset.ad_type ? `\n      Ad Type: ${asset.ad_type}` : ''}${asset.moq ? `\n      MOQ: ${asset.moq}` : ''}
                         Audience & Targeting: ${geoTargeting.stateLevelAvailable ? 'State-level targeting available' : 'No state targeting'}${geoTargeting.stateValues ? ` (States: ${geoTargeting.stateValues})` : ''}${geoTargeting.cityLevelAvailable ? ', City-level targeting available' : ', No city targeting'}${geoTargeting.cityValues ? ` (Cities: ${geoTargeting.cityValues})` : ''}
                         Demographics: ${geoTargeting.ageTargetingAvailable ? 'Age targeting available' : 'No age targeting'}${Object.keys(geoTargeting.ageGroups).length > 0 ? ` (Age groups: ${JSON.stringify(geoTargeting.ageGroups)})` : ''}${geoTargeting.genderTargetingAvailable ? ', Gender targeting available' : ', No gender targeting'}${Object.keys(geoTargeting.genderValues).length > 0 ? ` (Gender: ${JSON.stringify(geoTargeting.genderValues)})` : ''}
                         Interests: ${geoTargeting.interests.length > 0 ? `Available (Interests: ${geoTargeting.interests.join(', ')})` : 'No interest targeting'}
