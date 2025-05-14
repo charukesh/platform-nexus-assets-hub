@@ -1,4 +1,3 @@
-
 import React from 'react';
 import NeuCard from "@/components/NeuCard";
 import NeuInput from "@/components/NeuInput";
@@ -54,12 +53,6 @@ export const CampaignSection: React.FC<CampaignSectionProps> = ({
     
     console.log('New funnel stages:', newStages);
     onCampaignDataChange('funnel_stage', newStages);
-    
-    // Add a toast notification for confirmation
-    toast({
-      title: currentStages.includes(stage) ? "Removed" : "Added",
-      description: `${stage} ${currentStages.includes(stage) ? "removed from" : "added to"} funnel stages`,
-    });
   };
 
   // Helper to check if a stage is selected
