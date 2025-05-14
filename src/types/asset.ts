@@ -13,10 +13,11 @@ export interface Asset {
   amount?: number;
   tags?: string[];
   ctr?: number;
+  vtr?: number;
   platforms?: {
     name: string;
     industry?: string;
-    description?: string;  // Added platform description field
+    description?: string;
     audience_data?: any;
     campaign_data?: any;
     device_split?: any;
@@ -27,6 +28,15 @@ export interface Asset {
   };
   platform_id?: string;
   similarity?: number;
+  ad_format?: string;
+  ad_type?: string;
+  deliverables?: string;
+  cta?: string;
+  snapshot_ref?: string;
+  minimum_cost?: number;
+  moq?: string;
+  rate_inr?: number;
+  gtm_rate?: number;
 }
 
 export const PLACEMENT_OPTIONS = [
@@ -60,7 +70,61 @@ export const BUY_TYPE_OPTIONS = [
   'Cost Per Unit',
   'Cost Per Unlock',
   'Cost Per t-shirt',
-  'Cost per Activation'
+  'Cost Per Activation'
 ] as const;
 
 export type BuyType = typeof BUY_TYPE_OPTIONS[number];
+
+export const AD_FORMAT_OPTIONS = [
+  'Static',
+  'GIF',
+  'Video',
+  'Audio',
+  'HTML',
+  'Playable'
+] as const;
+
+export type AdFormat = typeof AD_FORMAT_OPTIONS[number];
+
+export const AD_TYPE_OPTIONS = [
+  'Interstitial',
+  'Banner',
+  'Native',
+  'Video',
+  'Carousel',
+  'Playable',
+  'Rewarded'
+] as const;
+
+export type AdType = typeof AD_TYPE_OPTIONS[number];
+
+export const CATEGORY_OPTIONS = [
+  'Digital',
+  'Physical',
+  'Phygital'
+] as const;
+
+export const DELIVERABLES_OPTIONS = [
+  'Image',
+  'Video',
+  'Script',
+  'Audio',
+  'HTML',
+  'Documentation'
+] as const;
+
+export type Deliverables = typeof DELIVERABLES_OPTIONS[number];
+
+export const CTA_OPTIONS = [
+  'Shop Now',
+  'Learn More',
+  'Sign Up',
+  'Download',
+  'Contact Us',
+  'Book Now',
+  'Subscribe',
+  'Play Now',
+  'None'
+] as const;
+
+export type CTA = typeof CTA_OPTIONS[number];
