@@ -56,6 +56,24 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
     onAudienceDataChange('age_targeting_values', { min, max });
   };
 
+  // Helper function to get age range min value with fallback
+  const getAgeRangeMin = (): number => {
+    const ageValues = audienceData.age_targeting_values;
+    if (typeof ageValues === 'object' && ageValues !== null && 'min' in ageValues) {
+      return ageValues.min;
+    }
+    return 13; // Default minimum age value
+  };
+
+  // Helper function to get age range max value with fallback
+  const getAgeRangeMax = (): number => {
+    const ageValues = audienceData.age_targeting_values;
+    if (typeof ageValues === 'object' && ageValues !== null && 'max' in ageValues) {
+      return ageValues.max;
+    }
+    return 65; // Default maximum age value
+  };
+
   return (
     <NeuCard>
       <h2 className="text-xl font-semibold mb-4">Targeting Capabilities</h2>
@@ -184,13 +202,13 @@ export const TargetingSection: React.FC<TargetingSectionProps> = ({
               
               {audienceData.age_targeting_available && (
                 <div className="space-y-4">
-                  <Label className="block">Age Range: {audienceData.age_targeting_values?.min || 13} - {audienceData.age_targeting_values?.max || 65}+</Label>
+                  <Label className="block">Age Range: {getAgeRangeMin()} - {getAgeRangeMax()}+</Label>
                   <div className="px-2">
                     <Slider
                       min={13}
                       max={65}
                       step={1}
-                      defaultValue={[audienceData.age_targeting_values?.min || 13, audienceData.age_targeting_values?.max || 65]}
+                      defaultValue={[getAgeRangeMin(), getAgeRangeMax()]}
                       onValueChange={(value) => handleAgeRangeChange(value[0], value[1])}
                     />
                   </div>
