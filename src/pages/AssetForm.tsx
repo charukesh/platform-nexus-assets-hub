@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, FileIcon, Image } from "lucide-react";
 import BuyTypeSelector from "@/components/asset/BuyTypeSelector";
+import { Switch } from "@/components/ui/switch";
 import { 
   PLACEMENT_OPTIONS, 
   BUY_TYPE_OPTIONS,
@@ -45,6 +46,7 @@ interface FormData {
   ctr: number;
   vtr: number;
   deliverables: string;
+  has_cta: boolean;
   cta: string;
   snapshot_ref: string;
   minimum_cost: number;
@@ -83,7 +85,8 @@ const AssetForm: React.FC = () => {
     ctr: 0,
     vtr: 0,
     deliverables: DELIVERABLES_OPTIONS[0],
-    cta: CTA_OPTIONS[0],
+    has_cta: false,
+    cta: "None",
     snapshot_ref: "",
     minimum_cost: 0,
     moq: "",
@@ -168,7 +171,8 @@ const AssetForm: React.FC = () => {
         const ad_format = assetData.ad_format || AD_FORMAT_OPTIONS[0];
         const ad_type = assetData.ad_type || AD_TYPE_OPTIONS[0];
         const deliverables = assetData.deliverables || DELIVERABLES_OPTIONS[0];
-        const cta = assetData.cta || CTA_OPTIONS[0];
+        const cta = assetData.cta || "None";
+        const has_cta = cta !== "None";
         const snapshot_ref = assetData.snapshot_ref || "";
         const minimum_cost = typeof assetData.minimum_cost === 'number' ? assetData.minimum_cost : 0;
         const moq = assetData.moq || "";
@@ -194,6 +198,7 @@ const AssetForm: React.FC = () => {
           ctr,
           vtr,
           deliverables,
+          has_cta,
           cta,
           snapshot_ref,
           minimum_cost,
@@ -231,6 +236,14 @@ const AssetForm: React.FC = () => {
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCtaToggleChange = (checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      has_cta: checked,
+      cta: checked ? (prev.cta === "None" ? "Shop Now" : prev.cta) : "None"
+    }));
   };
 
   const handleAddTag = () => {
@@ -420,6 +433,8 @@ const AssetForm: React.FC = () => {
         thumbnail_url = files.thumbnailPreview;
       }
       
+      const ctaValue = formData.has_cta ? (formData.cta === "None" ? "Shop Now" : formData.cta) : "None";
+      
       const assetData = {
         name: formData.name,
         description: formData.description,
@@ -439,7 +454,7 @@ const AssetForm: React.FC = () => {
         ctr: formData.ctr,
         vtr: formData.vtr,
         deliverables: formData.deliverables,
-        cta: formData.cta,
+        cta: ctaValue,
         snapshot_ref: formData.snapshot_ref,
         minimum_cost: formData.minimum_cost,
         moq: formData.moq,
@@ -704,24 +719,38 @@ const AssetForm: React.FC = () => {
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="cta">Call to Action</Label>
-                  <Select
-                    value={formData.cta}
-                    onValueChange={(value) => handleSelectChange("cta", value)}
-                  >
-                    <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
-                      <SelectValue placeholder="Select CTA" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CTA_OPTIONS.map((cta) => (
-                        <SelectItem key={cta} value={cta}>
-                          {cta}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="has_cta" className="flex-1">Call to Action</Label>
+                  <Switch
+                    id="has_cta"
+                    checked={formData.has_cta}
+                    onCheckedChange={handleCtaToggleChange}
+                  />
+                  <span className="text-sm text-muted-foreground ml-2">
+                    {formData.has_cta ? "Enabled" : "Disabled"}
+                  </span>
                 </div>
+
+                {formData.has_cta && (
+                  <div>
+                    <Label htmlFor="cta">CTA Type</Label>
+                    <Select
+                      value={formData.cta !== "None" ? formData.cta : "Shop Now"}
+                      onValueChange={(value) => handleSelectChange("cta", value)}
+                    >
+                      <SelectTrigger className="mt-1.5 bg-white border-none neu-flat hover:shadow-neu-pressed">
+                        <SelectValue placeholder="Select CTA type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CTA_OPTIONS.filter(cta => cta !== "None").map((cta) => (
+                          <SelectItem key={cta} value={cta}>
+                            {cta}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="snapshot_ref">Snapshot Ref. No</Label>
