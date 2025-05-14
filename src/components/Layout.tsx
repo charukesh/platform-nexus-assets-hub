@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -89,9 +90,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         <div className="neu-flat dark:bg-gray-800 dark:text-white p-4 mb-8 flex items-center justify-center">
           <img 
-            src="/lovable-uploads/b6ecfa47-4034-4f99-ae5c-87d3dae9b818.png" 
+            src="/lovable-uploads/d8b438e7-71aa-4140-9e46-a826b575f9a5.png" 
             alt="MobiStackIO Logo" 
-            className="h-10 w-auto" 
+            className="h-12 w-auto" 
           />
         </div>
         
