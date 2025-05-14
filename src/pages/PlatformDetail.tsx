@@ -4,9 +4,9 @@ import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import AudienceDataDisplay from "@/components/platform/AudienceDataDisplay";
-import DeviceSplitDisplay from "@/components/platform/DeviceSplitDisplay";
-import CampaignDisplay from "@/components/platform/CampaignDisplay";
+import { AudienceDataDisplay } from "@/components/platform/AudienceDataDisplay";
+import { DeviceSplitDisplay } from "@/components/platform/DeviceSplitDisplay";
+import { CampaignDisplay } from "@/components/platform/CampaignDisplay";
 import CommentsSection from "@/components/platform/CommentsSection";
 import EditHistoryComponent from "@/components/EditHistoryComponent";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +108,11 @@ const PlatformDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCommentsChange = (value: string) => {
+    // This is a placeholder function since we're not editing comments in view mode
+    console.log("Comments change requested:", value);
   };
 
   if (loading && !platform) {
@@ -257,7 +262,10 @@ const PlatformDetail: React.FC = () => {
                   
                   <NeuCard>
                     <h3 className="text-lg font-bold mb-4">Comments</h3>
-                    <CommentsSection comments={platform?.comments} />
+                    <CommentsSection 
+                      comments={platform?.comments} 
+                      onChange={handleCommentsChange} 
+                    />
                   </NeuCard>
                 </div>
               </div>
