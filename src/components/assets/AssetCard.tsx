@@ -1,112 +1,95 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
-import NeuCard from "@/components/NeuCard";
-import NeuButton from "@/components/NeuButton";
-import { FileIcon, Info, Tag, Calendar, ExternalLink } from "lucide-react";
-import { Asset } from "@/types/asset";
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { Asset } from '@/types/asset';
+import { 
+  FileImage, 
+  Tag, 
+  Layers, 
+  Box, 
+  Monitor 
+} from 'lucide-react';
 
 interface AssetCardProps {
   asset: Asset;
 }
 
 const AssetCard: React.FC<AssetCardProps> = ({ asset }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const CategoryIcon = () => {
+    switch (asset.category) {
+      case 'Digital':
+        return <Monitor size={16} />;
+      case 'Physical':
+        return <Box size={16} />;
+      case 'Phygital':
+        return <Layers size={16} />;
+      default:
+        return <FileImage size={16} />;
+    }
+  };
+  
   return (
-    <Link to={`/assets/${asset.id}`}>
-      <NeuCard className="h-full neu-flat hover:shadow-neu-pressed transition-all cursor-pointer animate-scale-in">
-        <div className="w-full h-40 bg-neugray-200 mb-4 rounded-lg overflow-hidden">
+    <Link to={`/assets/${asset.id}`} state={{ fromList: true }} className="block">
+      <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-neu-flat hover:shadow-neu-pressed transition-all duration-300 h-full">
+        <div className="relative aspect-video bg-neugray-200 overflow-hidden persistent-element">
           {asset.thumbnail_url ? (
-            <img
-              src={asset.thumbnail_url}
-              alt={asset.name}
-              className="w-full h-full object-cover"
+            <img 
+              src={asset.thumbnail_url} 
+              alt={asset.name} 
+              className={`w-full h-full object-cover transition-opacity duration-700 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-neugray-200">
-              <FileIcon size={48} className="text-neugray-400" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <FileImage size={42} className="text-neugray-400" />
             </div>
           )}
+          <div className="absolute top-2 right-2">
+            <Badge className="bg-neugray-200/80 text-foreground backdrop-blur-sm border-0">
+              <div className="flex items-center gap-1">
+                <CategoryIcon />
+                <span>{asset.category}</span>
+              </div>
+            </Badge>
+          </div>
         </div>
         
-        <div>
-          <div className="flex items-start justify-between mb-2">
-            <h3 className="text-lg font-bold line-clamp-1">{asset.name}</h3>
-            <div className="flex flex-col items-end gap-1">
-              <span className={`text-xs py-1 px-2 rounded-full 
-                ${asset.category === "Digital" ? "bg-neublue-100 text-neublue-500" : 
-                  asset.category === "Physical" ? "bg-green-100 text-green-600" : 
-                  "bg-purple-100 text-purple-600"}`}>
-                {asset.category}
-              </span>
-              {asset.amount !== null && asset.amount !== undefined && (
-                <div className="flex items-center gap-1 text-sm font-medium text-green-600">
-                  <span className="text-xs font-semibold">₹</span>
-                  {asset.amount.toLocaleString()}
-                </div>
+        <div className="p-4">
+          <h3 className="font-semibold text-base mb-1 truncate">{asset.name}</h3>
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+            {asset.description || "No description provided"}
+          </p>
+          
+          <div className="flex justify-between items-center">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Tag size={14} className="mr-1" />
+              <span>{asset.buy_types || 'N/A'}</span>
+            </div>
+            
+            {asset.amount && (
+              <span className="font-medium text-sm">₹{asset.amount}</span>
+            )}
+          </div>
+          
+          {asset.tags && asset.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1">
+              {asset.tags.slice(0, 3).map((tag, index) => (
+                <Badge key={index} variant="outline" className="bg-neugray-100 border-0 text-xs">
+                  {tag}
+                </Badge>
+              ))}
+              {asset.tags.length > 3 && (
+                <Badge variant="outline" className="bg-neugray-100 border-0 text-xs">
+                  +{asset.tags.length - 3}
+                </Badge>
               )}
             </div>
-          </div>
-          
-          <p className="text-muted-foreground text-sm mb-3 line-clamp-3">{asset.description || "No description"}</p>
-          
-          <div className="space-y-2 mb-3">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-medium">Buy Type:</span>
-              <span className="bg-neugray-200 px-1.5 py-0.5 rounded">
-                {asset.buy_types}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-neugray-100 p-2 rounded">
-                <div className="text-xs text-muted-foreground">Type</div>
-                <div className="font-medium">{asset.type}</div>
-              </div>
-              <div className="bg-neugray-100 p-2 rounded">
-                <div className="text-xs text-muted-foreground">Placement</div>
-                <div className="font-medium">{asset.placement || "N/A"}</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center text-xs text-muted-foreground mb-2">
-            <Info size={12} className="mr-1" />
-            <span className="mr-3">{asset.type}</span>
-            <Tag size={12} className="mr-1" />
-            <span>{asset.platforms?.name || "No platform"}</span>
-          </div>
-          
-          {asset.platforms?.description && (
-            <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-              <span className="font-medium">Platform:</span> {asset.platforms.description}
-            </p>
           )}
-          
-          <div className="flex flex-wrap gap-1 mb-3">
-            {asset.tags && asset.tags.map((tag: string, idx: number) => (
-              <span key={idx} className="text-xs bg-neugray-200 py-0.5 px-1.5 rounded">
-                {tag}
-              </span>
-            ))}
-          </div>
-          
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <div className="flex items-center">
-              <Calendar size={12} className="mr-1" />
-              <span>{new Date(asset.created_at).toLocaleDateString()}</span>
-            </div>
-            <span>{asset.file_size || "N/A"}</span>
-          </div>
-          
-          <div className="mt-4">
-            <Link to={`/assets/${asset.id}`} className="w-full">
-              <NeuButton size="sm" variant="outline" className="text-xs w-full flex gap-1 items-center justify-center">
-                <ExternalLink size={12} />
-                View Details
-              </NeuButton>
-            </Link>
-          </div>
         </div>
-      </NeuCard>
+      </div>
     </Link>
   );
 };

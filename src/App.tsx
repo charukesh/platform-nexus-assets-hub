@@ -16,7 +16,8 @@ import Analytics from "./pages/Analytics";
 import MediaPlanGenerator from "./pages/MediaPlanGenerator";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
-import React from "react";
+import React, { useEffect } from "react";
+import PageTransition from "./components/PageTransition";
 
 // Create the query client outside the component
 const queryClient = new QueryClient();
@@ -24,6 +25,20 @@ const queryClient = new QueryClient();
 // AnimatedRoutes component to handle route transitions
 const AnimatedRoutes = () => {
   const location = useLocation();
+  
+  // Add a class to the body when route changes to help with transitions
+  useEffect(() => {
+    document.body.classList.add('route-changing');
+    
+    const timeout = setTimeout(() => {
+      document.body.classList.remove('route-changing');
+    }, 700); // Match this with our transition duration
+    
+    return () => {
+      clearTimeout(timeout);
+      document.body.classList.remove('route-changing');
+    };
+  }, [location.pathname]);
   
   return (
     <Routes location={location} key={location.pathname}>

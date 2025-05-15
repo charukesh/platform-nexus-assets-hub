@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Users, PieChart, Image as ImageIcon, Clock, Tag } from "lucide-react";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
@@ -18,6 +18,8 @@ const PlatformList: React.FC<PlatformListProps> = ({
   filteredPlatforms,
   formatUserCount,
 }) => {
+  const location = useLocation();
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -79,15 +81,19 @@ const PlatformList: React.FC<PlatformListProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       {filteredPlatforms.map(platform => (
-        <Link key={platform.id} to={`/platforms/${platform.id}`}>
+        <Link key={platform.id} to={`/platforms/${platform.id}`} state={{ fromList: true }}>
           <NeuCard className="h-full hover:shadow-neu-pressed transition-all cursor-pointer animate-scale-in">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <Avatar className="w-12 h-12 neu-flat">
+                <Avatar className="w-12 h-12 neu-flat persistent-element">
                   {platform.logo_url ? (
-                    <AvatarImage src={platform.logo_url} alt={platform.name} />
+                    <AvatarImage 
+                      src={platform.logo_url} 
+                      alt={platform.name} 
+                      className="persistent-element"
+                    />
                   ) : (
-                    <AvatarFallback className="bg-neugray-200 text-primary font-medium">
+                    <AvatarFallback className="bg-neugray-200 text-primary font-medium persistent-element">
                       {getInitials(platform.name)}
                     </AvatarFallback>
                   )}

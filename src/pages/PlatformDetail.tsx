@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import NeuButton from "@/components/NeuButton";
@@ -18,11 +19,14 @@ const PlatformDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
+  const fromList = location.state?.fromList || false;
   
   const [platform, setPlatform] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [assets, setAssets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -183,12 +187,15 @@ const PlatformDetail: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="col-span-1">
                 <NeuCard>
-                  <div className="w-full aspect-square bg-neugray-200 mb-4 rounded-lg overflow-hidden flex items-center justify-center">
+                  <div 
+                    className={`w-full aspect-square bg-neugray-200 mb-4 rounded-lg overflow-hidden flex items-center justify-center persistent-element ${fromList ? 'transition-transform duration-700' : ''}`}
+                  >
                     {platform?.logo_url ? (
                       <img
                         src={platform.logo_url}
                         alt={platform.name}
-                        className="w-full h-full object-contain"
+                        className={`w-full h-full object-contain transition-opacity duration-700 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                        onLoad={() => setImageLoaded(true)}
                       />
                     ) : (
                       <Building size={64} className="text-neugray-400" />
@@ -362,17 +369,17 @@ const PlatformDetail: React.FC = () => {
               {assets.length > 0 ? (
                 <div className="space-y-4">
                   {assets.map(asset => (
-                    <Link key={asset.id} to={`/assets/${asset.id}`}>
+                    <Link key={asset.id} to={`/assets/${asset.id}`} state={{ fromPlatformDetail: true }}>
                       <div className="bg-neugray-100 hover:bg-neugray-200 transition-colors p-4 rounded-lg flex items-center justify-between">
                         <div className="flex items-center">
                           {asset.thumbnail_url ? (
                             <img 
                               src={asset.thumbnail_url} 
                               alt={asset.name} 
-                              className="w-12 h-12 object-cover rounded mr-3"
+                              className="w-12 h-12 object-cover rounded mr-3 persistent-element"
                             />
                           ) : (
-                            <div className="w-12 h-12 bg-neugray-200 rounded flex items-center justify-center mr-3">
+                            <div className="w-12 h-12 bg-neugray-200 rounded flex items-center justify-center mr-3 persistent-element">
                               <ChartBar size={20} className="text-neugray-400" />
                             </div>
                           )}

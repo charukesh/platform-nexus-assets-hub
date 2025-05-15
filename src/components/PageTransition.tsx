@@ -18,7 +18,7 @@ const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
     // Play entrance animation
     if (elementRef.current) {
       elementRef.current.classList.remove("animate-fade-out");
-      elementRef.current.classList.add("animate-scale-in");
+      elementRef.current.classList.add("animate-slide-in");
     }
   }, [pathname]);
 
@@ -26,7 +26,7 @@ const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
     <div 
       ref={elementRef}
       className={cn(
-        "animate-scale-in transition-all duration-300 ease-in-out min-h-[80vh]",
+        "animate-slide-in transition-all duration-700 ease-in-out min-h-[80vh]",
       )}
     >
       {children}
