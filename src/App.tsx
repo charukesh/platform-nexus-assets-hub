@@ -32,7 +32,7 @@ const AnimatedRoutes = () => {
     
     const timeout = setTimeout(() => {
       document.body.classList.remove('route-changing');
-    }, 700); // Match this with our transition duration
+    }, 1000); // Match this with our transition duration
     
     return () => {
       clearTimeout(timeout);
@@ -42,20 +42,20 @@ const AnimatedRoutes = () => {
   
   return (
     <Routes location={location} key={location.pathname}>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/platforms" element={<Platforms />} />
-      <Route path="/platforms/new" element={<PlatformForm />} />
-      <Route path="/platforms/:id" element={<PlatformDetail />} />
-      <Route path="/platforms/:id/edit" element={<PlatformForm />} />
-      <Route path="/assets" element={<AssetsManagement />} />
-      <Route path="/assets/new" element={<AssetForm />} />
-      <Route path="/assets/:id" element={<AssetDetail />} />
-      <Route path="/assets/:id/edit" element={<AssetForm />} />
-      <Route path="/analytics" element={<Analytics />} />
-      <Route path="/media-plan" element={<MediaPlanGenerator />} />
-      <Route path="/settings" element={<Settings />} />
+      <Route path="/" element={<PageTransition><Dashboard /></PageTransition>} />
+      <Route path="/platforms" element={<PageTransition><Platforms /></PageTransition>} />
+      <Route path="/platforms/new" element={<PageTransition><PlatformForm /></PageTransition>} />
+      <Route path="/platforms/:id" element={<PageTransition><PlatformDetail /></PageTransition>} />
+      <Route path="/platforms/:id/edit" element={<PageTransition><PlatformForm /></PageTransition>} />
+      <Route path="/assets" element={<PageTransition><AssetsManagement /></PageTransition>} />
+      <Route path="/assets/new" element={<PageTransition><AssetForm /></PageTransition>} />
+      <Route path="/assets/:id" element={<PageTransition><AssetDetail /></PageTransition>} />
+      <Route path="/assets/:id/edit" element={<PageTransition><AssetForm /></PageTransition>} />
+      <Route path="/analytics" element={<PageTransition><Analytics /></PageTransition>} />
+      <Route path="/media-plan" element={<PageTransition><MediaPlanGenerator /></PageTransition>} />
+      <Route path="/settings" element={<PageTransition><Settings /></PageTransition>} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
     </Routes>
   );
 };
