@@ -40,11 +40,16 @@ export function ThemeProvider({
         .matches
         ? "dark"
         : "light";
+      
       root.classList.add(systemTheme);
+      // Add transition classes to elements that should animate
+      document.body.style.transition = "background-color 0.7s ease-in-out, color 0.7s ease-in-out";
       return;
     }
 
     root.classList.add(theme);
+    // Add transition classes to elements that should animate
+    document.body.style.transition = "background-color 0.7s ease-in-out, color 0.7s ease-in-out";
   }, [theme]);
 
   const value = {

@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Disclaimer from "@/components/Disclaimer";
+import PageTransition from "@/components/PageTransition";
 
 const navItems = [
   {
@@ -65,7 +66,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className={cn(
-      "min-h-screen flex bg-neugray-100 dark:bg-gray-900 transition-colors duration-300",
+      "min-h-screen flex bg-neugray-100 dark:bg-gray-900 transition-colors duration-700",
     )}>
       {/* Mobile menu toggle */}
       {isMobile && (
@@ -88,7 +89,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )
         )}
       >
-        <div className="neu-flat dark:bg-gray-800 dark:text-white p-4 mb-8 flex items-center justify-center">
+        <div className="neu-flat dark:bg-gray-800 dark:text-white p-4 mb-8 flex items-center justify-center transition-all duration-300">
           <img 
             src="/lovable-uploads/d8b438e7-71aa-4140-9e46-a826b575f9a5.png" 
             alt="MobiStackIO Logo" 
@@ -105,7 +106,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center p-3 rounded-lg transition-all duration-200",
+                  "flex items-center p-3 rounded-lg transition-all duration-300",
                   active 
                     ? "neu-pressed text-primary dark:bg-gray-800 dark:text-blue-400 font-medium" 
                     : "neu-flat hover:shadow-neu-pressed dark:bg-gray-800 dark:hover:bg-gray-700"
@@ -126,7 +127,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main content */}
       <main
         className={cn(
-          "flex-1 p-4 md:p-8 overflow-auto dark:bg-gray-900 dark:text-white",
+          "flex-1 p-4 md:p-8 overflow-auto dark:bg-gray-900 dark:text-white transition-colors duration-700",
           isMobile && sidebarOpen ? "ml-64" : "",
           isMobile && !sidebarOpen ? "w-full" : "",
           "pb-12" // Added padding to bottom to make space for the disclaimer
@@ -134,7 +135,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       >
         {/* Mobile top spacing when menu is collapsed */}
         {isMobile && !sidebarOpen && <div className="h-12"></div>}
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
 
       {/* Disclaimer strip */}
