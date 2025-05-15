@@ -26,7 +26,7 @@ const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
     <div 
       ref={elementRef}
       className={cn(
-        "animate-slide-in transition-all duration-1000 ease-in-out min-h-[80vh]",
+        "animate-slide-in transition-all duration-700 ease-in-out min-h-[80vh]",
       )}
     >
       {children}
