@@ -117,6 +117,11 @@ const Admin = () => {
       setNewEmail("");
       setNewRole("media_planner");
       
+      toast({
+        title: "Email Added",
+        description: "A welcome email has been sent with login instructions.",
+      });
+      
       // Refresh the list from DB after adding
       fetchUsersFromDb();
     } catch (error) {
@@ -187,6 +192,7 @@ const Admin = () => {
             <p className="text-muted-foreground mb-6">
               Control which email addresses can access the application and assign roles to users.
               Only users with emails listed below will be able to log in and use the platform.
+              A welcome email will be sent when you add new users.
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

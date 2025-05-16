@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -236,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // Insert the new email with role - now we can include role in the insert
+      // Insert the new email with role
       const { error: insertError } = await supabase
         .from('authorized_users')
         .insert({ email: normalizedEmail, role: role });
@@ -250,6 +249,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Reload the list
       await loadAuthorizedEmails();
+      
+      // Send welcome email
+      try {
+        const appUrl = window.location.origin;
+        const response = await fetch(`${appUrl}/functions/v1/send-welcome-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: normalizedEmail,
+            role: role,
+            appUrl: appUrl
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error sending welcome email:', errorData);
+          // We don't throw here since adding the user succeeded
+        } else {
+          console.log('Welcome email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        // We don't throw here since adding the user succeeded
+      }
       
       toast({
         title: "Email Added",
