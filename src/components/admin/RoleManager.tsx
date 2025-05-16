@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +38,13 @@ interface UserRoleData {
   user_id: string;
   email: string;
   role: string;
+}
+
+// Define the shape of authorized users data
+interface AuthorizedUserData {
+  email: string;
+  id?: string;
+  created_at?: string;
 }
 
 const RoleManager = () => {
@@ -98,7 +106,10 @@ const RoleManager = () => {
       
       // Add authorized users who don't have roles yet
       if (authorizedUsers) {
-        authorizedUsers.forEach(au => {
+        // Properly type the authorizedUsers data
+        const typedAuthorizedUsers = authorizedUsers as AuthorizedUserData[];
+        
+        typedAuthorizedUsers.forEach(au => {
           if (au && au.email) {
             const existingUser = allUsers.find(u => u.email.toLowerCase() === au.email.toLowerCase());
             if (!existingUser) {
