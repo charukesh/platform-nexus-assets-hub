@@ -15,7 +15,7 @@ type AuthContextType = {
   userRole: UserRole;
   authorizedEmails: string[];
   addAuthorizedEmail: (email: string, role: UserRole) => Promise<void>;
-  removeAuthorizedEmail: (email: string) => Promise<boolean>; // Changed return type to boolean
+  removeAuthorizedEmail: (email: string) => Promise<boolean>; 
   updateUserRole: (email: string, role: UserRole) => Promise<void>;
 };
 

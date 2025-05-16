@@ -138,9 +138,18 @@ const Admin = () => {
       if (success) {
         // Update local state to immediately reflect the change
         setAuthorizedUsers(prev => prev.filter(user => user.email !== email));
+        toast({
+          title: "User Removed",
+          description: `${email} has been removed successfully.`
+        });
       }
     } catch (error) {
       console.error("Error removing email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove user. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setRemovingUser(null);
     }
@@ -170,6 +179,11 @@ const Admin = () => {
       });
     } catch (error) {
       console.error("Error updating role:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update role. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
