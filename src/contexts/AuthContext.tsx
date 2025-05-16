@@ -1,8 +1,9 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "@/hooks/use-toast";
+
+type UserRole = 'admin' | 'organizer' | 'media_planner';
 
 type AuthContextType = {
   session: Session | null;
@@ -11,9 +12,13 @@ type AuthContextType = {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  userRoles: UserRole[];
   authorizedEmails: string[];
   addAuthorizedEmail: (email: string) => Promise<void>;
   removeAuthorizedEmail: (email: string) => Promise<void>;
+  addUserRole: (userId: string, email: string, role: UserRole) => Promise<void>;
+  removeUserRole: (userId: string, role: UserRole) => Promise<void>;
+  hasRole: (role: UserRole) => boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
   const [authorizedEmails, setAuthorizedEmails] = useState<string[]>([]);
   
   const ADMIN_EMAIL = "charu@thealteroffice.com";
@@ -52,10 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Check if current user is admin
-        if (session?.user?.email === ADMIN_EMAIL) {
-          setIsAdmin(true);
+        // If user logged in, fetch their roles
+        if (session?.user) {
+          fetchUserRoles(session.user.id);
         } else {
+          setUserRoles([]);
           setIsAdmin(false);
         }
         
@@ -71,13 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       
-      // Check if current user is admin
-      if (session?.user?.email === ADMIN_EMAIL) {
-        setIsAdmin(true);
-        // Load authorized emails if admin
-        loadAuthorizedEmails();
-      } else {
-        setIsAdmin(false);
+      // Check if user is logged in
+      if (session?.user) {
+        fetchUserRoles(session.user.id);
       }
       
       setLoading(false);
@@ -85,6 +88,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserRoles = async (userId: string) => {
+    try {
+      // Fetch roles from user_roles table
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+      
+      if (error) {
+        console.error('Error fetching user roles:', error);
+        return;
+      }
+      
+      if (data) {
+        const roles = data.map(item => item.role as UserRole);
+        console.log("User roles:", roles);
+        setUserRoles(roles);
+        
+        // Check if user has admin role
+        const hasAdminRole = roles.includes('admin');
+        setIsAdmin(hasAdminRole);
+        
+        // If user is admin, load authorized emails
+        if (hasAdminRole) {
+          loadAuthorizedEmails();
+        }
+      }
+    } catch (error) {
+      console.error('Error in fetchUserRoles:', error);
+    }
+  };
 
   const signInWithGoogle = async () => {
     // Use the current origin as the redirect URL
@@ -248,6 +283,88 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const addUserRole = async (userId: string, email: string, role: UserRole) => {
+    try {
+      console.log(`Adding role ${role} to user ${userId} (${email})`);
+      
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({ user_id: userId, email, role });
+      
+      if (error) {
+        console.error('Error adding user role:', error);
+        
+        // Check for unique constraint violation
+        if (error.code === '23505') {
+          toast({
+            title: "Role Already Assigned",
+            description: `${email} already has the ${role} role.`,
+          });
+          return;
+        }
+        
+        throw error;
+      }
+      
+      toast({
+        title: "Role Added",
+        description: `${role} role has been assigned to ${email}.`,
+      });
+      
+      // Refresh roles if adding role to current user
+      if (user && user.id === userId) {
+        fetchUserRoles(userId);
+      }
+    } catch (error) {
+      console.error('Error adding user role:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add role. Please try again.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const removeUserRole = async (userId: string, role: UserRole) => {
+    try {
+      console.log(`Removing role ${role} from user ${userId}`);
+      
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+        .eq('role', role);
+      
+      if (error) {
+        console.error('Error removing user role:', error);
+        throw error;
+      }
+      
+      toast({
+        title: "Role Removed",
+        description: `${role} role has been removed.`,
+      });
+      
+      // Refresh roles if removing role from current user
+      if (user && user.id === userId) {
+        fetchUserRoles(userId);
+      }
+    } catch (error) {
+      console.error('Error removing user role:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove role. Please try again.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const hasRole = (role: UserRole): boolean => {
+    return userRoles.includes(role);
+  };
+
   return (
     <AuthContext.Provider value={{
       session,
@@ -256,9 +373,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signInWithGoogle,
       signOut,
       isAdmin,
+      userRoles,
       authorizedEmails,
       addAuthorizedEmail,
-      removeAuthorizedEmail
+      removeAuthorizedEmail,
+      addUserRole,
+      removeUserRole,
+      hasRole
     }}>
       {children}
     </AuthContext.Provider>

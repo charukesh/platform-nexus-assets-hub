@@ -47,22 +47,62 @@ const AnimatedRoutes = () => {
     <Routes location={location} key={location.pathname}>
       <Route path="/login" element={<Login />} />
 
-      {/* Protected routes */}
+      {/* Protected routes with role-based access */}
       <Route path="/" element={<AuthGuard><Dashboard /></AuthGuard>} />
+      
+      {/* Platforms routes - require organizer role or higher */}
       <Route path="/platforms" element={<AuthGuard><Platforms /></AuthGuard>} />
-      <Route path="/platforms/new" element={<AuthGuard><PlatformForm /></AuthGuard>} />
+      <Route 
+        path="/platforms/new" 
+        element={
+          <AuthGuard requiredRole="organizer">
+            <PlatformForm />
+          </AuthGuard>
+        } 
+      />
       <Route path="/platforms/:id" element={<AuthGuard><PlatformDetail /></AuthGuard>} />
-      <Route path="/platforms/:id/edit" element={<AuthGuard><PlatformForm /></AuthGuard>} />
+      <Route 
+        path="/platforms/:id/edit" 
+        element={
+          <AuthGuard requiredRole="organizer">
+            <PlatformForm />
+          </AuthGuard>
+        } 
+      />
+      
+      {/* Assets routes - require organizer role or higher for editing */}
       <Route path="/assets" element={<AuthGuard><AssetsManagement /></AuthGuard>} />
-      <Route path="/assets/new" element={<AuthGuard><AssetForm /></AuthGuard>} />
+      <Route 
+        path="/assets/new" 
+        element={
+          <AuthGuard requiredRole="organizer">
+            <AssetForm />
+          </AuthGuard>
+        } 
+      />
       <Route path="/assets/:id" element={<AuthGuard><AssetDetail /></AuthGuard>} />
-      <Route path="/assets/:id/edit" element={<AuthGuard><AssetForm /></AuthGuard>} />
+      <Route 
+        path="/assets/:id/edit" 
+        element={
+          <AuthGuard requiredRole="organizer">
+            <AssetForm />
+          </AuthGuard>
+        } 
+      />
+      
       <Route path="/analytics" element={<AuthGuard><Analytics /></AuthGuard>} />
       <Route path="/media-plan" element={<AuthGuard><MediaPlanGenerator /></AuthGuard>} />
       <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
       
-      {/* Admin route - requires isAdmin=true */}
-      <Route path="/admin" element={<AuthGuard requireAdmin={true}><Admin /></AuthGuard>} />
+      {/* Admin route - requires admin role */}
+      <Route 
+        path="/admin" 
+        element={
+          <AuthGuard requireAdmin={true}>
+            <Admin />
+          </AuthGuard>
+        } 
+      />
       
       {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />

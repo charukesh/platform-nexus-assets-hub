@@ -7,10 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthGuardProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requiredRole?: 'admin' | 'organizer' | 'media_planner';
 }
 
-const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false }) => {
-  const { user, loading, isAdmin } = useAuth();
+const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false, requiredRole }) => {
+  const { user, loading, isAdmin, userRoles, hasRole } = useAuth();
   const location = useLocation();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -26,7 +27,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
 
       console.log("Checking authorization for user:", user.email);
 
-      // If user is admin, they're always authorized
+      // Check for required role
+      if (requiredRole && !hasRole(requiredRole)) {
+        console.log(`${requiredRole} role required but user doesn't have it`);
+        setIsAuthorized(false);
+        setCheckingAuth(false);
+        return;
+      }
+
+      // Check for admin requirement
       if (requireAdmin && !isAdmin) {
         console.log("Admin required but user is not admin");
         setIsAuthorized(false);
@@ -34,9 +43,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
         return;
       }
 
-      // If user is admin, they're always authorized
-      if (isAdmin) {
-        console.log("User is admin, authorized");
+      // If user has the required role or is admin, they're authorized
+      if ((requiredRole && hasRole(requiredRole)) || isAdmin) {
+        console.log("User has required role or is admin, authorized");
         setIsAuthorized(true);
         setCheckingAuth(false);
         return;
@@ -131,7 +140,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
     if (!loading) {
       checkAuthorization();
     }
-  }, [user, loading, isAdmin, requireAdmin]);
+  }, [user, loading, isAdmin, requireAdmin, requiredRole, hasRole]);
 
   if (loading || checkingAuth) {
     return (
