@@ -1,28 +1,54 @@
 
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import NeuCard from "@/components/NeuCard";
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const Login = () => {
   const { signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Check for auth tokens in URL after OAuth redirect
+    const handleRedirectResult = async () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token')) {
+        // Clear the hash without causing a navigation
+        window.history.replaceState(null, document.title, window.location.pathname);
+        
+        toast({
+          title: "Successfully signed in",
+          description: "Welcome back!",
+        });
+        
+        // Navigate to home page
+        navigate('/');
+      }
+    };
+
+    handleRedirectResult();
+
     // Redirect if user is already logged in
     if (user && !loading) {
       navigate('/');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location]);
 
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle();
     } catch (error) {
       console.error('Login failed:', error);
+      toast({
+        title: "Login failed",
+        description: "There was an error signing in with Google.",
+        variant: "destructive"
+      });
     }
   };
 
