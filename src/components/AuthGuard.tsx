@@ -7,11 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthGuardProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
-  requiredRole?: 'admin' | 'organizer' | 'media_planner';
 }
 
-const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false, requiredRole }) => {
-  const { user, loading, isAdmin, userRoles, hasRole } = useAuth();
+const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false }) => {
+  const { user, loading, isAdmin } = useAuth();
   const location = useLocation();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -27,15 +26,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false, r
 
       console.log("Checking authorization for user:", user.email);
 
-      // Check for required role
-      if (requiredRole && !hasRole(requiredRole)) {
-        console.log(`${requiredRole} role required but user doesn't have it`);
-        setIsAuthorized(false);
-        setCheckingAuth(false);
-        return;
-      }
-
-      // Check for admin requirement
+      // If user is admin, they're always authorized
       if (requireAdmin && !isAdmin) {
         console.log("Admin required but user is not admin");
         setIsAuthorized(false);
@@ -43,9 +34,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false, r
         return;
       }
 
-      // If user has the required role or is admin, they're authorized
-      if ((requiredRole && hasRole(requiredRole)) || isAdmin) {
-        console.log("User has required role or is admin, authorized");
+      // If user is admin, they're always authorized
+      if (isAdmin) {
+        console.log("User is admin, authorized");
         setIsAuthorized(true);
         setCheckingAuth(false);
         return;
@@ -55,15 +46,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false, r
         if (!user.email) {
           console.error("No email found for user");
           setIsAuthorized(false);
-          setCheckingAuth(false);
-          return;
-        }
-        
-        // Check if user is the admin by email
-        const adminEmail = "charu@thealteroffice.com";
-        if (user.email.toLowerCase() === adminEmail.toLowerCase()) {
-          console.log("Admin user detected by email, authorized");
-          setIsAuthorized(true);
           setCheckingAuth(false);
           return;
         }
@@ -149,7 +131,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false, r
     if (!loading) {
       checkAuthorization();
     }
-  }, [user, loading, isAdmin, requireAdmin, requiredRole, hasRole]);
+  }, [user, loading, isAdmin, requireAdmin]);
 
   if (loading || checkingAuth) {
     return (

@@ -1,117 +1,215 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UserPlus, UserMinus, Shield } from "lucide-react";
-import RoleManager from "@/components/admin/RoleManager";
+import { toast } from "@/hooks/use-toast";
+import { Mail, X, RefreshCw } from "lucide-react";
+import PageTransition from "@/components/PageTransition";
+import { supabase } from "@/integrations/supabase/client";
 
-const Admin: React.FC = () => {
-  const { authorizedEmails, addAuthorizedEmail, removeAuthorizedEmail } = useAuth();
+const Admin = () => {
+  const { user, loading, isAdmin, authorizedEmails, addAuthorizedEmail, removeAuthorizedEmail } = useAuth();
   const [newEmail, setNewEmail] = useState("");
-  const [isAddingEmail, setIsAddingEmail] = useState(false);
-  const [activeTab, setActiveTab] = useState("authorized-users");
+  const [refreshing, setRefreshing] = useState(false);
+  const navigate = useNavigate();
 
-  const handleAddEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newEmail.trim()) return;
-    
+  // Directly fetch emails from database for verification
+  const [dbEmails, setDbEmails] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Redirect if not logged in or not admin
+    if (!loading && (!user || !isAdmin)) {
+      navigate('/');
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access this page.",
+        variant: "destructive"
+      });
+    }
+
+    // Fetch emails directly from the database
+    fetchEmailsFromDb();
+  }, [user, loading, isAdmin, navigate]);
+
+  const fetchEmailsFromDb = async () => {
     try {
-      setIsAddingEmail(true);
-      await addAuthorizedEmail(newEmail);
+      setRefreshing(true);
+      const { data, error } = await supabase
+        .from('authorized_users')
+        .select('email');
+      
+      if (error) {
+        console.error('Error fetching emails from DB:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch authorized emails from database.",
+          variant: "destructive"
+        });
+      } else {
+        const emails = data.map(item => item.email.toLowerCase().trim());
+        console.log("Emails from database:", emails);
+        setDbEmails(emails);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const validateEmail = (email: string) => {
+    return email
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
+  const handleAddEmail = async () => {
+    const trimmedEmail = newEmail.trim();
+    if (!trimmedEmail) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter an email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateEmail(trimmedEmail)) {
+      toast({
+        title: "Invalid Email Format",
+        description: "Please enter a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await addAuthorizedEmail(trimmedEmail);
       setNewEmail("");
+      
+      // Refresh the list from DB after adding
+      fetchEmailsFromDb();
     } catch (error) {
       console.error("Error adding email:", error);
-    } finally {
-      setIsAddingEmail(false);
+      toast({
+        title: "Error",
+        description: "Failed to add email to allowed list.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleRemoveEmail = async (email: string) => {
     try {
       await removeAuthorizedEmail(email);
+      
+      // Refresh the list from DB after removing
+      fetchEmailsFromDb();
     } catch (error) {
       console.error("Error removing email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove email from allowed list.",
+        variant: "destructive"
+      });
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-neugray-100 dark:bg-gray-900">
+        <div className="animate-pulse text-xl font-medium">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null; // Will redirect via useEffect
+  }
+
   return (
     <Layout>
-      <div className="animate-fade-in">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold">Admin Panel</h1>
-          <p className="text-muted-foreground mt-1">Manage application settings and users</p>
-        </header>
-
-        <Tabs 
-          defaultValue="authorized-users" 
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-4"
-        >
-          <TabsList>
-            <TabsTrigger value="authorized-users">Authorized Users</TabsTrigger>
-            <TabsTrigger value="user-roles">User Roles</TabsTrigger>
-          </TabsList>
+      <PageTransition>
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">Admin Panel</h1>
           
-          <TabsContent value="authorized-users" className="space-y-4">
-            <NeuCard className="p-6">
-              <h2 className="text-2xl font-bold mb-6">Authorized Users</h2>
-              
-              <form onSubmit={handleAddEmail} className="mb-6 flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="Enter email to authorize"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="flex-1"
-                />
-                <Button 
-                  type="submit" 
-                  disabled={isAddingEmail || !newEmail.trim()}
+          <NeuCard className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Access Management</h2>
+            <p className="text-muted-foreground mb-6">
+              Control which email addresses can access the application. Only users with emails
+              listed below will be able to log in and use the platform.
+            </p>
+            
+            <div className="flex gap-2 mb-6">
+              <Input
+                placeholder="Enter email address"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={handleAddEmail}>Add Email</Button>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-medium">Authorized Emails</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchEmailsFromDb}
+                  disabled={refreshing}
+                  className="flex items-center gap-1"
                 >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  {isAddingEmail ? 'Adding...' : 'Add Email'}
+                  <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+                  Refresh
                 </Button>
-              </form>
+              </div>
               
-              <div className="space-y-2">
-                <h3 className="font-medium mb-2">Authorized Email List</h3>
-                {authorizedEmails.length === 0 ? (
-                  <p className="text-muted-foreground">No authorized emails yet.</p>
-                ) : (
+              {authorizedEmails.length === 0 && dbEmails.length === 0 ? (
+                <p className="text-muted-foreground italic">No authorized emails yet.</p>
+              ) : (
+                <>
                   <ul className="space-y-2">
-                    {authorizedEmails.map((email) => (
-                      <li 
-                        key={email} 
-                        className="flex justify-between items-center p-3 bg-neugray-50 dark:bg-gray-800 rounded-md"
-                      >
-                        <span>{email}</span>
+                    {dbEmails.map((email) => (
+                      <li key={email} className="flex items-center justify-between p-3 bg-secondary rounded-md">
+                        <div className="flex items-center gap-2">
+                          <Mail size={16} className="text-muted-foreground" />
+                          {email}
+                        </div>
                         <Button 
-                          variant="outline" 
-                          size="sm"
+                          variant="ghost" 
+                          size="sm" 
                           onClick={() => handleRemoveEmail(email)}
+                          aria-label={`Remove ${email}`}
                         >
-                          <UserMinus className="h-4 w-4 mr-2" />
-                          Remove
+                          <X size={16} />
                         </Button>
                       </li>
                     ))}
                   </ul>
-                )}
+                  
+                  {/* Display warning if lists don't match */}
+                  {authorizedEmails.length !== dbEmails.length && (
+                    <div className="mt-2 p-2 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-100 rounded-md text-sm">
+                      <p>Warning: The displayed email list may be out of sync. Please refresh to see the latest data.</p>
+                    </div>
+                  )}
+                </>
+              )}
+              
+              <div className="mt-4 text-sm text-muted-foreground">
+                <p><strong>Note:</strong> As the admin (charu@thealteroffice.com), you will always have access regardless of this list.</p>
               </div>
-            </NeuCard>
-          </TabsContent>
-          
-          <TabsContent value="user-roles" className="space-y-4">
-            <RoleManager />
-          </TabsContent>
-        </Tabs>
-      </div>
+            </div>
+          </NeuCard>
+        </div>
+      </PageTransition>
     </Layout>
   );
 };

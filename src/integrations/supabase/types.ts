@@ -191,49 +191,11 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      get_user_roles: {
-        Args: { user_id: string }
-        Returns: string
-      }
-      has_role: {
-        Args: {
-          user_id: string
-          role_name: Database["public"]["Enums"]["user_role"]
-        }
-        Returns: boolean
-      }
       immutable_tsvector_concat: {
         Args: {
           name: string
@@ -278,7 +240,7 @@ export type Database = {
       }
     }
     Enums: {
-      user_role: "admin" | "organizer" | "media_planner"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -393,8 +355,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      user_role: ["admin", "organizer", "media_planner"],
-    },
+    Enums: {},
   },
 } as const

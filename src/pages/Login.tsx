@@ -175,11 +175,7 @@ const Login = () => {
         // Continue even if this fails
       }
       
-      // Use current host for redirect URL
-      const redirectTo = `${window.location.origin}`;
-      console.log("Using redirect URL:", redirectTo);
-      
-      await signInWithGoogle(redirectTo);
+      await signInWithGoogle();
       // Don't reset loginInProgress here as we want to show loading until redirect happens
     } catch (error) {
       console.error('Login failed:', error);
