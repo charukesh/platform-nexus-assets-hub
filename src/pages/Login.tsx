@@ -18,6 +18,8 @@ const Login = () => {
     const handleRedirectResult = async () => {
       const hash = window.location.hash;
       if (hash && hash.includes('access_token')) {
+        console.log("OAuth redirect detected, processing login...");
+        
         // Clear the hash without causing a navigation
         window.history.replaceState(null, document.title, window.location.pathname);
         
@@ -35,12 +37,14 @@ const Login = () => {
 
     // Redirect if user is already logged in
     if (user && !loading) {
+      console.log("User already logged in, redirecting to home");
       navigate('/');
     }
   }, [user, loading, navigate, location]);
 
   const handleGoogleLogin = async () => {
     try {
+      console.log("Starting Google login process");
       await signInWithGoogle();
     } catch (error) {
       console.error('Login failed:', error);
@@ -90,6 +94,3 @@ const Login = () => {
       </NeuCard>
     </div>
   );
-};
-
-export default Login;

@@ -124,10 +124,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Adding authorized email:", normalizedEmail);
       
       // Check if email already exists
-      const { data: existingData } = await supabase
+      const { data: existingData, error: checkError } = await supabase
         .from('authorized_users')
         .select('email')
         .eq('email', normalizedEmail);
+      
+      if (checkError) {
+        console.error('Error checking if email exists:', checkError);
+        throw checkError;
+      }
         
       if (existingData && existingData.length > 0) {
         console.log("Email already exists:", normalizedEmail);
@@ -138,14 +143,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      const { error } = await supabase
+      // Insert the new email
+      const { error: insertError } = await supabase
         .from('authorized_users')
         .insert({ email: normalizedEmail });
       
-      if (error) {
-        console.error('Error adding authorized email:', error);
-        throw error;
+      if (insertError) {
+        console.error('Error adding authorized email:', insertError);
+        throw insertError;
       }
+      
+      console.log("Email successfully added to database:", normalizedEmail);
       
       // Reload the list
       await loadAuthorizedEmails();
@@ -156,6 +164,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
     } catch (error) {
       console.error('Error adding authorized email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add email. Please try again.",
+        variant: "destructive"
+      });
       throw error;
     }
   };
@@ -174,6 +187,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error removing authorized email:', error);
         throw error;
       }
+      
+      console.log("Email successfully removed from database:", normalizedEmail);
       
       // Reload the list
       await loadAuthorizedEmails();

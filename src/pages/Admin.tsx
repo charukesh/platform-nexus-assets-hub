@@ -1,20 +1,24 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import Layout from "@/components/Layout";
 import NeuCard from "@/components/NeuCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { Mail, X } from "lucide-react";
+import { Mail, X, RefreshCw } from "lucide-react";
 import PageTransition from "@/components/PageTransition";
+import { supabase } from "@/integrations/supabase/client";
 
 const Admin = () => {
   const { user, loading, isAdmin, authorizedEmails, addAuthorizedEmail, removeAuthorizedEmail } = useAuth();
   const [newEmail, setNewEmail] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
+
+  // Directly fetch emails from database for verification
+  const [dbEmails, setDbEmails] = useState<string[]>([]);
 
   useEffect(() => {
     // Redirect if not logged in or not admin
@@ -26,7 +30,36 @@ const Admin = () => {
         variant: "destructive"
       });
     }
+
+    // Fetch emails directly from the database
+    fetchEmailsFromDb();
   }, [user, loading, isAdmin, navigate]);
+
+  const fetchEmailsFromDb = async () => {
+    try {
+      setRefreshing(true);
+      const { data, error } = await supabase
+        .from('authorized_users')
+        .select('email');
+      
+      if (error) {
+        console.error('Error fetching emails from DB:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch authorized emails from database.",
+          variant: "destructive"
+        });
+      } else {
+        const emails = data.map(item => item.email.toLowerCase().trim());
+        console.log("Emails from database:", emails);
+        setDbEmails(emails);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const validateEmail = (email: string) => {
     return email
@@ -58,8 +91,10 @@ const Admin = () => {
 
     try {
       await addAuthorizedEmail(trimmedEmail);
-      console.log("Email added successfully:", trimmedEmail);
       setNewEmail("");
+      
+      // Refresh the list from DB after adding
+      fetchEmailsFromDb();
     } catch (error) {
       console.error("Error adding email:", error);
       toast({
@@ -73,7 +108,9 @@ const Admin = () => {
   const handleRemoveEmail = async (email: string) => {
     try {
       await removeAuthorizedEmail(email);
-      console.log("Email removed successfully:", email);
+      
+      // Refresh the list from DB after removing
+      fetchEmailsFromDb();
     } catch (error) {
       console.error("Error removing email:", error);
       toast({
@@ -120,29 +157,50 @@ const Admin = () => {
             </div>
             
             <div className="space-y-2">
-              <h3 className="text-lg font-medium mb-2">Authorized Emails</h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-medium">Authorized Emails</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchEmailsFromDb}
+                  disabled={refreshing}
+                  className="flex items-center gap-1"
+                >
+                  <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+                  Refresh
+                </Button>
+              </div>
               
-              {authorizedEmails.length === 0 ? (
+              {authorizedEmails.length === 0 && dbEmails.length === 0 ? (
                 <p className="text-muted-foreground italic">No authorized emails yet.</p>
               ) : (
-                <ul className="space-y-2">
-                  {authorizedEmails.map((email) => (
-                    <li key={email} className="flex items-center justify-between p-3 bg-secondary rounded-md">
-                      <div className="flex items-center gap-2">
-                        <Mail size={16} className="text-muted-foreground" />
-                        {email}
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleRemoveEmail(email)}
-                        aria-label={`Remove ${email}`}
-                      >
-                        <X size={16} />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="space-y-2">
+                    {dbEmails.map((email) => (
+                      <li key={email} className="flex items-center justify-between p-3 bg-secondary rounded-md">
+                        <div className="flex items-center gap-2">
+                          <Mail size={16} className="text-muted-foreground" />
+                          {email}
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handleRemoveEmail(email)}
+                          aria-label={`Remove ${email}`}
+                        >
+                          <X size={16} />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  {/* Display warning if lists don't match */}
+                  {authorizedEmails.length !== dbEmails.length && (
+                    <div className="mt-2 p-2 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-100 rounded-md text-sm">
+                      <p>Warning: The displayed email list may be out of sync. Please refresh to see the latest data.</p>
+                    </div>
+                  )}
+                </>
               )}
               
               <div className="mt-4 text-sm text-muted-foreground">
