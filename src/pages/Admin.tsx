@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +39,7 @@ const Admin = () => {
   const [authorizedUsers, setAuthorizedUsers] = useState<AuthorizedUser[]>([]);
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<UserRole>("media_planner");
+  const [removingUser, setRemovingUser] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -131,12 +133,25 @@ const Admin = () => {
 
   const handleRemoveUser = async (email: string) => {
     try {
+      setRemovingUser(email);
       await removeAuthorizedEmail(email);
+      setRemovingUser(null);
       
-      // Refresh the list from DB after removing
-      fetchUsersFromDb();
+      // Update local state to immediately reflect the change
+      setAuthorizedUsers(prev => prev.filter(user => user.email !== email));
+      
+      toast({
+        title: "User Removed",
+        description: `${email} has been removed from authorized users.`
+      });
     } catch (error) {
       console.error("Error removing email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove user. Please try again.",
+        variant: "destructive"
+      });
+      setRemovingUser(null);
     }
   };
 
@@ -150,10 +165,18 @@ const Admin = () => {
     
     try {
       await updateUserRole(editingUser, editRole);
+      
+      // Update local state to immediately reflect the change
+      setAuthorizedUsers(prev => prev.map(user => 
+        user.email === editingUser ? { ...user, role: editRole } : user
+      ));
+      
       setEditingUser(null);
       
-      // Refresh the list from DB after updating
-      fetchUsersFromDb();
+      toast({
+        title: "Role Updated",
+        description: `Role for ${editingUser} has been updated to ${editRole}.`
+      });
     } catch (error) {
       console.error("Error updating role:", error);
     }
@@ -312,8 +335,13 @@ const Admin = () => {
                                   variant="destructive" 
                                   size="sm"
                                   onClick={() => handleRemoveUser(user.email)}
+                                  disabled={removingUser === user.email}
                                 >
-                                  <X size={16} />
+                                  {removingUser === user.email ? (
+                                    <RefreshCw size={16} className="animate-spin mr-1" />
+                                  ) : (
+                                    <X size={16} />
+                                  )}
                                   Remove
                                 </Button>
                               </div>

@@ -349,13 +349,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Email successfully removed from database:", normalizedEmail);
       
-      // Reload the list
-      await loadAuthorizedEmails();
-      
       toast({
         title: "Email Removed",
         description: `${email} access has been revoked.`
       });
+      
+      // No need to reload the entire list here, we'll handle it in the Admin component
+      return true;
     } catch (error) {
       console.error('Error removing authorized email:', error);
       throw error;
