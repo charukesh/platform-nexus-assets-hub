@@ -15,7 +15,7 @@ type AuthContextType = {
   userRole: UserRole;
   authorizedEmails: string[];
   addAuthorizedEmail: (email: string, role: UserRole) => Promise<void>;
-  removeAuthorizedEmail: (email: string) => Promise<void>;
+  removeAuthorizedEmail: (email: string) => Promise<boolean>; // Changed return type to boolean
   updateUserRole: (email: string, role: UserRole) => Promise<void>;
 };
 
@@ -332,7 +332,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const removeAuthorizedEmail = async (email: string) => {
+  const removeAuthorizedEmail = async (email: string): Promise<boolean> => {
     try {
       const normalizedEmail = email.toLowerCase().trim();
       console.log("Removing authorized email:", normalizedEmail);
