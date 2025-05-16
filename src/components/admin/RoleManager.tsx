@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,8 +55,8 @@ const RoleManager = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>("media_planner");
   const [assigningRole, setAssigningRole] = useState(false);
   
-  // New state to track if we've already added Roshin as admin
-  const [addedRoshinAsAdmin, setAddedRoshinAsAdmin] = useState(false);
+  // State to track if we've already added Charu as admin
+  const [addedCharuAsAdmin, setAddedCharuAsAdmin] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -65,46 +64,46 @@ const RoleManager = () => {
     }
   }, [isAdmin]);
   
-  // New effect to add Roshin as admin
+  // Effect to add Charu as admin
   useEffect(() => {
-    const addRoshinAsAdmin = async () => {
-      if (isAdmin && users.length > 0 && !addedRoshinAsAdmin) {
-        const roshinEmail = "roshin@thealteroffice.com";
-        const roshinUser = users.find(
-          user => user.email.toLowerCase() === roshinEmail.toLowerCase()
+    const addCharuAsAdmin = async () => {
+      if (isAdmin && users.length > 0 && !addedCharuAsAdmin) {
+        const charuEmail = "charu@thealteroffice.com";
+        const charuUser = users.find(
+          user => user.email.toLowerCase() === charuEmail.toLowerCase()
         );
         
-        // Check if Roshin exists in the users list
-        if (roshinUser) {
-          // Check if Roshin already has admin role
-          if (!roshinUser.roles.includes('admin')) {
-            // Add admin role to Roshin
+        // Check if Charu exists in the users list
+        if (charuUser) {
+          // Check if Charu already has admin role
+          if (!charuUser.roles.includes('admin')) {
+            // Add admin role to Charu
             try {
-              await addUserRole(roshinUser.id, roshinEmail, 'admin');
+              await addUserRole(charuUser.id, charuEmail, 'admin');
               toast({
                 title: "Admin Role Added",
-                description: `Admin role has been assigned to ${roshinEmail}.`,
+                description: `Admin role has been assigned to ${charuEmail}.`,
               });
-              setAddedRoshinAsAdmin(true);
+              setAddedCharuAsAdmin(true);
               // Refresh user list
               fetchUsers();
             } catch (error) {
-              console.error("Error adding admin role to Roshin:", error);
+              console.error("Error adding admin role to Charu:", error);
             }
           } else {
-            // Roshin already has admin role
-            setAddedRoshinAsAdmin(true);
+            // Charu already has admin role
+            setAddedCharuAsAdmin(true);
           }
         } else {
-          // Roshin not found in users list, set email in form
-          setNewUserEmail(roshinEmail);
+          // Charu not found in users list, set email in form
+          setNewUserEmail(charuEmail);
           setSelectedRole('admin');
         }
       }
     };
     
-    addRoshinAsAdmin();
-  }, [isAdmin, users, addedRoshinAsAdmin]);
+    addCharuAsAdmin();
+  }, [isAdmin, users, addedCharuAsAdmin]);
 
   const fetchUsers = async () => {
     try {
@@ -236,9 +235,9 @@ const RoleManager = () => {
       // Assign the selected role
       await addUserRole(authUser.id, newUserEmail, selectedRole);
       
-      // If this was Roshin and we gave admin role, mark as added
-      if (newUserEmail.toLowerCase() === "roshin@thealteroffice.com" && selectedRole === 'admin') {
-        setAddedRoshinAsAdmin(true);
+      // If this was Charu and we gave admin role, mark as added
+      if (newUserEmail.toLowerCase() === "charu@thealteroffice.com" && selectedRole === 'admin') {
+        setAddedCharuAsAdmin(true);
       }
       
       // Clear the form
