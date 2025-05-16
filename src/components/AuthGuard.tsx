@@ -52,8 +52,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
           return;
         }
         
+        // Make sure email is normalized (lowercase and trimmed)
         const email = user.email.toLowerCase().trim();
-        console.log("Checking authorization for email:", email);
+        console.log("Checking authorization for normalized email:", email);
         
         // Directly query authorized_users table to check if user's email exists
         const { data, error } = await supabase
@@ -66,23 +67,28 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
           throw error;
         }
         
-        console.log("Authorization check result:", data);
+        console.log("Authorization check result data:", data);
         
         // User is authorized if their email is found in the table
-        const emailFound = data && data.length > 0;
+        const emailFound = Array.isArray(data) && data.length > 0;
         console.log("Email found in authorized_users table:", emailFound);
         
         if (!emailFound) {
           console.log("Email not found in authorized_users table");
           
-          // Additional debugging: retrieve all authorized emails
-          const { data: allEmails } = await supabase
+          // Get all authorized emails for debugging
+          const { data: allAuthorizedEmails } = await supabase
             .from('authorized_users')
             .select('email');
             
-          if (allEmails) {
-            console.log("All authorized emails in database:", allEmails.map(item => item.email));
-            console.log("Looking for:", email);
+          console.log("All authorized emails:", allAuthorizedEmails);
+          
+          // Compare the emails exactly to see if there's a case or whitespace issue
+          if (allAuthorizedEmails && allAuthorizedEmails.length > 0) {
+            const authorizedEmailList = allAuthorizedEmails.map(e => e.email.toLowerCase().trim());
+            console.log("Normalized authorized emails:", authorizedEmailList);
+            console.log("Looking for normalized email:", email);
+            console.log("Exact match check:", authorizedEmailList.includes(email));
           }
           
           toast({

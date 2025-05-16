@@ -1,18 +1,19 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
 import NeuCard from "@/components/NeuCard";
 import { Button } from "@/components/ui/button";
-import { Mail } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const { signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [loginInProgress, setLoginInProgress] = useState(false);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for auth tokens in URL after OAuth redirect
@@ -24,27 +25,76 @@ const Login = () => {
         // Clear the hash without causing a navigation
         window.history.replaceState(null, document.title, window.location.pathname);
         
-        toast({
-          title: "Successfully signed in",
-          description: "Checking authorization status...",
-        });
+        setAuthMessage("Successfully signed in. Checking authorization...");
+        
+        // We don't navigate here - let the auth check process handle it
       }
     };
 
     handleRedirectResult();
 
-    // Redirect if user is already logged in
-    if (user && !loading) {
-      console.log("User already logged in, redirecting to home");
-      navigate('/');
-    }
+    // If user is logged in, test if they're also authorized
+    const checkIfAuthorized = async () => {
+      if (user && !loading) {
+        console.log("User is logged in, checking if authorized:", user.email);
+        
+        // Check if user is the admin
+        const adminEmail = "charu@thealteroffice.com";
+        if (user.email?.toLowerCase() === adminEmail.toLowerCase()) {
+          console.log("Admin user detected, authorized");
+          navigate('/');
+          return;
+        }
+        
+        // For non-admin users, check the database
+        try {
+          const normalizedEmail = user.email?.toLowerCase().trim();
+          console.log("Checking authorization for:", normalizedEmail);
+          
+          const { data, error } = await supabase
+            .from('authorized_users')
+            .select('email')
+            .eq('email', normalizedEmail);
+            
+          if (error) {
+            console.error("Error checking authorization:", error);
+            setAuthMessage("Error checking authorization. Please try again.");
+            return;
+          }
+          
+          console.log("Authorization check result:", data);
+          
+          // Debug info
+          const { data: allEmails } = await supabase
+            .from('authorized_users')
+            .select('email');
+            
+          console.log("All authorized emails:", allEmails);
+          
+          if (data && data.length > 0) {
+            console.log("User is authorized, redirecting to home");
+            navigate('/');
+          } else {
+            console.log("User is not authorized");
+            setAuthMessage("Your email is not authorized. Please contact an administrator.");
+            // Don't sign out here - the AuthGuard will handle this
+          }
+        } catch (e) {
+          console.error("Error in authorization check:", e);
+        }
+      }
+    };
+    
+    checkIfAuthorized();
   }, [user, loading, navigate, location]);
 
   const handleGoogleLogin = async () => {
     try {
       setLoginInProgress(true);
+      setAuthMessage("Starting Google login process...");
       console.log("Starting Google login process");
       await signInWithGoogle();
+      // Don't reset loginInProgress here as we want to show loading until redirect happens
     } catch (error) {
       console.error('Login failed:', error);
       toast({
@@ -53,15 +103,14 @@ const Login = () => {
         variant: "destructive"
       });
       setLoginInProgress(false);
+      setAuthMessage(null);
     }
   };
 
-  if (loading || loginInProgress) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-neugray-100 dark:bg-gray-900">
-        <div className="animate-pulse text-xl font-medium">
-          {loginInProgress ? "Signing in..." : "Loading..."}
-        </div>
+        <div className="animate-pulse text-xl font-medium">Loading...</div>
       </div>
     );
   }
@@ -84,14 +133,24 @@ const Login = () => {
             Please sign in to continue
           </p>
           
+          {authMessage && (
+            <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-md text-center w-full">
+              <p className="text-blue-700 dark:text-blue-200">{authMessage}</p>
+            </div>
+          )}
+          
           <Button 
             className="w-full flex items-center justify-center gap-2 py-6 text-base"
             onClick={handleGoogleLogin}
             type="button"
             disabled={loginInProgress}
           >
-            <Mail size={20} />
-            Sign in with Google
+            {loginInProgress ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <Mail size={20} />
+            )}
+            {loginInProgress ? "Signing in..." : "Sign in with Google"}
           </Button>
         </div>
       </NeuCard>
