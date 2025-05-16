@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -113,11 +112,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
         if (!emailFound) {
           console.log("Email not found in authorized_users table");
           
-          toast({
-            title: "Access Denied",
-            description: "Your email is not authorized to use this application.",
-            variant: "destructive"
-          });
+          // Removed the toast notification here
           
           // Sign out unauthorized user
           await supabase.auth.signOut();

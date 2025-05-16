@@ -57,6 +57,13 @@ const Login = () => {
         const adminEmail = "charu@thealteroffice.com";
         if (user.email?.toLowerCase() === adminEmail.toLowerCase()) {
           console.log("Admin user detected, authorized");
+          
+          // Show welcome toast only once after successful login
+          toast({
+            title: "Welcome",
+            description: "You've been successfully authorized.",
+          });
+          
           navigate('/');
           return;
         }
@@ -97,6 +104,13 @@ const Login = () => {
             }
             
             console.log("First user added to authorized_users table");
+            
+            // Show welcome toast only once after successful login
+            toast({
+              title: "Welcome",
+              description: "You've been successfully authorized.",
+            });
+            
             navigate('/');
             return;
           }
@@ -123,6 +137,13 @@ const Login = () => {
           
           if (data && data.length > 0) {
             console.log("User is authorized, redirecting to home");
+            
+            // Show welcome toast only once after successful login
+            toast({
+              title: "Welcome",
+              description: "You've been successfully authorized.",
+            });
+            
             navigate('/');
           } else {
             console.log("User is not authorized");
