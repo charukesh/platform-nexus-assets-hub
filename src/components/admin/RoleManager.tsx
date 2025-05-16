@@ -161,9 +161,12 @@ const RoleManager = () => {
       const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
       if (authError) throw authError;
       
-      const authUser = authUsers.users.find(
+      const authUser = (authUsers as any).users.find(
         u => u.email?.toLowerCase() === newUserEmail.toLowerCase()
       );
+
+      // src/components/admin/RoleManager.tsx(165,16): error TS2339: Property 'email' does not exist on type 'never'.
+
       
       if (!authUser) {
         // User not found in auth
