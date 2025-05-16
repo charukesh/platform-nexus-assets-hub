@@ -40,12 +40,10 @@ const Admin = () => {
 
     try {
       await addAuthorizedEmail(newEmail);
-      toast({
-        title: "Email Added",
-        description: `${newEmail} has been granted access.`
-      });
+      console.log("Email added successfully:", newEmail);
       setNewEmail("");
     } catch (error) {
+      console.error("Error adding email:", error);
       toast({
         title: "Error",
         description: "Failed to add email to allowed list.",
@@ -57,11 +55,9 @@ const Admin = () => {
   const handleRemoveEmail = async (email: string) => {
     try {
       await removeAuthorizedEmail(email);
-      toast({
-        title: "Email Removed",
-        description: `${email} access has been revoked.`
-      });
+      console.log("Email removed successfully:", email);
     } catch (error) {
+      console.error("Error removing email:", error);
       toast({
         title: "Error",
         description: "Failed to remove email from allowed list.",

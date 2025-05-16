@@ -92,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadAuthorizedEmails = async () => {
     try {
+      console.log("Loading authorized emails...");
       // Fix: Use a generic query that doesn't depend on typed tables
       const { data, error } = await supabase
         .from('authorized_users')
@@ -101,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data) {
         const emails = data.map(item => item.email);
+        console.log("Authorized emails loaded:", emails);
         setAuthorizedEmails(emails);
       }
     } catch (error) {
@@ -110,6 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addAuthorizedEmail = async (email: string) => {
     try {
+      console.log("Adding authorized email:", email);
       // Fix: Use a generic query that doesn't depend on typed tables
       const { error } = await supabase
         .from('authorized_users')
@@ -119,6 +122,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Reload the list
       await loadAuthorizedEmails();
+      
+      toast({
+        title: "Email Added",
+        description: `${email} has been granted access.`
+      });
     } catch (error) {
       console.error('Error adding authorized email:', error);
       throw error;
@@ -127,6 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeAuthorizedEmail = async (email: string) => {
     try {
+      console.log("Removing authorized email:", email);
       // Fix: Use a generic query that doesn't depend on typed tables
       const { error } = await supabase
         .from('authorized_users')
@@ -137,6 +146,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Reload the list
       await loadAuthorizedEmails();
+      
+      toast({
+        title: "Email Removed",
+        description: `${email} access has been revoked.`
+      });
     } catch (error) {
       console.error('Error removing authorized email:', error);
       throw error;
