@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +31,13 @@ type UserWithRoles = {
 };
 
 type UserRole = 'admin' | 'organizer' | 'media_planner';
+
+// Define the shape of user role data returned from the database
+interface UserRoleData {
+  user_id: string;
+  email: string;
+  role: string;
+}
 
 const RoleManager = () => {
   const { isAdmin, addUserRole, removeUserRole } = useAuth();
@@ -72,7 +78,11 @@ const RoleManager = () => {
       
       // Create a map of user IDs to their roles
       const userRolesMap: Record<string, { email: string, roles: string[] }> = {};
-      userRoles.forEach(ur => {
+      
+      // Ensure userRoles is treated as an array of UserRoleData
+      const typedUserRoles = userRoles as UserRoleData[];
+      
+      typedUserRoles.forEach(ur => {
         if (!userRolesMap[ur.user_id]) {
           userRolesMap[ur.user_id] = { email: ur.email, roles: [] };
         }
@@ -87,17 +97,21 @@ const RoleManager = () => {
       }));
       
       // Add authorized users who don't have roles yet
-      authorizedUsers.forEach(au => {
-        const existingUser = allUsers.find(u => u.email.toLowerCase() === au.email.toLowerCase());
-        if (!existingUser) {
-          // This user is authorized but doesn't have roles assigned yet
-          allUsers.push({
-            id: '', // We don't know the auth.user id yet
-            email: au.email,
-            roles: []
-          });
-        }
-      });
+      if (authorizedUsers) {
+        authorizedUsers.forEach(au => {
+          if (au && au.email) {
+            const existingUser = allUsers.find(u => u.email.toLowerCase() === au.email.toLowerCase());
+            if (!existingUser) {
+              // This user is authorized but doesn't have roles assigned yet
+              allUsers.push({
+                id: '', // We don't know the auth.user id yet
+                email: au.email,
+                roles: []
+              });
+            }
+          }
+        });
+      }
       
       setUsers(allUsers);
     } catch (error) {
