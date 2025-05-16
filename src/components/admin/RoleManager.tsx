@@ -69,7 +69,7 @@ const RoleManager = () => {
       // Get all authorized users
       const { data: authorizedUsers, error: authError } = await supabase
         .from('authorized_users')
-        .select('email');
+        .select('email, id, created_at');
         
       if (authError) {
         throw authError;
