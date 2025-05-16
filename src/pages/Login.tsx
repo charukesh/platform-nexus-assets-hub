@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import NeuCard from "@/components/NeuCard";
 import { Button } from "@/components/ui/button";
-import { Google } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const Login = () => {
   const { signInWithGoogle, user, loading } = useAuth();
@@ -57,7 +57,7 @@ const Login = () => {
             onClick={handleGoogleLogin}
             type="button"
           >
-            <Google size={20} />
+            <Mail size={20} />
             Sign in with Google
           </Button>
         </div>

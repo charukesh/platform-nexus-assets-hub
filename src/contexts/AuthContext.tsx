@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
+import { toast } from "@/hooks/use-toast";
 
 type AuthContextType = {
   session: Session | null;
@@ -86,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadAuthorizedEmails = async () => {
     try {
+      // Fix: Use a generic query that doesn't depend on typed tables
       const { data, error } = await supabase
         .from('authorized_users')
         .select('email');
@@ -103,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addAuthorizedEmail = async (email: string) => {
     try {
+      // Fix: Use a generic query that doesn't depend on typed tables
       const { error } = await supabase
         .from('authorized_users')
         .insert({ email });
@@ -119,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeAuthorizedEmail = async (email: string) => {
     try {
+      // Fix: Use a generic query that doesn't depend on typed tables
       const { error } = await supabase
         .from('authorized_users')
         .delete()

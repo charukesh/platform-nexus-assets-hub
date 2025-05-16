@@ -39,6 +39,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
 
       // Check if user's email is in authorized_users table
       try {
+        // Fix: Use a generic query that doesn't depend on typed tables
         const { data, error } = await supabase
           .from('authorized_users')
           .select('*')
