@@ -40,6 +40,7 @@ const Admin = () => {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<UserRole>("media_planner");
   const [removingUser, setRemovingUser] = useState<string | null>(null);
+  const [addingUser, setAddingUser] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -115,42 +116,32 @@ const Admin = () => {
     }
 
     try {
+      setAddingUser(true);
       await addAuthorizedEmail(trimmedEmail, newRole);
       setNewEmail("");
       setNewRole("media_planner");
-      
-      toast({
-        title: "Email Added",
-        description: "A welcome email has been sent with login instructions.",
-      });
       
       // Refresh the list from DB after adding
       fetchUsersFromDb();
     } catch (error) {
       console.error("Error adding email:", error);
+    } finally {
+      setAddingUser(false);
     }
   };
 
   const handleRemoveUser = async (email: string) => {
     try {
       setRemovingUser(email);
-      await removeAuthorizedEmail(email);
-      setRemovingUser(null);
+      const success = await removeAuthorizedEmail(email);
       
-      // Update local state to immediately reflect the change
-      setAuthorizedUsers(prev => prev.filter(user => user.email !== email));
-      
-      toast({
-        title: "User Removed",
-        description: `${email} has been removed from authorized users.`
-      });
+      if (success) {
+        // Update local state to immediately reflect the change
+        setAuthorizedUsers(prev => prev.filter(user => user.email !== email));
+      }
     } catch (error) {
       console.error("Error removing email:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove user. Please try again.",
-        variant: "destructive"
-      });
+    } finally {
       setRemovingUser(null);
     }
   };
@@ -225,12 +216,14 @@ const Admin = () => {
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   className="w-full"
+                  disabled={addingUser}
                 />
               </div>
               <div className="flex gap-2">
                 <Select 
                   value={newRole} 
                   onValueChange={(value) => setNewRole(value as UserRole)}
+                  disabled={addingUser}
                 >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select role" />
@@ -241,7 +234,19 @@ const Admin = () => {
                     <SelectItem value="media_planner">Media Planner</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button onClick={handleAddUser}>Add User</Button>
+                <Button 
+                  onClick={handleAddUser} 
+                  disabled={addingUser}
+                >
+                  {addingUser ? (
+                    <>
+                      <RefreshCw size={16} className="mr-2 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add User"
+                  )}
+                </Button>
               </div>
             </div>
             

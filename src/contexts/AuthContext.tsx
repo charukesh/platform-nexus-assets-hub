@@ -215,34 +215,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedEmail = email.toLowerCase().trim();
       console.log(`Adding authorized email: ${normalizedEmail} with role: ${role}`);
       
-      // Check if email already exists
-      const { data: existingData, error: checkError } = await supabase
-        .from('authorized_users')
-        .select('email')
-        .ilike('email', normalizedEmail);
+      // Use the edge function to bypass RLS
+      const appUrl = window.location.origin;
+      const response = await fetch(`${appUrl}/functions/v1/manage-authorized-users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          action: 'add',
+          email: normalizedEmail,
+          role: role
+        }),
+      });
+
+      const result = await response.json();
       
-      if (checkError) {
-        console.error('Error checking if email exists:', checkError);
-        throw checkError;
-      }
+      if (!response.ok) {
+        console.error('Error from manage-authorized-users function:', result);
+        if (response.status === 409) {
+          toast({
+            title: "Email Already Authorized",
+            description: `${normalizedEmail} already has access.`
+          });
+          return;
+        }
         
-      if (existingData && existingData.length > 0) {
-        console.log("Email already exists:", normalizedEmail);
         toast({
-          title: "Email Already Authorized",
-          description: `${normalizedEmail} already has access.`
+          title: "Error",
+          description: result.message || "Failed to add user. Please try again.",
+          variant: "destructive"
         });
-        return;
-      }
-      
-      // Insert the new email with role
-      const { error: insertError } = await supabase
-        .from('authorized_users')
-        .insert({ email: normalizedEmail, role: role });
-      
-      if (insertError) {
-        console.error('Error adding authorized email:', insertError);
-        throw insertError;
+        throw new Error(result.message || "Failed to add user");
       }
       
       console.log(`Email successfully added to database: ${normalizedEmail} with role: ${role}`);
@@ -252,8 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Send welcome email
       try {
-        const appUrl = window.location.origin;
-        const response = await fetch(`${appUrl}/functions/v1/send-welcome-email`, {
+        const welcomeResponse = await fetch(`${appUrl}/functions/v1/send-welcome-email`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -265,8 +269,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!welcomeResponse.ok) {
+          const errorData = await welcomeResponse.json();
           console.error('Error sending welcome email:', errorData);
           // We don't throw here since adding the user succeeded
         } else {
@@ -297,14 +301,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedEmail = email.toLowerCase().trim();
       console.log(`Updating role for ${normalizedEmail} to ${role}`);
       
-      const { error } = await supabase
-        .from('authorized_users')
-        .update({ role })
-        .ilike('email', normalizedEmail);
+      // Use the edge function to bypass RLS
+      const appUrl = window.location.origin;
+      const response = await fetch(`${appUrl}/functions/v1/manage-authorized-users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          action: 'update',
+          email: normalizedEmail,
+          role: role
+        }),
+      });
+
+      const result = await response.json();
       
-      if (error) {
-        console.error('Error updating user role:', error);
-        throw error;
+      if (!response.ok) {
+        console.error('Error from manage-authorized-users function:', result);
+        toast({
+          title: "Error",
+          description: result.message || "Failed to update role. Please try again.",
+          variant: "destructive"
+        });
+        throw new Error(result.message || "Failed to update role");
       }
       
       console.log(`Role successfully updated for ${normalizedEmail} to ${role}`);
@@ -337,14 +358,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedEmail = email.toLowerCase().trim();
       console.log("Removing authorized email:", normalizedEmail);
       
-      const { error } = await supabase
-        .from('authorized_users')
-        .delete()
-        .ilike('email', normalizedEmail);
+      // Use the edge function to bypass RLS
+      const appUrl = window.location.origin;
+      const response = await fetch(`${appUrl}/functions/v1/manage-authorized-users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          action: 'remove',
+          email: normalizedEmail
+        }),
+      });
+
+      const result = await response.json();
       
-      if (error) {
-        console.error('Error removing authorized email:', error);
-        throw error;
+      if (!response.ok) {
+        console.error('Error from manage-authorized-users function:', result);
+        toast({
+          title: "Error",
+          description: result.message || "Failed to remove user. Please try again.",
+          variant: "destructive"
+        });
+        throw new Error(result.message || "Failed to remove user");
       }
       
       console.log("Email successfully removed from database:", normalizedEmail);
@@ -358,7 +395,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     } catch (error) {
       console.error('Error removing authorized email:', error);
-      throw error;
+      return false;
     }
   };
 
