@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "@/hooks/use-toast";
 
+export type UserRole = 'admin' | 'media_manager' | 'media_planner';
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
@@ -11,9 +13,11 @@ type AuthContextType = {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
+  userRole: UserRole;
   authorizedEmails: string[];
-  addAuthorizedEmail: (email: string) => Promise<void>;
+  addAuthorizedEmail: (email: string, role: UserRole) => Promise<void>;
   removeAuthorizedEmail: (email: string) => Promise<void>;
+  updateUserRole: (email: string, role: UserRole) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<UserRole>('media_planner');
   const [authorizedEmails, setAuthorizedEmails] = useState<string[]>([]);
   
   const ADMIN_EMAIL = "charu@thealteroffice.com";
@@ -44,6 +49,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const loadUserRole = async (email: string) => {
+    try {
+      console.log("Loading role for user:", email);
+      if (email === ADMIN_EMAIL) {
+        setIsAdmin(true);
+        setUserRole('admin');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('authorized_users')
+        .select('role')
+        .ilike('email', email.toLowerCase().trim())
+        .single();
+      
+      if (error) {
+        console.error('Error loading user role:', error);
+        return;
+      }
+
+      const role = data?.role as UserRole || 'media_planner'; 
+      console.log("Loaded role for user:", role);
+      
+      setUserRole(role);
+      setIsAdmin(role === 'admin');
+    } catch (error) {
+      console.error('Error loading user role:', error);
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -52,11 +87,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Check if current user is admin
-        if (session?.user?.email === ADMIN_EMAIL) {
-          setIsAdmin(true);
+        // Check if current user is admin or load role
+        if (session?.user?.email) {
+          if (session.user.email === ADMIN_EMAIL) {
+            setIsAdmin(true);
+            setUserRole('admin');
+          } else {
+            loadUserRole(session.user.email);
+          }
         } else {
           setIsAdmin(false);
+          setUserRole('media_planner');
         }
         
         // If just signed out, clean up state
@@ -71,13 +112,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       
-      // Check if current user is admin
-      if (session?.user?.email === ADMIN_EMAIL) {
-        setIsAdmin(true);
-        // Load authorized emails if admin
-        loadAuthorizedEmails();
+      // Check if current user is admin or load role
+      if (session?.user?.email) {
+        if (session.user.email === ADMIN_EMAIL) {
+          setIsAdmin(true);
+          setUserRole('admin');
+          // Load authorized emails if admin
+          loadAuthorizedEmails();
+        } else {
+          loadUserRole(session.user.email);
+        }
       } else {
         setIsAdmin(false);
+        setUserRole('media_planner');
       }
       
       setLoading(false);
@@ -87,9 +134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInWithGoogle = async () => {
-    // Use the current origin as the redirect URL
-    const redirectTo = `${window.location.origin}`;
-    console.log("Signing in with Google, redirect to:", redirectTo);
+    // Get the current host name
+    const currentHost = window.location.origin;
+    console.log("Signing in with Google, redirect to:", currentHost);
     
     // Clean up existing auth state first
     cleanupAuthState();
@@ -105,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
+        redirectTo: currentHost,
         queryParams: {
           prompt: 'select_account' // Force account selection
         }
@@ -140,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Loading authorized emails...");
       const { data, error } = await supabase
         .from('authorized_users')
-        .select('email');
+        .select('email, role');
       
       if (error) {
         console.error('Error loading authorized emails:', error);
@@ -162,11 +209,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const addAuthorizedEmail = async (email: string) => {
+  const addAuthorizedEmail = async (email: string, role: UserRole = 'media_planner') => {
     try {
       // Normalize email (lowercase and trim)
       const normalizedEmail = email.toLowerCase().trim();
-      console.log("Adding authorized email:", normalizedEmail);
+      console.log(`Adding authorized email: ${normalizedEmail} with role: ${role}`);
       
       // Check if email already exists
       const { data: existingData, error: checkError } = await supabase
@@ -188,30 +235,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // Insert the new email
+      // Insert the new email with role
       const { error: insertError } = await supabase
         .from('authorized_users')
-        .insert({ email: normalizedEmail });
+        .insert({ email: normalizedEmail, role });
       
       if (insertError) {
         console.error('Error adding authorized email:', insertError);
         throw insertError;
       }
       
-      console.log("Email successfully added to database:", normalizedEmail);
+      console.log(`Email successfully added to database: ${normalizedEmail} with role: ${role}`);
       
       // Reload the list
       await loadAuthorizedEmails();
       
       toast({
         title: "Email Added",
-        description: `${normalizedEmail} has been granted access.`
+        description: `${normalizedEmail} has been granted access with role: ${role}.`
       });
     } catch (error) {
       console.error('Error adding authorized email:', error);
       toast({
         title: "Error",
         description: "Failed to add email. Please try again.",
+        variant: "destructive"
+      });
+      throw error;
+    }
+  };
+
+  const updateUserRole = async (email: string, role: UserRole) => {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      console.log(`Updating role for ${normalizedEmail} to ${role}`);
+      
+      const { error } = await supabase
+        .from('authorized_users')
+        .update({ role })
+        .ilike('email', normalizedEmail);
+      
+      if (error) {
+        console.error('Error updating user role:', error);
+        throw error;
+      }
+      
+      console.log(`Role successfully updated for ${normalizedEmail} to ${role}`);
+      
+      // Reload the list
+      await loadAuthorizedEmails();
+      
+      toast({
+        title: "Role Updated",
+        description: `${email} role has been updated to ${role}.`
+      });
+
+      // If current user's role was updated, refresh their role
+      if (user?.email?.toLowerCase().trim() === normalizedEmail) {
+        loadUserRole(normalizedEmail);
+      }
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update role. Please try again.",
         variant: "destructive"
       });
       throw error;
@@ -256,9 +343,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signInWithGoogle,
       signOut,
       isAdmin,
+      userRole,
       authorizedEmails,
       addAuthorizedEmail,
-      removeAuthorizedEmail
+      removeAuthorizedEmail,
+      updateUserRole
     }}>
       {children}
     </AuthContext.Provider>

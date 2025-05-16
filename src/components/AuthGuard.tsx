@@ -7,10 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthGuardProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requiredRole?: 'admin' | 'media_manager' | 'media_planner';
 }
 
-const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false }) => {
-  const { user, loading, isAdmin } = useAuth();
+const AuthGuard: React.FC<AuthGuardProps> = ({ 
+  children, 
+  requireAdmin = false,
+  requiredRole
+}) => {
+  const { user, loading, isAdmin, userRole } = useAuth();
   const location = useLocation();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -25,10 +30,20 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
       }
 
       console.log("Checking authorization for user:", user.email);
+      console.log("User role:", userRole);
+      console.log("Required role:", requiredRole);
 
-      // If user is admin, they're always authorized
+      // If admin access is required and user is not admin
       if (requireAdmin && !isAdmin) {
         console.log("Admin required but user is not admin");
+        setIsAuthorized(false);
+        setCheckingAuth(false);
+        return;
+      }
+
+      // If specific role is required, check it
+      if (requiredRole && requiredRole !== userRole && userRole !== 'admin') {
+        console.log(`Role ${requiredRole} required but user has role ${userRole}`);
         setIsAuthorized(false);
         setCheckingAuth(false);
         return;
@@ -98,21 +113,12 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
         
         console.log("Authorization query result:", data);
         
-        // Debug info
-        const { data: allEmails } = await supabase
-          .from('authorized_users')
-          .select('email');
-          
-        console.log("All authorized emails:", allEmails);
-        
         // User is authorized if their email is found in the table
         const emailFound = Array.isArray(data) && data.length > 0;
         console.log("Email found in authorized_users table:", emailFound);
         
         if (!emailFound) {
           console.log("Email not found in authorized_users table");
-          
-          // Removed the toast notification here
           
           // Sign out unauthorized user
           await supabase.auth.signOut();
@@ -131,7 +137,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
     if (!loading) {
       checkAuthorization();
     }
-  }, [user, loading, isAdmin, requireAdmin]);
+  }, [user, loading, isAdmin, requireAdmin, userRole, requiredRole]);
 
   if (loading || checkingAuth) {
     return (

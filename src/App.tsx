@@ -47,21 +47,31 @@ const AnimatedRoutes = () => {
     <Routes location={location} key={location.pathname}>
       <Route path="/login" element={<Login />} />
 
-      {/* Protected routes */}
+      {/* Dashboard - accessible to all logged in users */}
       <Route path="/" element={<AuthGuard><Dashboard /></AuthGuard>} />
+      
+      {/* Platforms - viewable by all, but editable by admins and media managers */}
       <Route path="/platforms" element={<AuthGuard><Platforms /></AuthGuard>} />
-      <Route path="/platforms/new" element={<AuthGuard><PlatformForm /></AuthGuard>} />
+      <Route path="/platforms/new" element={<AuthGuard requiredRole="media_manager"><PlatformForm /></AuthGuard>} />
       <Route path="/platforms/:id" element={<AuthGuard><PlatformDetail /></AuthGuard>} />
-      <Route path="/platforms/:id/edit" element={<AuthGuard><PlatformForm /></AuthGuard>} />
+      <Route path="/platforms/:id/edit" element={<AuthGuard requiredRole="media_manager"><PlatformForm /></AuthGuard>} />
+      
+      {/* Assets - viewable by all, but editable by admins and media managers */}
       <Route path="/assets" element={<AuthGuard><AssetsManagement /></AuthGuard>} />
-      <Route path="/assets/new" element={<AuthGuard><AssetForm /></AuthGuard>} />
+      <Route path="/assets/new" element={<AuthGuard requiredRole="media_manager"><AssetForm /></AuthGuard>} />
       <Route path="/assets/:id" element={<AuthGuard><AssetDetail /></AuthGuard>} />
-      <Route path="/assets/:id/edit" element={<AuthGuard><AssetForm /></AuthGuard>} />
+      <Route path="/assets/:id/edit" element={<AuthGuard requiredRole="media_manager"><AssetForm /></AuthGuard>} />
+      
+      {/* Analytics - accessible to all logged in users */}
       <Route path="/analytics" element={<AuthGuard><Analytics /></AuthGuard>} />
+      
+      {/* Media Plan Generator - accessible to all logged in users */}
       <Route path="/media-plan" element={<AuthGuard><MediaPlanGenerator /></AuthGuard>} />
+      
+      {/* Settings - accessible to all logged in users */}
       <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
       
-      {/* Admin route - requires isAdmin=true */}
+      {/* Admin route - requires admin role */}
       <Route path="/admin" element={<AuthGuard requireAdmin={true}><Admin /></AuthGuard>} />
       
       {/* Catch-all route */}
