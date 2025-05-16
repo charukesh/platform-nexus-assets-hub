@@ -87,14 +87,17 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
           
           const { error: insertError } = await supabase
             .from('authorized_users')
-            .insert({ email: email });
+            .insert({ 
+              email: email,
+              role: 'admin' // First user gets admin role
+            });
             
           if (insertError) {
             console.error("Error adding first authorized user:", insertError);
             throw insertError;
           }
           
-          console.log("First user added to authorized_users table");
+          console.log("First user added to authorized_users table as admin");
           setIsAuthorized(true);
           setCheckingAuth(false);
           return;
@@ -103,7 +106,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
         // Case-insensitive search for the user's email in the authorized_users table
         const { data, error } = await supabase
           .from('authorized_users')
-          .select('email')
+          .select('email, role')
           .ilike('email', email);
         
         if (error) {

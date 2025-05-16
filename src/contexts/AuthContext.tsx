@@ -69,7 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      const role = data?.role as UserRole || 'media_planner'; 
+      // Now we have a 'role' column, so this will work
+      const role = (data?.role as UserRole) || 'media_planner'; 
       console.log("Loaded role for user:", role);
       
       setUserRole(role);
@@ -235,10 +236,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // Insert the new email with role
+      // Insert the new email with role - now we can include role in the insert
       const { error: insertError } = await supabase
         .from('authorized_users')
-        .insert({ email: normalizedEmail, role });
+        .insert({ email: normalizedEmail, role: role });
       
       if (insertError) {
         console.error('Error adding authorized email:', insertError);
