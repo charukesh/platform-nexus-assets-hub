@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -136,13 +135,15 @@ const Admin = () => {
       const success = await removeAuthorizedEmail(email);
       
       if (success) {
-        // Update local state to immediately reflect the change
+        // Update local state to reflect the change immediately
         setAuthorizedUsers(prev => prev.filter(user => user.email !== email));
         toast({
           title: "User Removed",
           description: `${email} has been removed successfully.`
         });
       }
+      // Always fetch from DB to ensure list is accurate, regardless of success value
+      fetchUsersFromDb();
     } catch (error) {
       console.error("Error removing email:", error);
       toast({

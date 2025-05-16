@@ -372,16 +372,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
       });
 
-      const result = await response.json();
-      
       if (!response.ok) {
+        const result = await response.json();
         console.error('Error from manage-authorized-users function:', result);
         toast({
           title: "Error",
           description: result.message || "Failed to remove user. Please try again.",
           variant: "destructive"
         });
-        throw new Error(result.message || "Failed to remove user");
+        return false;
+      }
+      
+      const result = await response.json();
+      console.log("Remove result:", result);
+      
+      if (!result.success) {
+        toast({
+          title: "Error",
+          description: result.message || "Failed to remove user. Please try again.",
+          variant: "destructive"
+        });
+        return false;
       }
       
       console.log("Email successfully removed from database:", normalizedEmail);
@@ -391,10 +402,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: `${email} access has been revoked.`
       });
       
-      // No need to reload the entire list here, we'll handle it in the Admin component
+      // Reload the list to reflect the change
+      await loadAuthorizedEmails();
+      
       return true;
     } catch (error) {
       console.error('Error removing authorized email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove user. Please try again.",
+        variant: "destructive"
+      });
       return false;
     }
   };

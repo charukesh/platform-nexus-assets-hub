@@ -151,10 +151,38 @@ serve(async (req) => {
         break;
         
       case 'remove':
+        // Add debug logging to track the delete operation
+        console.log(`Attempting to delete user with email: ${normalizedEmail}`);
+        
         result = await supabaseAdmin
           .from('authorized_users')
           .delete()
           .eq('email', normalizedEmail);
+          
+        // Log the result of the delete operation
+        console.log("Delete result:", result);
+        
+        // Verify if the user was actually deleted
+        const { data: checkData } = await supabaseAdmin
+          .from('authorized_users')
+          .select('email')
+          .eq('email', normalizedEmail);
+          
+        console.log("After delete check:", checkData);
+        
+        // If user still exists, return an error
+        if (checkData && checkData.length > 0) {
+          return new Response(
+            JSON.stringify({ 
+              error: "Failed to delete user", 
+              message: "User still exists in the database after delete operation"
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 500,
+            }
+          );
+        }
         break;
         
       default:
@@ -168,6 +196,7 @@ serve(async (req) => {
     }
     
     if (result.error) {
+      console.error("Operation error:", result.error);
       throw result.error;
     }
     
