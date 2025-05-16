@@ -9,7 +9,7 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   userRoles: UserRole[];
@@ -121,10 +121,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signInWithGoogle = async () => {
-    // Use the current origin as the redirect URL
-    const redirectTo = `${window.location.origin}`;
-    console.log("Signing in with Google, redirect to:", redirectTo);
+  const signInWithGoogle = async (redirectTo?: string) => {
+    // Use the provided redirectTo or current origin as the redirect URL
+    const finalRedirectTo = redirectTo || `${window.location.origin}`;
+    console.log("Signing in with Google, redirect to:", finalRedirectTo);
     
     // Clean up existing auth state first
     cleanupAuthState();
@@ -140,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
+        redirectTo: finalRedirectTo,
         queryParams: {
           prompt: 'select_account' // Force account selection
         }

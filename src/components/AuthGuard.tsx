@@ -59,6 +59,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false, r
           return;
         }
         
+        // Check if user is the admin by email
+        const adminEmail = "charu@thealteroffice.com";
+        if (user.email.toLowerCase() === adminEmail.toLowerCase()) {
+          console.log("Admin user detected by email, authorized");
+          setIsAuthorized(true);
+          setCheckingAuth(false);
+          return;
+        }
+        
         // Make sure email is normalized (lowercase and trimmed)
         const email = user.email.toLowerCase().trim();
         console.log("Checking authorization for normalized email:", email);
