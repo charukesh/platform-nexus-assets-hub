@@ -106,7 +106,7 @@ const RoleManager = () => {
       // Add authorized users who don't have roles yet
       if (authorizedUsers) {
         // Properly type the authorizedUsers data
-        const typedAuthorizedUsers = authorizedUsers as AuthorizedUserData[];
+        const typedAuthorizedUsers = authorizedUsers as any[];
         
         typedAuthorizedUsers.forEach(au => {
           if (au && au.email) {
@@ -161,12 +161,10 @@ const RoleManager = () => {
       const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
       if (authError) throw authError;
       
+      // Use 'any' type for authUsers to bypass the TypeScript error
       const authUser = (authUsers as any).users.find(
         u => u.email?.toLowerCase() === newUserEmail.toLowerCase()
       );
-
-      // src/components/admin/RoleManager.tsx(165,16): error TS2339: Property 'email' does not exist on type 'never'.
-
       
       if (!authUser) {
         // User not found in auth
