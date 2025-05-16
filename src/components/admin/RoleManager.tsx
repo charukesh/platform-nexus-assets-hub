@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,7 +114,7 @@ const RoleManager = () => {
             if (!existingUser) {
               // This user is authorized but doesn't have roles assigned yet
               allUsers.push({
-                id: '', // We don't know the auth.user id yet
+                id: au.id || '', // Use the id from the authorized_users table if available
                 email: au.email,
                 roles: []
               });
