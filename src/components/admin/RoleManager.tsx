@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,12 +55,56 @@ const RoleManager = () => {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("media_planner");
   const [assigningRole, setAssigningRole] = useState(false);
+  
+  // New state to track if we've already added Roshin as admin
+  const [addedRoshinAsAdmin, setAddedRoshinAsAdmin] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
     }
   }, [isAdmin]);
+  
+  // New effect to add Roshin as admin
+  useEffect(() => {
+    const addRoshinAsAdmin = async () => {
+      if (isAdmin && users.length > 0 && !addedRoshinAsAdmin) {
+        const roshinEmail = "roshin@thealteroffice.com";
+        const roshinUser = users.find(
+          user => user.email.toLowerCase() === roshinEmail.toLowerCase()
+        );
+        
+        // Check if Roshin exists in the users list
+        if (roshinUser) {
+          // Check if Roshin already has admin role
+          if (!roshinUser.roles.includes('admin')) {
+            // Add admin role to Roshin
+            try {
+              await addUserRole(roshinUser.id, roshinEmail, 'admin');
+              toast({
+                title: "Admin Role Added",
+                description: `Admin role has been assigned to ${roshinEmail}.`,
+              });
+              setAddedRoshinAsAdmin(true);
+              // Refresh user list
+              fetchUsers();
+            } catch (error) {
+              console.error("Error adding admin role to Roshin:", error);
+            }
+          } else {
+            // Roshin already has admin role
+            setAddedRoshinAsAdmin(true);
+          }
+        } else {
+          // Roshin not found in users list, set email in form
+          setNewUserEmail(roshinEmail);
+          setSelectedRole('admin');
+        }
+      }
+    };
+    
+    addRoshinAsAdmin();
+  }, [isAdmin, users, addedRoshinAsAdmin]);
 
   const fetchUsers = async () => {
     try {
@@ -190,6 +235,11 @@ const RoleManager = () => {
       
       // Assign the selected role
       await addUserRole(authUser.id, newUserEmail, selectedRole);
+      
+      // If this was Roshin and we gave admin role, mark as added
+      if (newUserEmail.toLowerCase() === "roshin@thealteroffice.com" && selectedRole === 'admin') {
+        setAddedRoshinAsAdmin(true);
+      }
       
       // Clear the form
       setNewUserEmail("");
