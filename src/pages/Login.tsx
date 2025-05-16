@@ -94,3 +94,6 @@ const Login = () => {
       </NeuCard>
     </div>
   );
+};
+
+export default Login;
