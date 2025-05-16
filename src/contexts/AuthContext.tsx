@@ -93,39 +93,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadAuthorizedEmails = async () => {
     try {
       console.log("Loading authorized emails...");
-      // Fix: Use a generic query that doesn't depend on typed tables
       const { data, error } = await supabase
         .from('authorized_users')
         .select('email');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading authorized emails:', error);
+        throw error;
+      }
       
       if (data) {
-        const emails = data.map(item => item.email);
+        const emails = data.map(item => item.email.toLowerCase().trim());
         console.log("Authorized emails loaded:", emails);
         setAuthorizedEmails(emails);
       }
     } catch (error) {
       console.error('Error loading authorized emails:', error);
+      toast({
+        title: "Error",
+        description: "Could not load authorized emails.",
+        variant: "destructive"
+      });
     }
   };
 
   const addAuthorizedEmail = async (email: string) => {
     try {
-      console.log("Adding authorized email:", email);
-      // Fix: Use a generic query that doesn't depend on typed tables
+      // Normalize email (lowercase and trim)
+      const normalizedEmail = email.toLowerCase().trim();
+      console.log("Adding authorized email:", normalizedEmail);
+      
+      // Check if email already exists
+      const { data: existingData } = await supabase
+        .from('authorized_users')
+        .select('email')
+        .eq('email', normalizedEmail);
+        
+      if (existingData && existingData.length > 0) {
+        console.log("Email already exists:", normalizedEmail);
+        toast({
+          title: "Email Already Authorized",
+          description: `${normalizedEmail} already has access.`
+        });
+        return;
+      }
+      
       const { error } = await supabase
         .from('authorized_users')
-        .insert({ email });
+        .insert({ email: normalizedEmail });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding authorized email:', error);
+        throw error;
+      }
       
       // Reload the list
       await loadAuthorizedEmails();
       
       toast({
         title: "Email Added",
-        description: `${email} has been granted access.`
+        description: `${normalizedEmail} has been granted access.`
       });
     } catch (error) {
       console.error('Error adding authorized email:', error);
@@ -135,14 +162,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeAuthorizedEmail = async (email: string) => {
     try {
-      console.log("Removing authorized email:", email);
-      // Fix: Use a generic query that doesn't depend on typed tables
+      const normalizedEmail = email.toLowerCase().trim();
+      console.log("Removing authorized email:", normalizedEmail);
+      
       const { error } = await supabase
         .from('authorized_users')
         .delete()
-        .eq('email', email);
+        .eq('email', normalizedEmail);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error removing authorized email:', error);
+        throw error;
+      }
       
       // Reload the list
       await loadAuthorizedEmails();

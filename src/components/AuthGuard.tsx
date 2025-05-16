@@ -39,20 +39,32 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
 
       // Check if user's email is in authorized_users table
       try {
-        console.log("Checking authorization for email:", user.email);
+        const email = user.email ? user.email.toLowerCase().trim() : "";
+        console.log("Checking authorization for email:", email);
         
-        // Fix: Use a generic query that doesn't depend on typed tables
+        if (!email) {
+          console.error("No email found for user");
+          setIsAuthorized(false);
+          setCheckingAuth(false);
+          return;
+        }
+        
+        // Query authorized_users table
         const { data, error } = await supabase
           .from('authorized_users')
           .select('*')
-          .eq('email', user.email);
+          .eq('email', email);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error in authorization check query:", error);
+          throw error;
+        }
         
         console.log("Authorization check result:", data);
         
         // User is authorized if their email is found in the table
         const isEmailAuthorized = data && data.length > 0;
+        console.log("Is email authorized:", isEmailAuthorized);
         setIsAuthorized(isEmailAuthorized);
         
         if (!isEmailAuthorized) {

@@ -28,10 +28,28 @@ const Admin = () => {
     }
   }, [user, loading, isAdmin, navigate]);
 
+  const validateEmail = (email: string) => {
+    return email
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
   const handleAddEmail = async () => {
-    if (!newEmail.trim() || !newEmail.includes('@')) {
+    const trimmedEmail = newEmail.trim();
+    if (!trimmedEmail) {
       toast({
         title: "Invalid Email",
+        description: "Please enter an email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!validateEmail(trimmedEmail)) {
+      toast({
+        title: "Invalid Email Format",
         description: "Please enter a valid email address.",
         variant: "destructive"
       });
@@ -39,8 +57,8 @@ const Admin = () => {
     }
 
     try {
-      await addAuthorizedEmail(newEmail);
-      console.log("Email added successfully:", newEmail);
+      await addAuthorizedEmail(trimmedEmail);
+      console.log("Email added successfully:", trimmedEmail);
       setNewEmail("");
     } catch (error) {
       console.error("Error adding email:", error);
