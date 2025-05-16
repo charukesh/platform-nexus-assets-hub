@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
@@ -12,6 +12,7 @@ const Login = () => {
   const { signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [loginInProgress, setLoginInProgress] = useState(false);
 
   useEffect(() => {
     // Check for auth tokens in URL after OAuth redirect
@@ -25,11 +26,8 @@ const Login = () => {
         
         toast({
           title: "Successfully signed in",
-          description: "Welcome back!",
+          description: "Checking authorization status...",
         });
-        
-        // Navigate to home page
-        navigate('/');
       }
     };
 
@@ -44,6 +42,7 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
+      setLoginInProgress(true);
       console.log("Starting Google login process");
       await signInWithGoogle();
     } catch (error) {
@@ -53,13 +52,16 @@ const Login = () => {
         description: "There was an error signing in with Google.",
         variant: "destructive"
       });
+      setLoginInProgress(false);
     }
   };
 
-  if (loading) {
+  if (loading || loginInProgress) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-neugray-100 dark:bg-gray-900">
-        <div className="animate-pulse text-xl font-medium">Loading...</div>
+        <div className="animate-pulse text-xl font-medium">
+          {loginInProgress ? "Signing in..." : "Loading..."}
+        </div>
       </div>
     );
   }
@@ -86,6 +88,7 @@ const Login = () => {
             className="w-full flex items-center justify-center gap-2 py-6 text-base"
             onClick={handleGoogleLogin}
             type="button"
+            disabled={loginInProgress}
           >
             <Mail size={20} />
             Sign in with Google

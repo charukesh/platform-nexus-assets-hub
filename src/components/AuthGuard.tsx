@@ -25,6 +25,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
         return;
       }
 
+      console.log("Checking authorization for user:", user.email);
+
+      // If user is admin, they're always authorized
       if (requireAdmin && !isAdmin) {
         console.log("Admin required but user is not admin");
         setIsAuthorized(false);
@@ -40,7 +43,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
         return;
       }
 
-      // Check if user's email is in authorized_users table
+      // For non-admin users, check if email is in authorized_users table
       try {
         if (!user.email) {
           console.error("No email found for user");
@@ -52,42 +55,34 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
         const email = user.email.toLowerCase().trim();
         console.log("Checking authorization for email:", email);
         
-        // Query authorized_users table
+        // Directly query authorized_users table to check if user's email exists
         const { data, error } = await supabase
           .from('authorized_users')
-          .select('*')
+          .select('email')
           .eq('email', email);
-
+        
         if (error) {
-          console.error("Error in authorization check query:", error);
+          console.error("Error checking authorization:", error);
           throw error;
         }
         
         console.log("Authorization check result:", data);
         
         // User is authorized if their email is found in the table
-        const isEmailAuthorized = data && data.length > 0;
-        console.log("Is email authorized:", isEmailAuthorized);
+        const emailFound = data && data.length > 0;
+        console.log("Email found in authorized_users table:", emailFound);
         
-        if (!isEmailAuthorized) {
+        if (!emailFound) {
           console.log("Email not found in authorized_users table");
           
-          // Double check by running a raw query to see all emails
-          const { data: allEmails, error: allEmailsError } = await supabase
+          // Additional debugging: retrieve all authorized emails
+          const { data: allEmails } = await supabase
             .from('authorized_users')
             .select('email');
             
-          if (allEmailsError) {
-            console.error("Error fetching all emails:", allEmailsError);
-          } else {
-            console.log("All authorized emails in database:", allEmails);
+          if (allEmails) {
+            console.log("All authorized emails in database:", allEmails.map(item => item.email));
             console.log("Looking for:", email);
-            
-            // Manual check for the email
-            const matchFound = allEmails.some(item => 
-              item.email.toLowerCase().trim() === email
-            );
-            console.log("Manual check result:", matchFound);
           }
           
           toast({
@@ -98,9 +93,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
           
           // Sign out unauthorized user
           await supabase.auth.signOut();
+        } else {
+          console.log("User is authorized!");
+          toast({
+            title: "Welcome",
+            description: "You've been successfully authorized.",
+          });
         }
         
-        setIsAuthorized(isEmailAuthorized);
+        setIsAuthorized(emailFound);
       } catch (error) {
         console.error("Error checking authorization:", error);
         setIsAuthorized(false);
