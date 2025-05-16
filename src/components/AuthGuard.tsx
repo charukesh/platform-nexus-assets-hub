@@ -56,11 +56,49 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
         const email = user.email.toLowerCase().trim();
         console.log("Checking authorization for normalized email:", email);
         
-        // Directly query authorized_users table to check if user's email exists
+        // First check if any authorized users exist at all
+        const { count: totalCount, error: countError } = await supabase
+          .from('authorized_users')
+          .select('*', { count: 'exact', head: true });
+          
+        if (countError) {
+          console.error("Error checking total authorized users:", countError);
+          throw countError;
+        }
+        
+        console.log("Total authorized users in database:", totalCount);
+        
+        // If there are no users in the table and the current user is logged in,
+        // automatically authorize them as the first user (and make them admin)
+        if (totalCount === 0) {
+          console.log("No authorized users found. Authorizing first user and making them admin.");
+          
+          // Add the current user as the first authorized user
+          const { error: insertError } = await supabase
+            .from('authorized_users')
+            .insert({ email });
+            
+          if (insertError) {
+            console.error("Error adding first authorized user:", insertError);
+            throw insertError;
+          }
+          
+          toast({
+            title: "First User Setup",
+            description: "You've been authorized as the first user of the system.",
+          });
+          
+          setIsAuthorized(true);
+          setCheckingAuth(false);
+          return;
+        }
+        
+        // Now query for this specific user
+        // Use case-insensitive search with ILIKE
         const { data, error } = await supabase
           .from('authorized_users')
           .select('email')
-          .eq('email', email);
+          .ilike('email', email);
         
         if (error) {
           console.error("Error checking authorization:", error);
@@ -82,14 +120,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requireAdmin = false })
             .select('email');
             
           console.log("All authorized emails:", allAuthorizedEmails);
-          
-          // Compare the emails exactly to see if there's a case or whitespace issue
-          if (allAuthorizedEmails && allAuthorizedEmails.length > 0) {
-            const authorizedEmailList = allAuthorizedEmails.map(e => e.email.toLowerCase().trim());
-            console.log("Normalized authorized emails:", authorizedEmailList);
-            console.log("Looking for normalized email:", email);
-            console.log("Exact match check:", authorizedEmailList.includes(email));
-          }
           
           toast({
             title: "Access Denied",

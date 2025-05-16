@@ -27,6 +27,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const ADMIN_EMAIL = "charu@thealteroffice.com";
 
+  // Clean up any leftover Supabase auth state
+  const cleanupAuthState = () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        console.log("Cleaning up auth key:", key);
+        localStorage.removeItem(key);
+      }
+    });
+    
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        console.log("Cleaning up session key:", key);
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -40,6 +57,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAdmin(true);
         } else {
           setIsAdmin(false);
+        }
+        
+        // If just signed out, clean up state
+        if (event === 'SIGNED_OUT') {
+          cleanupAuthState();
         }
       }
     );
@@ -69,10 +91,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const redirectTo = `${window.location.origin}`;
     console.log("Signing in with Google, redirect to:", redirectTo);
     
+    // Clean up existing auth state first
+    cleanupAuthState();
+    
+    // Try to sign out first to clear any existing sessions
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.log("Error during pre-login signout:", e);
+      // Continue even if this fails
+    }
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo
+        redirectTo,
+        queryParams: {
+          prompt: 'select_account' // Force account selection
+        }
       }
     });
     
@@ -83,10 +119,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
-      throw error;
+    try {
+      // Clean up auth state
+      cleanupAuthState();
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error during signout:', error);
+      // Force clean state even if API call fails
+      cleanupAuthState();
     }
   };
 
@@ -127,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: existingData, error: checkError } = await supabase
         .from('authorized_users')
         .select('email')
-        .eq('email', normalizedEmail);
+        .ilike('email', normalizedEmail);
       
       if (checkError) {
         console.error('Error checking if email exists:', checkError);
@@ -181,7 +226,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase
         .from('authorized_users')
         .delete()
-        .eq('email', normalizedEmail);
+        .ilike('email', normalizedEmail);
       
       if (error) {
         console.error('Error removing authorized email:', error);

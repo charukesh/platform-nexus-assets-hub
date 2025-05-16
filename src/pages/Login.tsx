@@ -15,6 +15,23 @@ const Login = () => {
   const [loginInProgress, setLoginInProgress] = useState(false);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
 
+  // Clean up any leftover Supabase auth state
+  const cleanupAuthState = () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        console.log("Cleaning up auth key:", key);
+        localStorage.removeItem(key);
+      }
+    });
+    
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        console.log("Cleaning up session key:", key);
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
+
   useEffect(() => {
     // Check for auth tokens in URL after OAuth redirect
     const handleRedirectResult = async () => {
@@ -26,8 +43,6 @@ const Login = () => {
         window.history.replaceState(null, document.title, window.location.pathname);
         
         setAuthMessage("Successfully signed in. Checking authorization...");
-        
-        // We don't navigate here - let the auth check process handle it
       }
     };
 
@@ -48,17 +63,52 @@ const Login = () => {
         
         // For non-admin users, check the database
         try {
-          const normalizedEmail = user.email?.toLowerCase().trim();
+          if (!user.email) {
+            console.error("No email found for user");
+            return;
+          }
+          
+          const normalizedEmail = user.email.toLowerCase().trim();
           console.log("Checking authorization for:", normalizedEmail);
           
+          // First check if any users exist in the authorized_users table
+          const { count, error: countError } = await supabase
+            .from('authorized_users')
+            .select('*', { count: 'exact', head: true });
+            
+          if (countError) {
+            console.error("Error checking total authorized users:", countError);
+            return;
+          }
+          
+          console.log("Total authorized users:", count);
+          
+          // If no users exist, add the current user as the first authorized user
+          if (count === 0) {
+            console.log("No authorized users found. Adding current user as first authorized user.");
+            
+            const { error: insertError } = await supabase
+              .from('authorized_users')
+              .insert({ email: normalizedEmail });
+              
+            if (insertError) {
+              console.error("Error adding first authorized user:", insertError);
+              return;
+            }
+            
+            console.log("First user added to authorized_users table");
+            navigate('/');
+            return;
+          }
+          
+          // Use case-insensitive search with ILIKE
           const { data, error } = await supabase
             .from('authorized_users')
             .select('email')
-            .eq('email', normalizedEmail);
+            .ilike('email', normalizedEmail);
             
           if (error) {
             console.error("Error checking authorization:", error);
-            setAuthMessage("Error checking authorization. Please try again.");
             return;
           }
           
@@ -77,7 +127,6 @@ const Login = () => {
           } else {
             console.log("User is not authorized");
             setAuthMessage("Your email is not authorized. Please contact an administrator.");
-            // Don't sign out here - the AuthGuard will handle this
           }
         } catch (e) {
           console.error("Error in authorization check:", e);
@@ -93,6 +142,18 @@ const Login = () => {
       setLoginInProgress(true);
       setAuthMessage("Starting Google login process...");
       console.log("Starting Google login process");
+      
+      // Clean up existing auth state first
+      cleanupAuthState();
+      
+      // Try to sign out first to clear any existing sessions
+      try {
+        await supabase.auth.signOut();
+      } catch (e) {
+        console.log("Error during pre-login signout:", e);
+        // Continue even if this fails
+      }
+      
       await signInWithGoogle();
       // Don't reset loginInProgress here as we want to show loading until redirect happens
     } catch (error) {
