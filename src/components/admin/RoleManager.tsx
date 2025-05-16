@@ -54,56 +54,12 @@ const RoleManager = () => {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("media_planner");
   const [assigningRole, setAssigningRole] = useState(false);
-  
-  // State to track if we've already added Charu as admin
-  const [addedCharuAsAdmin, setAddedCharuAsAdmin] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
       fetchUsers();
     }
   }, [isAdmin]);
-  
-  // Effect to add Charu as admin
-  useEffect(() => {
-    const addCharuAsAdmin = async () => {
-      if (isAdmin && users.length > 0 && !addedCharuAsAdmin) {
-        const charuEmail = "charu@thealteroffice.com";
-        const charuUser = users.find(
-          user => user.email.toLowerCase() === charuEmail.toLowerCase()
-        );
-        
-        // Check if Charu exists in the users list
-        if (charuUser) {
-          // Check if Charu already has admin role
-          if (!charuUser.roles.includes('admin')) {
-            // Add admin role to Charu
-            try {
-              await addUserRole(charuUser.id, charuEmail, 'admin');
-              toast({
-                title: "Admin Role Added",
-                description: `Admin role has been assigned to ${charuEmail}.`,
-              });
-              setAddedCharuAsAdmin(true);
-              // Refresh user list
-              fetchUsers();
-            } catch (error) {
-              console.error("Error adding admin role to Charu:", error);
-            }
-          } else {
-            // Charu already has admin role
-            setAddedCharuAsAdmin(true);
-          }
-        } else {
-          // Charu not found in users list, set email in form
-          setNewUserEmail(charuEmail);
-          setSelectedRole('admin');
-        }
-      }
-    };
-    
-    addCharuAsAdmin();
-  }, [isAdmin, users, addedCharuAsAdmin]);
 
   const fetchUsers = async () => {
     try {
@@ -234,11 +190,6 @@ const RoleManager = () => {
       
       // Assign the selected role
       await addUserRole(authUser.id, newUserEmail, selectedRole);
-      
-      // If this was Charu and we gave admin role, mark as added
-      if (newUserEmail.toLowerCase() === "charu@thealteroffice.com" && selectedRole === 'admin') {
-        setAddedCharuAsAdmin(true);
-      }
       
       // Clear the form
       setNewUserEmail("");
