@@ -16,8 +16,11 @@ import Analytics from "./pages/Analytics";
 import MediaPlanGenerator from "./pages/MediaPlanGenerator";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Admin from "./pages/Admin";
 import React, { useEffect } from "react";
-import PageTransition from "./components/PageTransition";
+import { AuthProvider } from "./contexts/AuthContext";
+import AuthGuard from "./components/AuthGuard";
 
 // Create the query client outside the component
 const queryClient = new QueryClient();
@@ -42,19 +45,26 @@ const AnimatedRoutes = () => {
   
   return (
     <Routes location={location} key={location.pathname}>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/platforms" element={<Platforms />} />
-      <Route path="/platforms/new" element={<PlatformForm />} />
-      <Route path="/platforms/:id" element={<PlatformDetail />} />
-      <Route path="/platforms/:id/edit" element={<PlatformForm />} />
-      <Route path="/assets" element={<AssetsManagement />} />
-      <Route path="/assets/new" element={<AssetForm />} />
-      <Route path="/assets/:id" element={<AssetDetail />} />
-      <Route path="/assets/:id/edit" element={<AssetForm />} />
-      <Route path="/analytics" element={<Analytics />} />
-      <Route path="/media-plan" element={<MediaPlanGenerator />} />
-      <Route path="/settings" element={<Settings />} />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Protected routes */}
+      <Route path="/" element={<AuthGuard><Dashboard /></AuthGuard>} />
+      <Route path="/platforms" element={<AuthGuard><Platforms /></AuthGuard>} />
+      <Route path="/platforms/new" element={<AuthGuard><PlatformForm /></AuthGuard>} />
+      <Route path="/platforms/:id" element={<AuthGuard><PlatformDetail /></AuthGuard>} />
+      <Route path="/platforms/:id/edit" element={<AuthGuard><PlatformForm /></AuthGuard>} />
+      <Route path="/assets" element={<AuthGuard><AssetsManagement /></AuthGuard>} />
+      <Route path="/assets/new" element={<AuthGuard><AssetForm /></AuthGuard>} />
+      <Route path="/assets/:id" element={<AuthGuard><AssetDetail /></AuthGuard>} />
+      <Route path="/assets/:id/edit" element={<AuthGuard><AssetForm /></AuthGuard>} />
+      <Route path="/analytics" element={<AuthGuard><Analytics /></AuthGuard>} />
+      <Route path="/media-plan" element={<AuthGuard><MediaPlanGenerator /></AuthGuard>} />
+      <Route path="/settings" element={<AuthGuard><Settings /></AuthGuard>} />
+      
+      {/* Admin route - requires isAdmin=true */}
+      <Route path="/admin" element={<AuthGuard requireAdmin={true}><Admin /></AuthGuard>} />
+      
+      {/* Catch-all route */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -65,13 +75,15 @@ const App = () => {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="system" storageKey="mobistack-theme">
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AnimatedRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AnimatedRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>

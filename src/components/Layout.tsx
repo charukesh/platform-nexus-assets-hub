@@ -1,17 +1,19 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Home, Database, FileImage, BarChart4, Settings, Menu, X } from "lucide-react";
+import { Home, Database, FileImage, BarChart4, Settings, Menu, X, Shield, LogOut } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/components/ThemeProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Disclaimer from "@/components/Disclaimer";
 import PageTransition from "@/components/PageTransition";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "./ui/button";
 
 const navItems = [
   {
-    name: "Create Plan", // Updated from "Dashboard"
+    name: "Create Plan", 
     path: "/",
     icon: Home
   },
@@ -43,9 +45,11 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile);
   const { theme } = useTheme();
+  const { isAdmin, user, signOut } = useAuth();
 
   React.useEffect(() => {
     // Close sidebar on mobile when changing routes
@@ -62,6 +66,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       return true;
     }
     return false;
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (
@@ -117,10 +130,44 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </Link>
             );
           })}
+
+          {/* Admin link - only shown if user is admin */}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={cn(
+                "flex items-center p-3 rounded-lg transition-all duration-300",
+                isActive("/admin") 
+                  ? "neu-pressed text-primary dark:bg-gray-800 dark:text-blue-400 font-medium" 
+                  : "neu-flat hover:shadow-neu-pressed dark:bg-gray-800 dark:hover:bg-gray-700"
+              )}
+            >
+              <Shield size={18} className={cn("mr-2", isActive("/admin") ? "text-primary dark:text-blue-400" : "")} />
+              <span>Admin</span>
+            </Link>
+          )}
         </nav>
 
-        <div className="mt-8 flex justify-end">
-          <ThemeToggle />
+        <div className="mt-8 space-y-4">
+          {/* User info and logout */}
+          {user && (
+            <div className="neu-flat dark:bg-gray-800 p-3 rounded-lg">
+              <div className="text-sm font-medium truncate mb-2">{user.email}</div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full flex items-center justify-center gap-2"
+                onClick={handleLogout}
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </Button>
+            </div>
+          )}
+          
+          <div className="flex justify-end">
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
 
