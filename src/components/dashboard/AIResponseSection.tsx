@@ -112,6 +112,14 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
               } catch (e) {
                 // Not valid JSON, that's fine
               }
+              
+              // Extract data from Markdown tables if present
+              const extractedData = extractTableDataFromMarkdown(contentText);
+              if (extractedData.length > 0) {
+                console.log("Setting table data from Markdown tables:", extractedData);
+                setTableData(processMediaPlanData(extractedData));
+                foundTableData = true;
+              }
             }
           } catch (error) {
             console.error("Error parsing JSON data:", error);
@@ -131,6 +139,96 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       setTableData([]);
     }
   }, [searchResults]);
+
+  // Function to extract table data from markdown
+  const extractTableDataFromMarkdown = (markdown: string): MediaPlanItem[] => {
+    const tableRegex = /\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|/g;
+    const headerRegex = /\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|/;
+    
+    const tables = markdown.split(/##\s*OPTION/);
+    
+    let result: MediaPlanItem[] = [];
+    
+    tables.forEach(tableSection => {
+      // Skip sections without tables
+      if (!tableSection.includes("|")) return;
+      
+      const lines = tableSection.split("\n").filter(line => line.trim().length > 0 && line.includes("|"));
+      
+      // Skip if not enough lines for a table (header, separator, and at least one row)
+      if (lines.length < 3) return;
+      
+      // Extract header
+      const headerMatch = lines[0].match(headerRegex);
+      if (!headerMatch) return;
+      
+      // Create header mapping, removing leading/trailing spaces and normalizing
+      const headers = headerMatch.slice(1).map(header => {
+        const clean = header.trim().toLowerCase()
+          .replace(/\s+/g, " ")
+          .replace(/\s([a-z])/g, (_, letter) => letter.toUpperCase())
+          .replace(/^([a-z])/, (_, letter) => letter.toLowerCase());
+        
+        // Normalize common header variations
+        if (clean.includes("platform")) return "platform";
+        if (clean.includes("asset") && clean.includes("name")) return "assetName";
+        if (clean.includes("industry")) return "platformIndustry";
+        if (clean.includes("buy") && clean.includes("type")) return "buyType";
+        if (clean.includes("base") && clean.includes("cost")) return "baseCost";
+        if (clean.includes("ctr")) return "ctr";
+        if (clean.includes("click") && !clean.includes("est")) return "clicks";
+        if (clean.includes("click") && clean.includes("est")) return "estClicks";
+        if (clean.includes("impression") && clean.includes("est")) return "estImpressions";
+        if (clean.includes("budget") && clean.includes("%")) return "budgetPercent";
+        if (clean.includes("budget") && clean.includes("amount")) return "budgetAmount";
+        
+        return clean;
+      });
+      
+      // Skip separator line
+      const dataLines = lines.slice(2);
+      
+      // Process each data row
+      dataLines.forEach(line => {
+        // Skip separator lines
+        if (line.includes("---") || !line.includes("|")) return;
+        
+        const rowMatch = line.match(tableRegex);
+        if (!rowMatch) return;
+        
+        const values = line.split("|")
+          .map(cell => cell.trim())
+          .filter(cell => cell.length > 0);
+        
+        if (values.length < headers.length) return;
+        
+        const row: MediaPlanItem = {};
+        
+        // Map values to headers
+        headers.forEach((header, index) => {
+          if (header && values[index]) {
+            // Convert numeric values
+            let value = values[index];
+            if (value === "N/A") {
+              row[header] = "N/A";
+            } else if (
+              ["baseCost", "budgetAmount", "estClicks", "estImpressions", "budgetPercent"].includes(header)
+            ) {
+              // Remove non-numeric characters except decimal points
+              const numericValue = value.replace(/[^\d.]/g, "");
+              row[header] = numericValue ? parseFloat(numericValue) : value;
+            } else {
+              row[header] = value;
+            }
+          }
+        });
+        
+        result.push(row);
+      });
+    });
+    
+    return result;
+  };
 
   // Process and calculate missing values in media plan data
   const processMediaPlanData = (data: MediaPlanItem[]): MediaPlanItem[] => {
@@ -202,19 +300,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         processedItem.estClicks = Math.round(processedItem.budgetAmount / processedItem.baseCost);
       }
       
-      // Calculate estImpressions for CPM items
-      if (
-        processedItem.buyType && 
-        processedItem.buyType.toUpperCase() === "CPM" && 
-        processedItem.budgetAmount && 
-        processedItem.baseCost && 
-        typeof processedItem.budgetAmount === "number" && 
-        typeof processedItem.baseCost === "number" && 
-        processedItem.baseCost > 0
-      ) {
-        processedItem.estImpressions = Math.round((processedItem.budgetAmount * 1000) / processedItem.baseCost);
-      }
-      
       return processedItem;
     });
   };
@@ -267,7 +352,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           typeof row.baseCost === "number" && 
           row.baseCost > 0
         ) {
-          // Fix: Calculate estClicks as budget amount divided by base cost
           updatedData[rowIndex].estClicks = Math.round(newValue / row.baseCost);
         }
         
@@ -292,7 +376,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           row.budgetAmount && 
           typeof row.budgetAmount === "number"
         ) {
-          // Fix: Calculate estClicks as budget amount divided by base cost
           updatedData[rowIndex].estClicks = Math.round(row.budgetAmount / newValue);
         }
         
@@ -317,48 +400,40 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   };
 
   const formatValue = (value: any, key: string): string => {
-    if (value === undefined || value === null) return "-";
+    if (value === undefined || value === null || value === "") return "-";
     
-    if (key === "budget" || key === "budgetAmount") {
+    if (key === "budgetAmount") {
       return typeof value === "number" 
-        ? `$${value.toLocaleString()}` 
-        : value.toString().startsWith("$") 
+        ? `₹${value.toLocaleString()}` 
+        : value.toString().startsWith("₹") || value.toString().startsWith("$")
           ? value.toString() 
-          : `$${value}`;
+          : `₹${value}`;
     }
     
-    if (key === "ctr" || key === "conversionRate") {
+    if (key === "baseCost") {
+      return typeof value === "number" 
+        ? `₹${value}` 
+        : value.toString().startsWith("₹") || value.toString().startsWith("$")
+          ? value.toString() 
+          : `₹${value}`;
+    }
+    
+    if (key === "budgetPercent" || key === "ctr") {
       const numValue = typeof value === "number" ? value : parseFloat(value);
       if (!isNaN(numValue)) {
-        // Convert from decimal to percentage (e.g., 0.05 to 5%)
-        return `${(numValue * 100).toFixed(2)}%`;
+        // Convert from decimal to percentage if needed
+        return numValue > 1 ? `${numValue}%` : `${(numValue * 100).toFixed(2)}%`;
       }
       return value.toString().endsWith("%") ? value.toString() : `${value}%`;
     }
     
-    if (key === "impressions" || key === "clicks" || key === "conversions" || key === "estClicks" || key === "estImpressions") {
+    if (key === "estImpressions" || key === "estClicks") {
       return typeof value === "number" 
         ? value.toLocaleString() 
         : value.toString();
     }
     
-    if (key === "cpc" || key === "cpa" || key === "baseCost") {
-      const numValue = typeof value === "number" ? value : parseFloat(value);
-      if (!isNaN(numValue)) {
-        return `$${numValue.toFixed(2)}`;
-      }
-      return value.toString().startsWith("$") ? value.toString() : `$${value}`;
-    }
-    
     return value.toString();
-  };
-
-  const isBudgetColumn = (key: string): boolean => {
-    return key === "budget" || 
-           key === "budgetAmount" ||
-           key.toLowerCase().includes("budget") || 
-           key.toLowerCase().includes("spend") || 
-           key.toLowerCase().includes("cost");
   };
 
   const isEditableColumn = (key: string): boolean => {
@@ -368,25 +443,23 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const renderQueryAnalysis = () => {
     if (!searchBrief || !searchResults) return null;
     
-    // Extract budget from search brief (this is simplified - could be improved)
+    // Extract location from search brief
+    const locationMatch = searchBrief.match(/\b(bangalore|banglore|bengaluru|karnataka)\b/i);
+    const location = locationMatch ? locationMatch[0].charAt(0).toUpperCase() + locationMatch[0].slice(1) : "Not specified";
+    
+    // Extract budget from search brief
     const budgetMatch = searchBrief.match(/(\d+)[Ll]\s*budget/);
-    const budget = budgetMatch ? budgetMatch[1] : "Not specified";
-
-    const mainKeywordMatch = searchBrief.match(/for\s+(\w+)/);
-    const mainKeyword = mainKeywordMatch ? mainKeywordMatch[1] : "Not specified";
+    const budget = budgetMatch ? budgetMatch[1] + "L" : "Not specified";
     
     return (
       <div className="mb-6 space-y-3">
-        <h2 className="text-xl font-semibold">1. Query Analysis</h2>
+        <h2 className="text-xl font-semibold">Query Analysis</h2>
         <ul className="list-disc pl-5 space-y-2">
-          <li><span className="font-medium">Budget requirements:</span> {budget}L</li>
-          <li><span className="font-medium">Number of assets requested:</span> Not specified; default to max 3 per plan as per instructions</li>
-          <li><span className="font-medium">Number of platforms requested:</span> Not specified; default to diversity for reach</li>
-          <li><span className="font-medium">Industry filtering:</span> None specified; all industries allowed</li>
-          <li><span className="font-medium">Budget allocation preferences:</span> None specified; use standard splits per plan type</li>
-          <li><span className="font-medium">Platform prioritization:</span> None specified</li>
-          <li><span className="font-medium">Targeting requirements:</span> No specific geographic, demographic, interest, or behavioral targeting mentioned in the query</li>
-          <li><span className="font-medium">Other notes:</span> {mainKeyword} is a mass-market consumer electronics brand. Plans should balance reach, engagement, and relevance across high-traffic and contextually relevant digital platforms.</li>
+          <li><span className="font-medium">Geographic targeting:</span> {location}</li>
+          <li><span className="font-medium">Budget requirements:</span> {budget}</li>
+          <li><span className="font-medium">Number of assets requested:</span> Not specified; default to max 3 per plan</li>
+          <li><span className="font-medium">Platforms/Industries requested:</span> Not specified; all industries allowed</li>
+          <li><span className="font-medium">Targeting requirements:</span> No specific demographic, interest, or behavioral targeting mentioned</li>
         </ul>
       </div>
     );
@@ -395,21 +468,53 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const renderMediaPlanTable = () => {
     if (tableData.length === 0) return null;
     
-    // Extract headers from the data
-    const headers = Object.keys(tableData[0]).filter(key => key !== 'id' && key !== 'key');
+    // Extract headers from the data, normalizing key names
+    const priorityHeaders = [
+      "platform", "assetName", "platformIndustry", "buyType", "baseCost", 
+      "ctr", "estClicks", "estImpressions", "budgetPercent", "budgetAmount"
+    ];
+    
+    // Get all available keys from the data
+    const allKeys = new Set<string>();
+    tableData.forEach(item => {
+      Object.keys(item).forEach(key => allKeys.add(key));
+    });
+    
+    // Order headers with priority headers first, then any others
+    const headers = [
+      ...priorityHeaders.filter(key => Array.from(allKeys).some(k => k === key)),
+      ...Array.from(allKeys).filter(key => !priorityHeaders.includes(key))
+    ];
     
     // Calculate totals for numeric columns
     const totals: { [key: string]: number } = {};
     headers.forEach(header => {
-      if (tableData.every(item => typeof item[header] === "number" || !isNaN(Number(item[header])))) {
+      // Only calculate totals for these specific columns
+      if (["budgetAmount", "estClicks", "estImpressions"].includes(header)) {
         totals[header] = tableData.reduce((sum, item) => {
           const value = typeof item[header] === "number" 
             ? item[header] as number 
-            : Number(item[header]);
+            : typeof item[header] === "string" 
+              ? parseFloat(item[header].replace(/[^\d.]/g, ""))
+              : 0;
           return sum + (isNaN(value) ? 0 : value);
         }, 0);
       }
     });
+    
+    // Clean up header display names
+    const headerDisplayNames: { [key: string]: string } = {
+      platform: "Platform",
+      assetName: "Asset Name",
+      platformIndustry: "Platform Industry",
+      buyType: "Buy Type",
+      baseCost: "Base Cost (₹)",
+      ctr: "CTR %",
+      estClicks: "Est. Clicks",
+      estImpressions: "Est. Impressions",
+      budgetPercent: "Budget %",
+      budgetAmount: "Budget Amount (₹)"
+    };
     
     return (
       <div>
@@ -424,8 +529,9 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           <TableHeader>
             <TableRow>
               {headers.map(header => (
-                <TableHead key={header} className="font-semibold capitalize">
-                  {header.replace(/([A-Z])/g, " $1").trim()}
+                <TableHead key={header} className="font-semibold">
+                  {headerDisplayNames[header] || 
+                   header.replace(/([A-Z])/g, " $1").trim().replace(/^./, str => str.toUpperCase())}
                 </TableHead>
               ))}
             </TableRow>
@@ -478,7 +584,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                   <TableCell key={`total-${header}`}>
                     {totals[header] !== undefined 
                       ? formatValue(totals[header], header)
-                      : ""}
+                      : header === "platform" ? "TOTAL" : ""}
                   </TableCell>
                 ))}
               </TableRow>
@@ -494,14 +600,16 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     
     return (
       <div className="mt-6">
-        <p className="text-base leading-relaxed">
-          {searchBrief && searchBrief.toLowerCase().includes('samsung') ? (
+        <h2 className="text-xl font-semibold">Marketing Strategy</h2>
+        <p className="text-base leading-relaxed mt-2">
+          {searchBrief && searchBrief.toLowerCase().includes('bangalore') ? (
             <>
-              Samsung is a global leader in electronics, and for a {searchBrief.match(/(\d+)[Ll]/)?.[1]}L budget, 
-              the goal is to maximize reach and engagement across platforms where tech-savvy, urban, and aspirational 
-              consumers spend their digital time. The plans above leverage assets with strong digital presence and targeting 
-              options, mixing high-impact placements and contextual relevance to drive both awareness and action. Each plan 
-              offers a unique mix for different marketing priorities.
+              This media plan focuses on digital assets with precise city-level targeting for Bangalore, 
+              ensuring your message reaches the right audience in this tech-savvy urban market. 
+              The selected platforms represent key touchpoints in the daily digital journey of Bangalore consumers,
+              from food delivery apps to entertainment discovery and music streaming services.
+              Budget allocation is optimized to balance awareness and conversion opportunities across these
+              high-engagement platforms.
             </>
           ) : (
             <>
@@ -519,15 +627,42 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const renderMarkdownContent = () => {
     if (!markdownContent) return null;
     
+    // Extract only the recommendation and next steps sections if they exist
+    const recommendationMatch = markdownContent.match(/##\s*Recommendation([\s\S]*?)(?=##|$)/i);
+    const nextStepsMatch = markdownContent.match(/##\s*Next Steps([\s\S]*?)(?=##|$)/i);
+    
+    const recommendation = recommendationMatch ? recommendationMatch[1].trim() : "";
+    const nextSteps = nextStepsMatch ? nextStepsMatch[1].trim() : "";
+    
+    if (!recommendation && !nextSteps) return null;
+    
     return (
-      <div className="mt-4">
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]} 
-          rehypePlugins={[rehypeRaw]} 
-          className="prose prose-sm max-w-full dark:prose-invert"
-        >
-          {markdownContent || "No content received"}
-        </ReactMarkdown>
+      <div className="mt-6 space-y-4">
+        {recommendation && (
+          <div>
+            <h2 className="text-xl font-semibold">Recommendation</h2>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeRaw]} 
+              className="prose prose-sm max-w-full dark:prose-invert mt-2"
+            >
+              {recommendation}
+            </ReactMarkdown>
+          </div>
+        )}
+        
+        {nextSteps && (
+          <div>
+            <h2 className="text-xl font-semibold">Next Steps</h2>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeRaw]} 
+              className="prose prose-sm max-w-full dark:prose-invert mt-2"
+            >
+              {nextSteps}
+            </ReactMarkdown>
+          </div>
+        )}
       </div>
     );
   };
@@ -546,7 +681,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         {/* Render strategy text if table data is available */}
         {tableData.length > 0 && renderStrategyText()}
         
-        {/* Always render markdown content if available */}
+        {/* Render markdown content (recommendation and next steps) if available */}
         {renderMarkdownContent()}
       </div>
     );
