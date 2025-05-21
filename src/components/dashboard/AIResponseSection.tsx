@@ -48,43 +48,79 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   const [tableData, setTableData] = useState<MediaPlanItem[]>([]);
+  const [markdownContent, setMarkdownContent] = useState<string>("");
   
   useEffect(() => {
-    // Parse and set table data if searchResults contain media plan JSON data
+    // Process search results for both table data and markdown content
     if (searchResults) {
       try {
+        // Extract markdown content first
+        let contentText = "";
+        if (searchResults.choices && searchResults.choices[0]?.message?.content) {
+          contentText = searchResults.choices[0].message.content;
+        } else if (searchResults.rawResponse?.choices?.[0]?.message?.content) {
+          contentText = searchResults.rawResponse.choices[0].message.content;
+        } else if (typeof searchResults === 'string') {
+          contentText = searchResults;
+        } else if (searchResults.content) {
+          contentText = searchResults.content;
+        }
+        
+        // Clean and store markdown content
+        const cleanContent = contentText.replace(/```json\s*[\s\S]*?\s*```/g, '');
+        const emojifiedContent = emoji.emojify(cleanContent);
+        setMarkdownContent(emojifiedContent);
+        
+        // Now try to extract table data
+        let foundTableData = false;
+        
         // First check if it's our expected format from Supabase
         if (searchResults.mediaPlan && Array.isArray(searchResults.mediaPlan)) {
           console.log("Setting table data from mediaPlan array:", searchResults.mediaPlan);
           setTableData(searchResults.mediaPlan);
+          foundTableData = true;
         } 
         // Check if it's from the raw OpenAI response
-        else if (searchResults.choices && searchResults.choices[0]?.message?.content) {
-          const content = searchResults.choices[0].message.content;
+        else if (contentText) {
           try {
             // Try to find and parse JSON in the content
-            const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+            const jsonMatch = contentText.match(/```json\s*([\s\S]*?)\s*```/);
             if (jsonMatch && jsonMatch[1]) {
               const parsedData = JSON.parse(jsonMatch[1]);
               if (Array.isArray(parsedData)) {
                 console.log("Setting table data from JSON match:", parsedData);
                 setTableData(parsedData);
+                foundTableData = true;
               }
             } else {
               // Try parsing the entire content as JSON
-              const parsedData = JSON.parse(content);
-              if (Array.isArray(parsedData)) {
-                console.log("Setting table data from direct JSON parse:", parsedData);
-                setTableData(parsedData);
+              try {
+                const parsedData = JSON.parse(contentText);
+                if (Array.isArray(parsedData)) {
+                  console.log("Setting table data from direct JSON parse:", parsedData);
+                  setTableData(parsedData);
+                  foundTableData = true;
+                }
+              } catch (e) {
+                // Not valid JSON, that's fine
               }
             }
           } catch (error) {
             console.error("Error parsing JSON data:", error);
           }
         }
+        
+        if (!foundTableData) {
+          // Clear any previous table data
+          setTableData([]);
+        }
       } catch (error) {
         console.error("Error processing search results:", error);
       }
+    } else {
+      // Clear states when no results
+      setMarkdownContent("");
+      setTableData([]);
     }
   }, [searchResults]);
 
@@ -349,7 +385,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   };
 
   const renderStrategyText = () => {
-    if (!searchResults || tableData.length === 0) return null;
+    if (!searchResults) return null;
     
     return (
       <div className="mt-6">
@@ -375,27 +411,8 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     );
   };
 
-  const renderAIResponse = () => {
-    if (!searchResults) return null;
-    
-    if (tableData.length > 0) {
-      return (
-        <div className="space-y-6">
-          {renderQueryAnalysis()}
-          {renderMediaPlanTable()}
-          {renderStrategyText()}
-        </div>
-      );
-    }
-    
-    // Fallback to standard markdown rendering if no table data
-    const content = searchResults.choices?.[0]?.message?.content || 
-                   (searchResults.rawResponse?.choices?.[0]?.message?.content) || '';
-    
-    // Remove any JSON blocks from the content for rendering
-    const cleanContent = content.replace(/```json\s*[\s\S]*?\s*```/g, '');
-    // Emojify markdown content (convert :shortcode: to emoji)
-    const emojifiedContent = emoji.emojify(cleanContent);
+  const renderMarkdownContent = () => {
+    if (!markdownContent) return null;
     
     return (
       <div className="mt-4">
@@ -404,8 +421,28 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           rehypePlugins={[rehypeRaw]} 
           className="prose prose-sm max-w-full dark:prose-invert"
         >
-          {emojifiedContent || "No content received"}
+          {markdownContent || "No content received"}
         </ReactMarkdown>
+      </div>
+    );
+  };
+
+  const renderAIResponse = () => {
+    if (!searchResults) return null;
+    
+    return (
+      <div className="space-y-6">
+        {/* Always render query analysis if available */}
+        {renderQueryAnalysis()}
+        
+        {/* Render table if data is available */}
+        {tableData.length > 0 && renderMediaPlanTable()}
+        
+        {/* Render strategy text if table data is available */}
+        {tableData.length > 0 && renderStrategyText()}
+        
+        {/* Always render markdown content if available */}
+        {renderMarkdownContent()}
       </div>
     );
   };
