@@ -267,6 +267,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           typeof row.baseCost === "number" && 
           row.baseCost > 0
         ) {
+          // Fix: Calculate estClicks as budget amount divided by base cost
           updatedData[rowIndex].estClicks = Math.round(newValue / row.baseCost);
         }
         
@@ -291,6 +292,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           row.budgetAmount && 
           typeof row.budgetAmount === "number"
         ) {
+          // Fix: Calculate estClicks as budget amount divided by base cost
           updatedData[rowIndex].estClicks = Math.round(row.budgetAmount / newValue);
         }
         
