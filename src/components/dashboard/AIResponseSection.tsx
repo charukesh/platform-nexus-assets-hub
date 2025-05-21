@@ -22,6 +22,8 @@ interface AIResponseSectionProps {
 interface MediaPlanItem {
   platform?: string;
   format?: string;
+  buyType?: string;
+  baseCost?: number | string;
   budget?: number | string;
   impressions?: number | string;
   clicks?: number | string;
@@ -50,6 +52,59 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const [tableData, setTableData] = useState<MediaPlanItem[]>([]);
   const [markdownContent, setMarkdownContent] = useState<string>("");
   
+  // Function to determine if a row has CPC buy type
+  const isCpcBuyType = (item: MediaPlanItem): boolean => {
+    const buyType = item.buyType?.toString().toLowerCase() || '';
+    const format = item.format?.toString().toLowerCase() || '';
+    
+    return buyType === 'cpc' || 
+           format.includes('cpc') || 
+           format.includes('cost per click') ||
+           format.includes('paid search') ||
+           format.includes('search ads');
+  };
+  
+  // Function to recalculate clicks for CPC buy types
+  const recalculateClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
+    return data.map(item => {
+      const updatedItem = { ...item };
+      
+      if (isCpcBuyType(item)) {
+        // Extract budget value
+        const budget = typeof item.budget === 'number' ? 
+          item.budget : 
+          parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
+        
+        // Extract base cost value (CPC)
+        const baseCost = typeof item.baseCost === 'number' ? 
+          item.baseCost : 
+          typeof item.cpc === 'number' ?
+            item.cpc :
+            parseFloat(String(item.baseCost || item.cpc || '0').replace(/[^0-9.-]+/g, ""));
+        
+        // Calculate clicks if we have valid budget and baseCost
+        if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
+          // Calculate estimated clicks as budget / baseCost
+          updatedItem.clicks = Math.round(budget / baseCost);
+          
+          // Also update CPC to ensure consistency
+          updatedItem.cpc = baseCost;
+          
+          // If we have impressions, update CTR
+          const impressions = typeof item.impressions === 'number' ? 
+            item.impressions : 
+            parseFloat(String(item.impressions || '0').replace(/[^0-9.-]+/g, ""));
+            
+          if (!isNaN(impressions) && impressions > 0) {
+            updatedItem.ctr = updatedItem.clicks / impressions;
+          }
+        }
+      }
+      
+      return updatedItem;
+    });
+  };
+
   useEffect(() => {
     // Process search results for both table data and markdown content
     if (searchResults) {
@@ -73,11 +128,12 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         
         // Now try to extract table data
         let foundTableData = false;
+        let parsedTableData: MediaPlanItem[] = [];
         
         // First check if it's our expected format from Supabase
         if (searchResults.mediaPlan && Array.isArray(searchResults.mediaPlan)) {
           console.log("Setting table data from mediaPlan array:", searchResults.mediaPlan);
-          setTableData(searchResults.mediaPlan);
+          parsedTableData = searchResults.mediaPlan;
           foundTableData = true;
         } 
         // Check if it's from the raw OpenAI response
@@ -86,19 +142,17 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             // Try to find and parse JSON in the content
             const jsonMatch = contentText.match(/```json\s*([\s\S]*?)\s*```/);
             if (jsonMatch && jsonMatch[1]) {
-              const parsedData = JSON.parse(jsonMatch[1]);
-              if (Array.isArray(parsedData)) {
-                console.log("Setting table data from JSON match:", parsedData);
-                setTableData(parsedData);
+              parsedTableData = JSON.parse(jsonMatch[1]);
+              if (Array.isArray(parsedTableData)) {
+                console.log("Setting table data from JSON match:", parsedTableData);
                 foundTableData = true;
               }
             } else {
               // Try parsing the entire content as JSON
               try {
-                const parsedData = JSON.parse(contentText);
-                if (Array.isArray(parsedData)) {
-                  console.log("Setting table data from direct JSON parse:", parsedData);
-                  setTableData(parsedData);
+                parsedTableData = JSON.parse(contentText);
+                if (Array.isArray(parsedTableData)) {
+                  console.log("Setting table data from direct JSON parse:", parsedTableData);
                   foundTableData = true;
                 }
               } catch (e) {
@@ -110,7 +164,11 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           }
         }
         
-        if (!foundTableData) {
+        if (foundTableData && Array.isArray(parsedTableData)) {
+          // Apply click calculation for CPC buy types
+          const processedData = recalculateClicks(parsedTableData);
+          setTableData(processedData);
+        } else {
           // Clear any previous table data
           setTableData([]);
         }
@@ -169,24 +227,38 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         // Update budget
         updatedData[rowIndex][columnKey] = newValue;
         
-        // Update related metrics proportionally
-        if (updatedData[rowIndex].impressions !== undefined) {
-          const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
-            updatedData[rowIndex].impressions : 
-            parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
-            
-          if (!isNaN(impressionsValue)) {
-            updatedData[rowIndex].impressions = Math.round(impressionsValue * ratio);
+        // For CPC buy types, recalculate clicks directly based on CPC
+        if (isCpcBuyType(updatedData[rowIndex])) {
+          const baseCost = typeof updatedData[rowIndex].baseCost === 'number' ? 
+            updatedData[rowIndex].baseCost : 
+            typeof updatedData[rowIndex].cpc === 'number' ?
+              updatedData[rowIndex].cpc :
+              parseFloat(String(updatedData[rowIndex].baseCost || updatedData[rowIndex].cpc || '0').replace(/[^0-9.-]+/g, ""));
+          
+          if (!isNaN(baseCost) && baseCost > 0) {
+            // For CPC campaigns, clicks = budget / cpc
+            updatedData[rowIndex].clicks = Math.round(newValue / baseCost);
           }
-        }
-        
-        if (updatedData[rowIndex].clicks !== undefined) {
-          const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
-            updatedData[rowIndex].clicks : 
-            parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
-            
-          if (!isNaN(clicksValue)) {
-            updatedData[rowIndex].clicks = Math.round(clicksValue * ratio);
+        } else {
+          // For non-CPC campaigns, scale impressions and clicks proportionally
+          if (updatedData[rowIndex].impressions !== undefined) {
+            const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
+              updatedData[rowIndex].impressions : 
+              parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
+              
+            if (!isNaN(impressionsValue)) {
+              updatedData[rowIndex].impressions = Math.round(impressionsValue * ratio);
+            }
+          }
+          
+          if (updatedData[rowIndex].clicks !== undefined) {
+            const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
+              updatedData[rowIndex].clicks : 
+              parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
+              
+            if (!isNaN(clicksValue)) {
+              updatedData[rowIndex].clicks = Math.round(clicksValue * ratio);
+            }
           }
         }
         
@@ -242,7 +314,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         : value.toString();
     }
     
-    if (key === "cpc" || key === "cpa") {
+    if (key === "cpc" || key === "cpa" || key === "baseCost") {
       const numValue = typeof value === "number" ? value : parseFloat(value);
       if (!isNaN(numValue)) {
         return `$${numValue.toFixed(2)}`;
