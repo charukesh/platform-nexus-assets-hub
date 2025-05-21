@@ -134,38 +134,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInWithGoogle = async () => {
+    // Get the current host name
+    const currentHost = window.location.origin;
+    console.log("Signing in with Google, redirect to:", currentHost);
+    
+    // Clean up existing auth state first
+    cleanupAuthState();
+    
+    // Try to sign out first to clear any existing sessions
     try {
-      // Get the current host name and origin dynamically
-      const currentOrigin = window.location.origin;
-      console.log("Signing in with Google, redirect to:", currentOrigin);
-      
-      // Clean up existing auth state first
-      cleanupAuthState();
-      
-      // Try to sign out first to clear any existing sessions
-      try {
-        await supabase.auth.signOut();
-      } catch (e) {
-        console.log("Error during pre-login signout:", e);
-        // Continue even if this fails
-      }
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: currentOrigin, // This ensures we redirect to the current environment
-          queryParams: {
-            prompt: 'select_account' // Force account selection
-          }
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.log("Error during pre-login signout:", e);
+      // Continue even if this fails
+    }
+    
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: currentHost,
+        queryParams: {
+          prompt: 'select_account' // Force account selection
         }
-      });
-      
-      if (error) {
-        console.error('Error signing in with Google:', error);
-        throw error;
       }
-    } catch (error) {
-      console.error('Error during Google signin:', error);
+    });
+    
+    if (error) {
+      console.error('Error signing in with Google:', error);
       throw error;
     }
   };

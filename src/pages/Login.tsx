@@ -14,7 +14,6 @@ const Login = () => {
   const location = useLocation();
   const [loginInProgress, setLoginInProgress] = useState(false);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [currentSite, setCurrentSite] = useState<string>("");
 
   // Clean up any leftover Supabase auth state
   const cleanupAuthState = () => {
@@ -34,11 +33,6 @@ const Login = () => {
   };
 
   useEffect(() => {
-    // Store the current URL for debugging
-    const currentOrigin = window.location.origin;
-    setCurrentSite(currentOrigin);
-    console.log("Current site:", currentOrigin);
-    
     // Check for auth tokens in URL after OAuth redirect
     const handleRedirectResult = async () => {
       const hash = window.location.hash;
@@ -224,13 +218,6 @@ const Login = () => {
           {authMessage && (
             <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-md text-center w-full">
               <p className="text-blue-700 dark:text-blue-200">{authMessage}</p>
-            </div>
-          )}
-          
-          {/* Debug info for development purposes */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md text-center w-full mb-4 text-xs">
-              <p>Current site: {currentSite}</p>
             </div>
           )}
           

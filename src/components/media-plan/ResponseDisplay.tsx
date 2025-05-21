@@ -23,22 +23,22 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
   // Parse and prepare the table data
   const tableData = useMemo(() => {
     if (Array.isArray(response)) {
-      return response as MediaPlanItem[];
+      return response;
     } else if (typeof response === 'object' && response !== null) {
       // Handle case where response is a single media plan object or has a different structure
       if (response.mediaPlan && Array.isArray(response.mediaPlan)) {
-        return response.mediaPlan as MediaPlanItem[];
+        return response.mediaPlan;
       } else {
         // Convert object to array if needed
         return Object.entries(response).map(([key, value]) => {
           if (typeof value === 'object' && value !== null) {
-            return { ...value, key } as MediaPlanItem;
+            return { ...value, key };
           }
-          return { key, value } as MediaPlanItem;
+          return { key, value };
         });
       }
     }
-    return [] as MediaPlanItem[];
+    return [];
   }, [response]);
 
   if (!response || tableData.length === 0) return null;
@@ -60,7 +60,7 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
 
   const startEditing = (rowIndex: number, columnKey: string, value: any) => {
     setEditingCell({ rowIndex, columnKey });
-    setEditValue(String(value || ""));
+    setEditValue(value?.toString() || "");
   };
 
   const saveEditedValue = () => {
@@ -202,9 +202,9 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
       <Table>
         <TableHeader>
           <TableRow>
-            {sortedHeaders.map((header) => (
-              <TableHead key={String(header)} className="font-semibold capitalize">
-                {typeof header === 'string' ? header.replace(/([A-Z])/g, " $1").trim() : String(header)}
+            {sortedHeaders.map(header => (
+              <TableHead key={header} className="font-semibold capitalize">
+                {header.replace(/([A-Z])/g, " $1").trim()}
               </TableHead>
             ))}
           </TableRow>
@@ -212,8 +212,8 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         <TableBody>
           {tableData.map((row, rowIndex) => (
             <TableRow key={rowIndex} className="group">
-              {sortedHeaders.map((key) => (
-                <TableCell key={String(key)} className="align-middle">
+              {sortedHeaders.map(key => (
+                <TableCell key={key} className="align-middle">
                   {editingCell && 
                    editingCell.rowIndex === rowIndex && 
                    editingCell.columnKey === key ? (
@@ -241,10 +241,10 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
                     </div>
                   ) : (
                     <div className="flex justify-between items-center">
-                      <span>{formatValue(row[String(key)], String(key))}</span>
-                      {isEditableColumn(String(key)) && (
+                      <span>{formatValue(row[key], key)}</span>
+                      {isEditableColumn(key) && (
                         <button 
-                          onClick={() => startEditing(rowIndex, String(key), row[String(key)])} 
+                          onClick={() => startEditing(rowIndex, key, row[key])} 
                           className="ml-2 p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 focus:opacity-100"
                           aria-label="Edit value"
                         >
@@ -261,10 +261,10 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
           {/* Totals row */}
           {Object.keys(totals).length > 0 && (
             <TableRow className="border-t-2 font-semibold">
-              {sortedHeaders.map((header) => (
-                <TableCell key={`total-${String(header)}`}>
-                  {totals[String(header)] !== undefined 
-                    ? formatValue(totals[String(header)], String(header))
+              {sortedHeaders.map(header => (
+                <TableCell key={`total-${header}`}>
+                  {totals[header] !== undefined 
+                    ? formatValue(totals[header], header)
                     : ""}
                 </TableCell>
               ))}
