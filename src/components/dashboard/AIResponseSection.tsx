@@ -337,14 +337,19 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     // Get the current row data
     const row = updatedData[rowIndex];
     
-    // Convert input value to a clean number
+    // Convert to numeric values for calculations (using second function's formatting approach)
+    const rawOriginalValue = row[columnKey];
+    const originalValue = typeof rawOriginalValue === 'number' ? 
+      rawOriginalValue : 
+      parseFloat(String(rawOriginalValue).replace(/[^0-9.-]+/g, ""));
+    
     const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
     
-    if (columnKey === "budgetAmount" && !isNaN(newValue)) {
+    if (columnKey === "budgetAmount" && !isNaN(newValue) && !isNaN(originalValue)) {
       // Update budget amount
       updatedData[rowIndex][columnKey] = newValue;
       
-      // Recalculate estClicks for CPC items
+      // Recalculate estClicks for CPC items (from first function)
       if (
         row.buyType && 
         row.buyType.toString().toUpperCase() === "CPC" && 
@@ -355,7 +360,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         updatedData[rowIndex].estClicks = Math.round(newValue / row.baseCost);
       }
       
-      // Recalculate estImpressions for CPM items
+      // Recalculate estImpressions for CPM items (from first function)
       if (
         row.buyType && 
         row.buyType.toString().toUpperCase() === "CPM" && 
@@ -365,33 +370,33 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       ) {
         updatedData[rowIndex].estImpressions = Math.round((newValue * 1000) / row.baseCost);
       }
-    } else if (columnKey === "baseCost" && !isNaN(newValue) && newValue > 0) {
+    } 
+    else if (columnKey === "baseCost" && !isNaN(newValue) && newValue > 0 && !isNaN(originalValue)) {
       // Update base cost
       updatedData[rowIndex][columnKey] = newValue;
       
-      // Recalculate estClicks for CPC items
+      // Recalculate estClicks for CPC items (from first function)
       if (
         row.buyType && 
         row.buyType.toString().toUpperCase() === "CPC" && 
         row.budgetAmount && 
         typeof row.budgetAmount === "number"
       ) {
-        // Use the new baseCost value (newValue) instead of the old one
         updatedData[rowIndex].estClicks = Math.round(row.budgetAmount / newValue);
       }
       
-      // Recalculate estImpressions for CPM items
+      // Recalculate estImpressions for CPM items (from first function)
       if (
         row.buyType && 
         row.buyType.toString().toUpperCase() === "CPM" && 
         row.budgetAmount && 
         typeof row.budgetAmount === "number"
       ) {
-        // Use the new baseCost value (newValue) instead of the old one
         updatedData[rowIndex].estImpressions = Math.round((row.budgetAmount * 1000) / newValue);
       }
-    } else {
-      // For other fields, just update the value
+    } 
+    else {
+      // For other fields, use the second function's formatting approach
       updatedData[rowIndex][columnKey] = isNaN(newValue) ? editValue : newValue;
     }
     
