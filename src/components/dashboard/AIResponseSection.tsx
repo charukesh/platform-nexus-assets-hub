@@ -167,22 +167,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         }
         
         if (foundTableData && Array.isArray(parsedTableData)) {
-          // Apply click calculation for CPC buy types
-          const processedData = recalculateClicks(parsedTableData);
-          setTableData(processedData);
-        } else {
-          // Clear any previous table data
-          setTableData([]);
-        }
-      } catch (error) {
-        console.error("Error processing search results:", error);
-      }
-
-       if (searchResults) {
-    try {
-      // [existing code for extracting data]
-      
-      if (foundTableData && Array.isArray(parsedTableData)) {
         // First apply standard recalculation
         let processedData = recalculateClicks(parsedTableData);
         
@@ -194,9 +178,9 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         // Clear any previous table data
         setTableData([]);
       }
-    } catch (error) {
-      console.error("Error processing search results:", error);
-    }
+      } catch (error) {
+        console.error("Error processing search results:", error);
+      }
     } else {
       // Clear states when no results
       setMarkdownContent("");
