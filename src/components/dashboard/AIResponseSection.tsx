@@ -329,128 +329,72 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     setEditValue(value?.toString() || "");
   };
 
- const saveEditedValue = () => {
-  if (editingCell) {
-    const { rowIndex, columnKey } = editingCell;
-    const updatedData = [...tableData];
-    
-    // Get the current row data
-    const row = updatedData[rowIndex];
-    
-    // Convert input value to a clean number
-    const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
-    
-    // Convert to numeric values for calculations
-    const rawOriginalValue = updatedData[rowIndex][columnKey];
-    const originalValue = typeof rawOriginalValue === 'number' ? 
-      rawOriginalValue : 
-      parseFloat(String(rawOriginalValue).replace(/[^0-9.-]+/g, ""));
-    
-    if (columnKey === "budget" || columnKey === "budgetAmount") {
-      if (!isNaN(newValue)) {
-        // Update budget amount
+  const saveEditedValue = () => {
+    if (editingCell) {
+      const { rowIndex, columnKey } = editingCell;
+      const updatedData = [...tableData];
+      
+      // Convert to numeric values for calculations
+      const rawOriginalValue = updatedData[rowIndex][columnKey];
+      const originalValue = typeof rawOriginalValue === 'number' ? 
+        rawOriginalValue : 
+        parseFloat(String(rawOriginalValue).replace(/[^0-9.-]+/g, ""));
+      
+      const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
+      
+      if (columnKey === "budget" && !isNaN(newValue) && !isNaN(originalValue)) {
+        // Calculate the ratio between new and old budget
+        const ratio = newValue / originalValue;
+        
+        // Update budget
         updatedData[rowIndex][columnKey] = newValue;
         
-        // Handle CPC items - calculate estClicks
-        if (
-          row.buyType && 
-          row.buyType.toString().toUpperCase() === "CPC" && 
-          row.baseCost && 
-          typeof row.baseCost === "number" && 
-          row.baseCost > 0
-        ) {
-          updatedData[rowIndex].estClicks = Math.round(newValue / row.baseCost);
-        }
-        
-        // Handle CPM items - calculate estImpressions
-        if (
-          row.buyType && 
-          row.buyType.toString().toUpperCase() === "CPM" && 
-          row.baseCost && 
-          typeof row.baseCost === "number" && 
-          row.baseCost > 0
-        ) {
-          updatedData[rowIndex].estImpressions = Math.round((newValue * 1000) / row.baseCost);
-        }
-        
-        // Also update related metrics proportionally if they exist (from second function)
-        if (!isNaN(originalValue) && originalValue > 0) {
-          // Calculate the ratio between new and old budget
-          const ratio = newValue / originalValue;
-          
-          // Update impressions proportionally
-          if (updatedData[rowIndex].impressions !== undefined) {
-            const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
-              updatedData[rowIndex].impressions : 
-              parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
-              
-            if (!isNaN(impressionsValue)) {
-              updatedData[rowIndex].impressions = Math.round(impressionsValue * ratio);
-            }
-          }
-          
-          // Update clicks proportionally
-          if (updatedData[rowIndex].clicks !== undefined) {
-            const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
-              updatedData[rowIndex].clicks : 
-              parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
-              
-            if (!isNaN(clicksValue)) {
-              updatedData[rowIndex].clicks = Math.round(clicksValue * ratio);
-            }
-          }
-          
-          // Recalculate CPC and CTR based on new values
-          const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
-            updatedData[rowIndex].clicks : 
-            parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
-          
+        // Update related metrics proportionally
+        if (updatedData[rowIndex].impressions !== undefined) {
           const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
             updatedData[rowIndex].impressions : 
             parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
-          
-          if (!isNaN(clicksValue) && clicksValue > 0) {
-            updatedData[rowIndex].cpc = newValue / clicksValue;
-          }
-          
-          if (!isNaN(clicksValue) && !isNaN(impressionsValue) && impressionsValue > 0) {
-            updatedData[rowIndex].ctr = clicksValue / impressionsValue;
+            
+          if (!isNaN(impressionsValue)) {
+            updatedData[rowIndex].impressions = Math.round(impressionsValue * ratio);
           }
         }
+        
+        if (updatedData[rowIndex].clicks !== undefined) {
+          const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
+            updatedData[rowIndex].clicks : 
+            parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
+            
+          if (!isNaN(clicksValue)) {
+            updatedData[rowIndex].clicks = Math.round(clicksValue * ratio);
+          }
+        }
+        
+        // Recalculate CPC and CTR based on new values
+        const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
+          updatedData[rowIndex].clicks : 
+          parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
+        
+        const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
+          updatedData[rowIndex].impressions : 
+          parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
+        
+        if (!isNaN(clicksValue) && clicksValue > 0) {
+          updatedData[rowIndex].cpc = newValue / clicksValue;
+        }
+        
+        if (!isNaN(clicksValue) && !isNaN(impressionsValue) && impressionsValue > 0) {
+          updatedData[rowIndex].ctr = clicksValue / impressionsValue;
+        }
+      } else {
+        updatedData[rowIndex][columnKey] = editValue;
       }
-    } else if (columnKey === "baseCost" && !isNaN(newValue) && newValue > 0) {
-      // Update base cost
-      updatedData[rowIndex][columnKey] = newValue;
       
-      // Recalculate estClicks for CPC items
-      if (
-        row.buyType && 
-        row.buyType.toString().toUpperCase() === "CPC" && 
-        row.budgetAmount && 
-        typeof row.budgetAmount === "number"
-      ) {
-        updatedData[rowIndex].estClicks = Math.round(row.budgetAmount / newValue);
-      }
-      
-      // Recalculate estImpressions for CPM items
-      if (
-        row.buyType && 
-        row.buyType.toString().toUpperCase() === "CPM" && 
-        row.budgetAmount && 
-        typeof row.budgetAmount === "number"
-      ) {
-        updatedData[rowIndex].estImpressions = Math.round((row.budgetAmount * 1000) / newValue);
-      }
-    } else {
-      // For other fields, just update the value
-      updatedData[rowIndex][columnKey] = isNaN(newValue) ? editValue : newValue;
+      console.log("Updated data:", updatedData);
+      setTableData(updatedData);
+      setEditingCell(null);
     }
-    
-    console.log("Updated data:", updatedData);
-    setTableData(updatedData);
-    setEditingCell(null);
-  }
-};
+  };
 
   const formatValue = (value: any, key: string): string => {
     if (value === undefined || value === null || value === "") return "-";
