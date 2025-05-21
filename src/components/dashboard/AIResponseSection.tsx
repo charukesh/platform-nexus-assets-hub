@@ -64,31 +64,48 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
            format.includes('search ads');
   };
   
-  // Function to recalculate clicks for CPC buy types
-  const recalculateClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
+  // Function to determine if a row has CPM buy type
+  const isCpmBuyType = (item: MediaPlanItem): boolean => {
+    const buyType = item.buyType?.toString().toLowerCase() || '';
+    const format = item.format?.toString().toLowerCase() || '';
+    
+    return buyType === 'cpm' || 
+           format.includes('cpm') || 
+           format.includes('cost per mille') ||
+           format.includes('cost per thousand') ||
+           format.includes('display') ||
+           format.includes('banner') ||
+           format.includes('video impression');
+  };
+  
+  // Function to recalculate impressions for CPM buy types and clicks for CPC buy types
+  const recalculateMetrics = (data: MediaPlanItem[]): MediaPlanItem[] => {
     return data.map(item => {
       const updatedItem = { ...item };
       
+      // Extract budget value
+      const budget = typeof item.budget === 'number' ? 
+        item.budget : 
+        parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
+      
+      // Extract base cost value
+      const baseCost = typeof item.baseCost === 'number' ? 
+        item.baseCost : 
+        parseFloat(String(item.baseCost || '0').replace(/[^0-9.-]+/g, ""));
+      
       if (isCpcBuyType(item)) {
-        // Extract budget value
-        const budget = typeof item.budget === 'number' ? 
-          item.budget : 
-          parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
+        // Calculate clicks for CPC buy types
+        const cpc = typeof item.cpc === 'number' ? 
+          item.cpc : 
+          parseFloat(String(item.cpc || item.baseCost || '0').replace(/[^0-9.-]+/g, ""));
         
-        // Extract base cost value (CPC)
-        const baseCost = typeof item.baseCost === 'number' ? 
-          item.baseCost : 
-          typeof item.cpc === 'number' ?
-            item.cpc :
-            parseFloat(String(item.baseCost || item.cpc || '0').replace(/[^0-9.-]+/g, ""));
-        
-        // Calculate clicks if we have valid budget and baseCost
-        if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
-          // Calculate estimated clicks as budget / baseCost
-          updatedItem.clicks = Math.round(budget / baseCost);
+        // Calculate clicks if we have valid budget and baseCost/cpc
+        if (!isNaN(budget) && !isNaN(cpc) && cpc > 0) {
+          // Calculate estimated clicks as budget / cpc
+          updatedItem.clicks = Math.round(budget / cpc);
           
           // Also update CPC to ensure consistency
-          updatedItem.cpc = baseCost;
+          updatedItem.cpc = cpc;
           
           // If we have impressions, update CTR
           const impressions = typeof item.impressions === 'number' ? 
@@ -97,6 +114,26 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             
           if (!isNaN(impressions) && impressions > 0) {
             updatedItem.ctr = updatedItem.clicks / impressions;
+          }
+        }
+      } else if (isCpmBuyType(item)) {
+        // Calculate impressions for CPM buy types
+        // For CPM, the formula is (Budget / BaseCost) * 1000
+        
+        if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
+          // Calculate estimated impressions as (budget / baseCost) * 1000
+          updatedItem.impressions = Math.round((budget / baseCost) * 1000);
+          
+          // If we have clicks, update CTR
+          const clicks = typeof item.clicks === 'number' ? 
+            item.clicks : 
+            parseFloat(String(item.clicks || '0').replace(/[^0-9.-]+/g, ""));
+            
+          if (!isNaN(clicks) && clicks > 0) {
+            updatedItem.ctr = clicks / updatedItem.impressions;
+            
+            // Also update CPC
+            updatedItem.cpc = budget / clicks;
           }
         }
       }
@@ -165,8 +202,8 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         }
         
         if (foundTableData && Array.isArray(parsedTableData)) {
-          // Apply click calculation for CPC buy types
-          const processedData = recalculateClicks(parsedTableData);
+          // Apply calculations for both CPC and CPM buy types
+          const processedData = recalculateMetrics(parsedTableData);
           setTableData(processedData);
         } else {
           // Clear any previous table data
@@ -227,20 +264,30 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         // Update budget
         updatedData[rowIndex][columnKey] = newValue;
         
-        // For CPC buy types, recalculate clicks directly based on CPC
         if (isCpcBuyType(updatedData[rowIndex])) {
+          // For CPC buy types, recalculate clicks directly based on CPC
+          const cpc = typeof updatedData[rowIndex].cpc === 'number' ? 
+            updatedData[rowIndex].cpc : 
+            typeof updatedData[rowIndex].baseCost === 'number' ?
+              updatedData[rowIndex].baseCost :
+              parseFloat(String(updatedData[rowIndex].cpc || updatedData[rowIndex].baseCost || '0').replace(/[^0-9.-]+/g, ""));
+          
+          if (!isNaN(cpc) && cpc > 0) {
+            // For CPC campaigns, clicks = budget / cpc
+            updatedData[rowIndex].clicks = Math.round(newValue / cpc);
+          }
+        } else if (isCpmBuyType(updatedData[rowIndex])) {
+          // For CPM buy types, recalculate impressions based on CPM
           const baseCost = typeof updatedData[rowIndex].baseCost === 'number' ? 
             updatedData[rowIndex].baseCost : 
-            typeof updatedData[rowIndex].cpc === 'number' ?
-              updatedData[rowIndex].cpc :
-              parseFloat(String(updatedData[rowIndex].baseCost || updatedData[rowIndex].cpc || '0').replace(/[^0-9.-]+/g, ""));
+            parseFloat(String(updatedData[rowIndex].baseCost || '0').replace(/[^0-9.-]+/g, ""));
           
           if (!isNaN(baseCost) && baseCost > 0) {
-            // For CPC campaigns, clicks = budget / cpc
-            updatedData[rowIndex].clicks = Math.round(newValue / baseCost);
+            // For CPM campaigns, impressions = (budget / baseCost) * 1000
+            updatedData[rowIndex].impressions = Math.round((newValue / baseCost) * 1000);
           }
         } else {
-          // For non-CPC campaigns, scale impressions and clicks proportionally
+          // For other buy types, scale impressions and clicks proportionally
           if (updatedData[rowIndex].impressions !== undefined) {
             const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
               updatedData[rowIndex].impressions : 
