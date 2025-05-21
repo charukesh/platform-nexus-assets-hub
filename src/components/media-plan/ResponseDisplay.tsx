@@ -1,18 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import NeuCard from "@/components/NeuCard";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { Edit, Check } from "lucide-react";
+import { Edit, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface MediaPlanItem {
-  platform?: string;
-  format?: string;
-  budget?: number | string;
-  impressions?: number | string;
-  clicks?: number | string;
-  ctr?: number | string;
-  cpc?: number | string;
   [key: string]: any;
 }
 
@@ -26,27 +19,44 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
     columnKey: string;
   } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
-  const [tableData, setTableData] = useState<MediaPlanItem[]>(() => {
+  
+  // Parse and prepare the table data
+  const tableData = useMemo(() => {
     if (Array.isArray(response)) {
       return response;
     } else if (typeof response === 'object' && response !== null) {
       // Handle case where response is a single media plan object or has a different structure
-      if (response.mediaPlanItems && Array.isArray(response.mediaPlanItems)) {
-        return response.mediaPlanItems;
+      if (response.mediaPlan && Array.isArray(response.mediaPlan)) {
+        return response.mediaPlan;
       } else {
         // Convert object to array if needed
         return Object.entries(response).map(([key, value]) => {
           if (typeof value === 'object' && value !== null) {
-            return { platform: key, ...value };
+            return { ...value, key };
           }
           return { key, value };
         });
       }
     }
     return [];
-  });
+  }, [response]);
 
-  if (!response) return null;
+  if (!response || tableData.length === 0) return null;
+
+  // Get all unique keys from all objects in the array
+  const headers = Array.from(
+    new Set(
+      tableData.flatMap(item => Object.keys(item))
+    )
+  ).filter(key => key !== 'id' && key !== 'key');
+
+  // Sort headers to put important fields first
+  const sortedHeaders = [
+    'platform',
+    'format',
+    'budget',
+    ...headers.filter(h => !['platform', 'format', 'budget'].includes(h))
+  ].filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
 
   const startEditing = (rowIndex: number, columnKey: string, value: any) => {
     setEditingCell({ rowIndex, columnKey });
@@ -74,13 +84,39 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         if (updatedData[rowIndex].clicks !== undefined) {
           updatedData[rowIndex].clicks = Math.round(Number(updatedData[rowIndex].clicks) * ratio);
         }
+        
+        // Recalculate CPC and CTR if they exist
+        if (updatedData[rowIndex].clicks !== undefined) {
+          const clicks = Number(updatedData[rowIndex].clicks);
+          if (clicks > 0 && updatedData[rowIndex].cpc !== undefined) {
+            updatedData[rowIndex].cpc = newValue / clicks;
+          }
+          
+          if (updatedData[rowIndex].impressions !== undefined && updatedData[rowIndex].ctr !== undefined) {
+            const impressions = Number(updatedData[rowIndex].impressions);
+            if (impressions > 0) {
+              updatedData[rowIndex].ctr = clicks / impressions;
+            }
+          }
+        }
       } else {
+        // For non-budget fields, just update the value
         updatedData[rowIndex][columnKey] = editValue;
       }
       
-      setTableData(updatedData);
+      // Update the parent component with the new data
+      if (Array.isArray(response)) {
+        response.splice(0, response.length, ...updatedData);
+      } else if (response.mediaPlan) {
+        response.mediaPlan = updatedData;
+      }
+      
       setEditingCell(null);
     }
+  };
+
+  const cancelEditing = () => {
+    setEditingCell(null);
   };
 
   const formatValue = (value: any, key: string): string => {
@@ -94,53 +130,63 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
           : `$${value}`;
     }
     
-    if (key === "ctr" || key === "conversionRate") {
-      return typeof value === "number" 
-        ? `${(value * 100).toFixed(2)}%` 
-        : value.toString().endsWith("%") 
-          ? value.toString() 
-          : `${value}%`;
+    if (key === "ctr" || key === "conversionRate" || key.toLowerCase().includes("rate")) {
+      const numValue = typeof value === "number" ? value : parseFloat(String(value));
+      if (!isNaN(numValue)) {
+        // If it's already in percentage format (e.g., 2 instead of 0.02)
+        if (numValue > 1) {
+          return `${numValue.toFixed(2)}%`;
+        }
+        // Convert from decimal to percentage (e.g., 0.05 to 5%)
+        return `${(numValue * 100).toFixed(2)}%`;
+      }
+      return value.toString().endsWith("%") ? value.toString() : `${value}%`;
     }
     
-    if (key === "impressions" || key === "clicks" || key === "conversions") {
-      return typeof value === "number" 
-        ? value.toLocaleString() 
-        : value.toString();
+    if (key === "impressions" || key === "clicks" || key === "conversions" || 
+        key.toLowerCase().includes("impressions") || key.toLowerCase().includes("clicks")) {
+      const numValue = typeof value === "number" ? value : parseFloat(String(value));
+      if (!isNaN(numValue)) {
+        return numValue.toLocaleString();
+      }
+      return value.toString();
     }
     
-    if (key === "cpc" || key === "cpa") {
-      return typeof value === "number" 
-        ? `$${value.toFixed(2)}` 
-        : value.toString().startsWith("$") 
-          ? value.toString() 
-          : `$${value}`;
+    if (key === "cpc" || key === "cpa" || key.toLowerCase().includes("cost")) {
+      const numValue = typeof value === "number" ? value : parseFloat(String(value));
+      if (!isNaN(numValue)) {
+        return `$${numValue.toFixed(2)}`;
+      }
+      return value.toString().startsWith("$") ? value.toString() : `$${value}`;
     }
     
     return value.toString();
   };
 
-  const isBudgetColumn = (key: string): boolean => {
+  const isEditableColumn = (key: string): boolean => {
     return key === "budget" || 
            key.toLowerCase().includes("budget") || 
            key.toLowerCase().includes("spend") || 
            key.toLowerCase().includes("cost");
   };
 
-  // Extract headers from the data
-  const headers = tableData.length > 0 
-    ? Object.keys(tableData[0]).filter(key => key !== 'id' && key !== 'key')
-    : [];
-
   // Calculate totals for numeric columns
   const totals: { [key: string]: number } = {};
-  headers.forEach(header => {
-    if (tableData.every(item => typeof item[header] === "number" || !isNaN(Number(item[header])))) {
-      totals[header] = tableData.reduce((sum, item) => {
-        const value = typeof item[header] === "number" 
-          ? item[header] as number 
-          : Number(item[header]);
-        return sum + (isNaN(value) ? 0 : value);
-      }, 0);
+  sortedHeaders.forEach(header => {
+    const values = tableData.map(item => {
+      const rawValue = item[header];
+      if (typeof rawValue === "number") return rawValue;
+      if (typeof rawValue === "string") {
+        // Remove any non-numeric characters except decimal point
+        const cleanValue = rawValue.replace(/[^0-9.]/g, "");
+        return parseFloat(cleanValue);
+      }
+      return NaN;
+    });
+    
+    const validValues = values.filter(v => !isNaN(v));
+    if (validValues.length > 0) {
+      totals[header] = validValues.reduce((sum, val) => sum + val, 0);
     }
   });
 
@@ -156,7 +202,7 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
       <Table>
         <TableHeader>
           <TableRow>
-            {headers.map(header => (
+            {sortedHeaders.map(header => (
               <TableHead key={header} className="font-semibold capitalize">
                 {header.replace(/([A-Z])/g, " $1").trim()}
               </TableHead>
@@ -165,8 +211,8 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         </TableHeader>
         <TableBody>
           {tableData.map((row, rowIndex) => (
-            <TableRow key={rowIndex}>
-              {headers.map(key => (
+            <TableRow key={rowIndex} className="group">
+              {sortedHeaders.map(key => (
                 <TableCell key={key} className="align-middle">
                   {editingCell && 
                    editingCell.rowIndex === rowIndex && 
@@ -180,18 +226,27 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
                       />
                       <button 
                         onClick={saveEditedValue} 
-                        className="ml-2 p-1 hover:bg-gray-100 rounded"
+                        className="ml-1 p-1 hover:bg-gray-100 rounded"
+                        aria-label="Save"
                       >
                         <Check size={16} />
+                      </button>
+                      <button 
+                        onClick={cancelEditing} 
+                        className="ml-1 p-1 hover:bg-gray-100 rounded"
+                        aria-label="Cancel"
+                      >
+                        <X size={16} />
                       </button>
                     </div>
                   ) : (
                     <div className="flex justify-between items-center">
-                      {formatValue(row[key], key)}
-                      {isBudgetColumn(key) && (
+                      <span>{formatValue(row[key], key)}</span>
+                      {isEditableColumn(key) && (
                         <button 
                           onClick={() => startEditing(rowIndex, key, row[key])} 
                           className="ml-2 p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          aria-label="Edit value"
                         >
                           <Edit size={16} />
                         </button>
@@ -206,7 +261,7 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
           {/* Totals row */}
           {Object.keys(totals).length > 0 && (
             <TableRow className="border-t-2 font-semibold">
-              {headers.map(header => (
+              {sortedHeaders.map(header => (
                 <TableCell key={`total-${header}`}>
                   {totals[header] !== undefined 
                     ? formatValue(totals[header], header)
