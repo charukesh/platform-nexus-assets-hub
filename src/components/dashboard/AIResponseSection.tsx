@@ -64,46 +64,48 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
            format.includes('search ads');
   };
   
-  // Function to recalculate clicks for CPC buy types
-  const recalculateClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
-    return data.map(item => {
-      const updatedItem = { ...item };
+ const recalculateClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
+  return data.map(item => {
+    const updatedItem = { ...item };
+    
+    if (isCpcBuyType(item)) {
+      // Extract budget value - ensure we get a clean number
+      const budget = typeof item.budget === 'number' ? 
+        item.budget : 
+        parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
       
-      if (isCpcBuyType(item)) {
-        // Extract budget value
-        const budget = typeof item.budget === 'number' ? 
-          item.budget : 
-          parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
+      // Extract base cost value (CPC) - ensure we get a clean number
+      const baseCost = typeof item.baseCost === 'number' ? 
+        item.baseCost : 
+        typeof item.cpc === 'number' ?
+          item.cpc :
+          parseFloat(String(item.baseCost || item.cpc || '0').replace(/[^0-9.-]+/g, ""));
+      
+      // Calculate clicks if we have valid budget and baseCost
+      if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
+        // Calculate estimated clicks as budget / baseCost with precise rounding
+        updatedItem.clicks = Math.round(budget / baseCost);
         
-        // Extract base cost value (CPC)
-        const baseCost = typeof item.baseCost === 'number' ? 
-          item.baseCost : 
-          typeof item.cpc === 'number' ?
-            item.cpc :
-            parseFloat(String(item.baseCost || item.cpc || '0').replace(/[^0-9.-]+/g, ""));
+        // Also update CPC to ensure consistency
+        updatedItem.cpc = baseCost;
         
-        // Calculate clicks if we have valid budget and baseCost
-        if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
-          // Calculate estimated clicks as budget / baseCost
-          updatedItem.clicks = Math.round(budget / baseCost);
+        // For debugging
+        console.log(`Calculating clicks for item: Budget=${budget}, BaseCost=${baseCost}, Clicks=${updatedItem.clicks}`);
+        
+        // If we have impressions, update CTR
+        const impressions = typeof item.impressions === 'number' ? 
+          item.impressions : 
+          parseFloat(String(item.impressions || '0').replace(/[^0-9.-]+/g, ""));
           
-          // Also update CPC to ensure consistency
-          updatedItem.cpc = baseCost;
-          
-          // If we have impressions, update CTR
-          const impressions = typeof item.impressions === 'number' ? 
-            item.impressions : 
-            parseFloat(String(item.impressions || '0').replace(/[^0-9.-]+/g, ""));
-            
-          if (!isNaN(impressions) && impressions > 0) {
-            updatedItem.ctr = updatedItem.clicks / impressions;
-          }
+        if (!isNaN(impressions) && impressions > 0) {
+          updatedItem.ctr = updatedItem.clicks / impressions;
         }
       }
-      
-      return updatedItem;
-    });
-  };
+    }
+    
+    return updatedItem;
+  });
+};
 
   useEffect(() => {
     // Process search results for both table data and markdown content
@@ -175,6 +177,26 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       } catch (error) {
         console.error("Error processing search results:", error);
       }
+
+       if (searchResults) {
+    try {
+      // [existing code for extracting data]
+      
+      if (foundTableData && Array.isArray(parsedTableData)) {
+        // First apply standard recalculation
+        let processedData = recalculateClicks(parsedTableData);
+        
+        // Then force recalculation to ensure all clicks are accurately calculated
+        processedData = forceRecalculateAllClicks(processedData);
+        
+        setTableData(processedData);
+      } else {
+        // Clear any previous table data
+        setTableData([]);
+      }
+    } catch (error) {
+      console.error("Error processing search results:", error);
+    }
     } else {
       // Clear states when no results
       setMarkdownContent("");
@@ -208,85 +230,120 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   };
 
   const saveEditedValue = () => {
-    if (editingCell) {
-      const { rowIndex, columnKey } = editingCell;
-      const updatedData = [...tableData];
+  if (editingCell) {
+    const { rowIndex, columnKey } = editingCell;
+    const updatedData = [...tableData];
+    
+    // Convert to numeric values for calculations
+    const rawOriginalValue = updatedData[rowIndex][columnKey];
+    const originalValue = typeof rawOriginalValue === 'number' ? 
+      rawOriginalValue : 
+      parseFloat(String(rawOriginalValue).replace(/[^0-9.-]+/g, ""));
+    
+    const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
+    
+    if (columnKey === "budget" && !isNaN(newValue) && !isNaN(originalValue)) {
+      // Update budget
+      updatedData[rowIndex][columnKey] = newValue;
       
-      // Convert to numeric values for calculations
-      const rawOriginalValue = updatedData[rowIndex][columnKey];
-      const originalValue = typeof rawOriginalValue === 'number' ? 
-        rawOriginalValue : 
-        parseFloat(String(rawOriginalValue).replace(/[^0-9.-]+/g, ""));
-      
-      const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
-      
-      if (columnKey === "budget" && !isNaN(newValue) && !isNaN(originalValue)) {
-        // Calculate the ratio between new and old budget
-        const ratio = newValue / originalValue;
+      // For CPC buy types, recalculate clicks directly based on CPC
+      if (isCpcBuyType(updatedData[rowIndex])) {
+        const baseCost = typeof updatedData[rowIndex].baseCost === 'number' ? 
+          updatedData[rowIndex].baseCost : 
+          typeof updatedData[rowIndex].cpc === 'number' ?
+            updatedData[rowIndex].cpc :
+            parseFloat(String(updatedData[rowIndex].baseCost || updatedData[rowIndex].cpc || '0').replace(/[^0-9.-]+/g, ""));
         
-        // Update budget
-        updatedData[rowIndex][columnKey] = newValue;
-        
-        // For CPC buy types, recalculate clicks directly based on CPC
-        if (isCpcBuyType(updatedData[rowIndex])) {
-          const baseCost = typeof updatedData[rowIndex].baseCost === 'number' ? 
-            updatedData[rowIndex].baseCost : 
-            typeof updatedData[rowIndex].cpc === 'number' ?
-              updatedData[rowIndex].cpc :
-              parseFloat(String(updatedData[rowIndex].baseCost || updatedData[rowIndex].cpc || '0').replace(/[^0-9.-]+/g, ""));
+        if (!isNaN(baseCost) && baseCost > 0) {
+          // For CPC campaigns, clicks = budget / cpc with explicit rounding
+          const calculatedClicks = Math.round(newValue / baseCost);
+          updatedData[rowIndex].clicks = calculatedClicks;
           
-          if (!isNaN(baseCost) && baseCost > 0) {
-            // For CPC campaigns, clicks = budget / cpc
-            updatedData[rowIndex].clicks = Math.round(newValue / baseCost);
-          }
-        } else {
-          // For non-CPC campaigns, scale impressions and clicks proportionally
-          if (updatedData[rowIndex].impressions !== undefined) {
-            const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
-              updatedData[rowIndex].impressions : 
-              parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
-              
-            if (!isNaN(impressionsValue)) {
-              updatedData[rowIndex].impressions = Math.round(impressionsValue * ratio);
-            }
-          }
-          
-          if (updatedData[rowIndex].clicks !== undefined) {
-            const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
-              updatedData[rowIndex].clicks : 
-              parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
-              
-            if (!isNaN(clicksValue)) {
-              updatedData[rowIndex].clicks = Math.round(clicksValue * ratio);
-            }
-          }
-        }
-        
-        // Recalculate CPC and CTR based on new values
-        const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
-          updatedData[rowIndex].clicks : 
-          parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
-        
-        const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
-          updatedData[rowIndex].impressions : 
-          parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
-        
-        if (!isNaN(clicksValue) && clicksValue > 0) {
-          updatedData[rowIndex].cpc = newValue / clicksValue;
-        }
-        
-        if (!isNaN(clicksValue) && !isNaN(impressionsValue) && impressionsValue > 0) {
-          updatedData[rowIndex].ctr = clicksValue / impressionsValue;
+          // For debugging
+          console.log(`Updated clicks: Budget=${newValue}, BaseCost=${baseCost}, Clicks=${calculatedClicks}`);
         }
       } else {
-        updatedData[rowIndex][columnKey] = editValue;
+        // For non-CPC campaigns, scale impressions and clicks proportionally
+        if (updatedData[rowIndex].impressions !== undefined) {
+          const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
+            updatedData[rowIndex].impressions : 
+            parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
+            
+          if (!isNaN(impressionsValue)) {
+            updatedData[rowIndex].impressions = Math.round(impressionsValue * (newValue / originalValue));
+          }
+        }
+        
+        if (updatedData[rowIndex].clicks !== undefined) {
+          const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
+            updatedData[rowIndex].clicks : 
+            parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
+            
+          if (!isNaN(clicksValue)) {
+            updatedData[rowIndex].clicks = Math.round(clicksValue * (newValue / originalValue));
+          }
+        }
       }
       
-      console.log("Updated data:", updatedData);
-      setTableData(updatedData);
-      setEditingCell(null);
+      // Recalculate CPC and CTR based on new values
+      const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
+        updatedData[rowIndex].clicks : 
+        parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
+      
+      const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
+        updatedData[rowIndex].impressions : 
+        parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
+      
+      if (!isNaN(clicksValue) && clicksValue > 0) {
+        updatedData[rowIndex].cpc = newValue / clicksValue;
+      }
+      
+      if (!isNaN(clicksValue) && !isNaN(impressionsValue) && impressionsValue > 0) {
+        updatedData[rowIndex].ctr = clicksValue / impressionsValue;
+      }
+    } else {
+      updatedData[rowIndex][columnKey] = editValue;
     }
-  };
+    
+    console.log("Updated data:", updatedData);
+    setTableData(updatedData);
+    setEditingCell(null);
+  }
+};
+
+  const forceRecalculateAllClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
+  if (!data || data.length === 0) return [];
+  
+  return data.map(item => {
+    // Only process CPC items
+    if (!isCpcBuyType(item)) return item;
+    
+    const updatedItem = { ...item };
+    
+    // Get clean budget value
+    const budget = typeof item.budget === 'number' ? 
+      item.budget : 
+      parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
+    
+    // Get clean base cost
+    const baseCost = typeof item.baseCost === 'number' ? 
+      item.baseCost : 
+      typeof item.cpc === 'number' ?
+        item.cpc :
+        parseFloat(String(item.baseCost || item.cpc || '0').replace(/[^0-9.-]+/g, ""));
+    
+    // Recalculate clicks if we have valid data
+    if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
+      // Calculate clicks with explicit rounding
+      const calculatedClicks = Math.round(budget / baseCost);
+      updatedItem.clicks = calculatedClicks;
+      
+      console.log(`Force recalculated: Platform=${item.platform}, Budget=${budget}, BaseCost=${baseCost}, Clicks=${calculatedClicks}`);
+    }
+    
+    return updatedItem;
+  });
+};
 
   const formatValue = (value: any, key: string): string => {
     if (value === undefined || value === null) return "-";
