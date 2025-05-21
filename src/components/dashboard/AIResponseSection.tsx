@@ -64,6 +64,119 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
            format.includes('search ads');
   };
   
+  // Function to parse structured text into table data (for tables like the one in your input)
+  const parseStructuredText = (text: string): MediaPlanItem[] => {
+    try {
+      // Remove any markdown formatting and extra whitespace
+      const cleanText = text.replace(/\*\*/g, '').trim();
+      
+      // Split by newlines to get rows
+      const rows = cleanText.split('\n').filter(row => row.trim().length > 0);
+      
+      if (rows.length <= 1) {
+        return [];
+      }
+      
+      // Attempt to identify headers
+      // This is a heuristic approach - we're looking for common column names
+      const headerRow = rows[0].toLowerCase();
+      
+      // Extract column positions based on common keywords
+      const columnPositions: {[key: string]: {start: number, end?: number}} = {};
+      
+      // Check for common column names and their positions
+      const commonColumns = [
+        { key: 'platform', patterns: ['platform'] },
+        { key: 'asset', patterns: ['asset', 'format'] },
+        { key: 'industry', patterns: ['industry', 'platform industry'] },
+        { key: 'buyType', patterns: ['buy type', 'buytype', 'buy', 'type'] },
+        { key: 'baseCost', patterns: ['base cost', 'basecost', 'cost', 'cpc'] },
+        { key: 'ctr', patterns: ['ctr', 'ctr %'] },
+        { key: 'clicks', patterns: ['est clicks', 'clicks', 'estimated clicks'] },
+        { key: 'impressions', patterns: ['est impressions', 'impressions', 'estimated impressions'] },
+        { key: 'budgetPercentage', patterns: ['budget %', 'budget percentage'] },
+        { key: 'budget', patterns: ['budget amount', 'budget', 'amount'] }
+      ];
+      
+      // Process each data row
+      const tableData: MediaPlanItem[] = [];
+      
+      // Skip header row if it exists, process other rows as data
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        
+        // Check if this might be a data row (contains currency symbols or numbers)
+        if (row.match(/[₹$]|[0-9]+/) || row.match(/CPC|CPM|CPV/i)) {
+          // This is likely a data row
+          const item: MediaPlanItem = {};
+          
+          // Extract platform (usually first word or segment)
+          const platformMatch = row.match(/^([A-Za-z0-9]+)/);
+          if (platformMatch) {
+            item.platform = platformMatch[1].trim();
+          }
+          
+          // Extract buy type (CPC, CPM, etc.)
+          const buyTypeMatch = row.match(/\b(CPC|CPM|CPV)\b/i);
+          if (buyTypeMatch) {
+            item.buyType = buyTypeMatch[1].trim();
+          }
+          
+          // Extract base cost (currency amounts like ₹10)
+          const baseCostMatch = row.match(/[₹$]\s*([0-9,]+)/);
+          if (baseCostMatch) {
+            item.baseCost = parseFloat(baseCostMatch[1].replace(/,/g, ''));
+          }
+          
+          // Extract budget amount (usually last currency value)
+          const budgetMatch = row.match(/[₹$]\s*([0-9,]+)\s*$/);
+          if (budgetMatch) {
+            item.budget = parseFloat(budgetMatch[1].replace(/,/g, ''));
+          }
+          
+          // Extract other numbers that could be clicks or impressions
+          const numberMatches = row.match(/\b([0-9,]+)\b/g);
+          if (numberMatches && numberMatches.length >= 3) {
+            // Assume one of the larger numbers is impressions
+            const numbers = numberMatches.map(n => parseInt(n.replace(/,/g, '')));
+            numbers.sort((a, b) => b - a);
+            
+            // Largest is likely impressions if very large
+            if (numbers[0] > 10000) {
+              item.impressions = numbers[0];
+            }
+            
+            // Find the number that's most likely to be clicks
+            for (const num of numbers) {
+              if (num < item.impressions && num > 1000) {
+                item.clicks = num;
+                break;
+              }
+            }
+          }
+          
+          // If we have budget and baseCost for CPC but no clicks, calculate them
+          if (item.buyType?.toLowerCase() === 'cpc' && 
+              item.budget && item.baseCost && 
+              !item.clicks && item.baseCost > 0) {
+            item.clicks = Math.round(Number(item.budget) / Number(item.baseCost));
+          }
+          
+          // Add the row to our table data if it has at least some basic info
+          if (item.platform && (item.budget || item.clicks || item.impressions)) {
+            tableData.push(item);
+          }
+        }
+      }
+      
+      console.log("Parsed structured text data:", tableData);
+      return tableData;
+    } catch (error) {
+      console.error("Error parsing structured text:", error);
+      return [];
+    }
+  };
+  
   // Function to recalculate clicks for CPC buy types
   const recalculateClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
     return data.map(item => {
@@ -86,6 +199,9 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
           // Calculate estimated clicks as budget / baseCost
           updatedItem.clicks = Math.round(budget / baseCost);
+          
+          // Log calculation for debugging
+          console.log(`CPC calculation for ${item.platform}: ${budget} / ${baseCost} = ${updatedItem.clicks} clicks`);
           
           // Also update CPC to ensure consistency
           updatedItem.cpc = baseCost;
@@ -156,7 +272,13 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                   foundTableData = true;
                 }
               } catch (e) {
-                // Not valid JSON, that's fine
+                // Not JSON, try to parse it as a structured text table
+                const structuredData = parseStructuredText(contentText);
+                if (structuredData.length > 0) {
+                  parsedTableData = structuredData;
+                  foundTableData = true;
+                  console.log("Setting table data from structured text parse:", structuredData);
+                }
               }
             }
           } catch (error) {
@@ -238,6 +360,9 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           if (!isNaN(baseCost) && baseCost > 0) {
             // For CPC campaigns, clicks = budget / cpc
             updatedData[rowIndex].clicks = Math.round(newValue / baseCost);
+            
+            // Log the calculation for debugging
+            console.log(`Calculating clicks for row ${rowIndex}: ${newValue} / ${baseCost} = ${updatedData[rowIndex].clicks}`);
           }
         } else {
           // For non-CPC campaigns, scale impressions and clicks proportionally
