@@ -4,6 +4,7 @@ import NeuCard from "@/components/NeuCard";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Edit, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface MediaPlanItem {
   [key: string]: any;
@@ -17,98 +18,145 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
   const [editingCell, setEditingCell] = useState<{
     rowIndex: number;
     columnKey: string;
+    planType?: string;
   } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   
   // Parse and prepare the table data
   const tableData = useMemo(() => {
-    if (Array.isArray(response)) {
-      return response as MediaPlanItem[];
-    } else if (typeof response === 'object' && response !== null) {
-      // Handle case where response is a single media plan object or has a different structure
-      if (response.mediaPlan && Array.isArray(response.mediaPlan)) {
-        return response.mediaPlan as MediaPlanItem[];
-      } else {
-        // Convert object to array if needed
-        return Object.entries(response).map(([key, value]) => {
-          if (typeof value === 'object' && value !== null) {
-            return { ...value, key } as MediaPlanItem;
+    try {
+      if (!response) return { flatData: [], hasNestedPlans: false };
+      
+      // Check if response is a string and try to parse it
+      const data = typeof response === 'string' ? JSON.parse(response) : response;
+      
+      // Check if we have a nested structure with plans
+      if (data && typeof data === 'object') {
+        // Handle case where we have nested plans object structure
+        if (data.plans && typeof data.plans === 'object') {
+          const planTypes = Object.keys(data.plans);
+          const hasNestedPlans = planTypes.length > 0;
+          
+          if (hasNestedPlans) {
+            // We have a nested plan structure
+            const plansData: Record<string, MediaPlanItem[]> = {};
+            
+            // Process each plan
+            planTypes.forEach(planType => {
+              const plan = data.plans[planType];
+              if (plan && plan.assets && Array.isArray(plan.assets)) {
+                plansData[planType] = plan.assets.map(asset => ({
+                  ...asset,
+                  totalBudget: plan.totalBudget,
+                  planTitle: plan.title
+                }));
+              }
+            });
+            
+            return { 
+              flatData: [], 
+              hasNestedPlans: true, 
+              plansData,
+              recommendations: data.recommendation,
+              nextSteps: data.nextSteps
+            };
           }
-          return { key, value } as MediaPlanItem;
-        });
+        }
+        
+        // Handle array response
+        if (Array.isArray(data)) {
+          return { flatData: data as MediaPlanItem[], hasNestedPlans: false };
+        }
+        
+        // Handle case where response is mediaPlan array
+        if (data.mediaPlan && Array.isArray(data.mediaPlan)) {
+          return { flatData: data.mediaPlan as MediaPlanItem[], hasNestedPlans: false };
+        }
       }
+      
+      // Default empty result
+      return { flatData: [], hasNestedPlans: false };
+    } catch (error) {
+      console.error("Failed to parse response data:", error);
+      return { flatData: [], hasNestedPlans: false };
     }
-    return [] as MediaPlanItem[];
   }, [response]);
 
-  if (!response || tableData.length === 0) return null;
+  if (!response) return null;
 
-  // Get all unique keys from all objects in the array
-  const headers = Array.from(
-    new Set(
-      tableData.flatMap(item => Object.keys(item))
-    )
-  ).filter(key => key !== 'id' && key !== 'key');
-
-  // Sort headers to put important fields first
-  const sortedHeaders = [
-    'platform',
-    'format',
-    'budget',
-    ...headers.filter(h => !['platform', 'format', 'budget'].includes(h))
-  ].filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
-
-  const startEditing = (rowIndex: number, columnKey: string, value: any) => {
-    setEditingCell({ rowIndex, columnKey });
+  const startEditing = (rowIndex: number, columnKey: string, value: any, planType?: string) => {
+    setEditingCell({ rowIndex, columnKey, planType });
     setEditValue(String(value || ""));
   };
 
   const saveEditedValue = () => {
     if (editingCell) {
-      const { rowIndex, columnKey } = editingCell;
-      const updatedData = [...tableData];
-      const originalValue = Number(updatedData[rowIndex][columnKey]);
-      const newValue = Number(editValue);
+      const { rowIndex, columnKey, planType } = editingCell;
       
-      if (columnKey === "budget" && !isNaN(newValue) && !isNaN(originalValue)) {
-        // Calculate the ratio between new and old budget
-        const ratio = newValue / originalValue;
+      let updatedData: MediaPlanItem[];
+      
+      if (planType && tableData.hasNestedPlans && tableData.plansData) {
+        updatedData = [...tableData.plansData[planType]];
+        const originalValue = Number(updatedData[rowIndex][columnKey]);
+        const newValue = Number(editValue);
         
-        // Update budget
-        updatedData[rowIndex][columnKey] = newValue;
-        
-        // Update related metrics proportionally
-        if (updatedData[rowIndex].impressions !== undefined) {
-          updatedData[rowIndex].impressions = Math.round(Number(updatedData[rowIndex].impressions) * ratio);
-        }
-        if (updatedData[rowIndex].clicks !== undefined) {
-          updatedData[rowIndex].clicks = Math.round(Number(updatedData[rowIndex].clicks) * ratio);
-        }
-        
-        // Recalculate CPC and CTR if they exist
-        if (updatedData[rowIndex].clicks !== undefined) {
-          const clicks = Number(updatedData[rowIndex].clicks);
-          if (clicks > 0 && updatedData[rowIndex].cpc !== undefined) {
-            updatedData[rowIndex].cpc = newValue / clicks;
+        if (columnKey === "budgetAmount" && !isNaN(newValue) && !isNaN(originalValue)) {
+          // Calculate the ratio between new and old budget
+          const ratio = newValue / originalValue;
+          
+          // Update budget
+          updatedData[rowIndex][columnKey] = newValue;
+          
+          // Update related metrics proportionally
+          if (updatedData[rowIndex].estimatedImpressions !== undefined) {
+            updatedData[rowIndex].estimatedImpressions = Math.round(Number(updatedData[rowIndex].estimatedImpressions) * ratio);
           }
           
-          if (updatedData[rowIndex].impressions !== undefined && updatedData[rowIndex].ctr !== undefined) {
-            const impressions = Number(updatedData[rowIndex].impressions);
-            if (impressions > 0) {
-              updatedData[rowIndex].ctr = clicks / impressions;
-            }
+          if (updatedData[rowIndex].estimatedClicks !== undefined) {
+            updatedData[rowIndex].estimatedClicks = Math.round(Number(updatedData[rowIndex].estimatedClicks) * ratio);
           }
+        } else {
+          // For non-budget fields, just update the value
+          updatedData[rowIndex][columnKey] = editValue;
         }
       } else {
-        // For non-budget fields, just update the value
-        updatedData[rowIndex][columnKey] = editValue;
-      }
-      
-      // Update the parent component with the new data
-      if (Array.isArray(response)) {
-        response.splice(0, response.length, ...updatedData);
-      } else if (response.mediaPlan) {
-        response.mediaPlan = updatedData;
+        updatedData = [...tableData.flatData];
+        const originalValue = Number(updatedData[rowIndex][columnKey]);
+        const newValue = Number(editValue);
+        
+        if (columnKey === "budget" && !isNaN(newValue) && !isNaN(originalValue)) {
+          // Calculate the ratio between new and old budget
+          const ratio = newValue / originalValue;
+          
+          // Update budget
+          updatedData[rowIndex][columnKey] = newValue;
+          
+          // Update related metrics proportionally
+          if (updatedData[rowIndex].impressions !== undefined) {
+            updatedData[rowIndex].impressions = Math.round(Number(updatedData[rowIndex].impressions) * ratio);
+          }
+          
+          if (updatedData[rowIndex].clicks !== undefined) {
+            updatedData[rowIndex].clicks = Math.round(Number(updatedData[rowIndex].clicks) * ratio);
+          }
+          
+          // Recalculate CPC and CTR if they exist
+          if (updatedData[rowIndex].clicks !== undefined && Number(updatedData[rowIndex].clicks) > 0) {
+            if (updatedData[rowIndex].cpc !== undefined) {
+              updatedData[rowIndex].cpc = newValue / Number(updatedData[rowIndex].clicks);
+            }
+            
+            if (updatedData[rowIndex].impressions !== undefined && updatedData[rowIndex].ctr !== undefined) {
+              const impressions = Number(updatedData[rowIndex].impressions);
+              if (impressions > 0) {
+                updatedData[rowIndex].ctr = Number(updatedData[rowIndex].clicks) / impressions;
+              }
+            }
+          }
+        } else {
+          // For non-budget fields, just update the value
+          updatedData[rowIndex][columnKey] = editValue;
+        }
       }
       
       setEditingCell(null);
@@ -122,15 +170,20 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
   const formatValue = (value: any, key: string): string => {
     if (value === undefined || value === null) return "-";
     
-    if (key === "budget") {
-      return typeof value === "number" 
-        ? `$${value.toLocaleString()}` 
-        : value.toString().startsWith("$") 
-          ? value.toString() 
-          : `$${value}`;
+    // Handle different types of values based on key
+    if (key === "budget" || key === "budgetAmount" || key.toLowerCase().includes("budget")) {
+      if (typeof value === "number") {
+        return `$${value.toLocaleString()}`;
+      }
+      if (typeof value === "string") {
+        return value.toString().startsWith("$") ? value.toString() : `$${value}`;
+      }
+      return `$${value}`;
     }
     
-    if (key === "ctr" || key === "conversionRate" || key.toLowerCase().includes("rate")) {
+    if (key === "ctr" || key === "conversionRate" || key === "ctrPercentage" || 
+        key.toLowerCase().includes("rate") || key.toLowerCase().includes("percentage")) {
+      if (value === null) return "-";
       const numValue = typeof value === "number" ? value : parseFloat(String(value));
       if (!isNaN(numValue)) {
         // If it's already in percentage format (e.g., 2 instead of 0.02)
@@ -140,56 +193,234 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         // Convert from decimal to percentage (e.g., 0.05 to 5%)
         return `${(numValue * 100).toFixed(2)}%`;
       }
-      return value.toString().endsWith("%") ? value.toString() : `${value}%`;
+      return typeof value === "string" && value.endsWith("%") ? value : `${value}%`;
     }
     
     if (key === "impressions" || key === "clicks" || key === "conversions" || 
+        key === "estimatedImpressions" || key === "estimatedClicks" || 
         key.toLowerCase().includes("impressions") || key.toLowerCase().includes("clicks")) {
+      if (value === null) return "-";
       const numValue = typeof value === "number" ? value : parseFloat(String(value));
       if (!isNaN(numValue)) {
         return numValue.toLocaleString();
       }
-      return value.toString();
+      return String(value);
     }
     
-    if (key === "cpc" || key === "cpa" || key.toLowerCase().includes("cost")) {
+    if (key === "cpc" || key === "cpa" || key === "baseCost" || key.toLowerCase().includes("cost")) {
+      if (value === null) return "-";
       const numValue = typeof value === "number" ? value : parseFloat(String(value));
       if (!isNaN(numValue)) {
         return `$${numValue.toFixed(2)}`;
       }
-      return value.toString().startsWith("$") ? value.toString() : `$${value}`;
+      return typeof value === "string" && value.startsWith("$") ? value : `$${value}`;
     }
     
-    return value.toString();
+    // Default string conversion
+    return String(value);
   };
 
   const isEditableColumn = (key: string): boolean => {
     return key === "budget" || 
+           key === "budgetAmount" ||
            key.toLowerCase().includes("budget") || 
            key.toLowerCase().includes("spend") || 
            key.toLowerCase().includes("cost");
   };
 
-  // Calculate totals for numeric columns
-  const totals: { [key: string]: number } = {};
-  sortedHeaders.forEach(header => {
-    const values = tableData.map(item => {
-      const rawValue = item[header];
-      if (typeof rawValue === "number") return rawValue;
-      if (typeof rawValue === "string") {
-        // Remove any non-numeric characters except decimal point
-        const cleanValue = rawValue.replace(/[^0-9.]/g, "");
-        return parseFloat(cleanValue);
-      }
-      return NaN;
-    });
+  // Render a single table with the data
+  const renderTable = (data: MediaPlanItem[], title?: string, showTotals: boolean = true) => {
+    if (!data || data.length === 0) return null;
     
-    const validValues = values.filter(v => !isNaN(v));
-    if (validValues.length > 0) {
-      totals[header] = validValues.reduce((sum, val) => sum + val, 0);
+    // Extract headers from the data, filtering out any internal or complex nested structures
+    const allKeys = data.flatMap(item => Object.keys(item));
+    const uniqueKeys = Array.from(new Set(allKeys));
+    
+    // Filter and prioritize headers
+    const priorityKeys = [
+      "platform", "assetName", "format", "budgetAmount", "budget", "baseCost",
+      "estimatedClicks", "estimatedImpressions", "clicks", "impressions",
+      "ctr", "ctrPercentage", "cpc"
+    ];
+    
+    // Sort headers to put important fields first, filter out nested objects and arrays
+    const sortedHeaders = [
+      ...priorityKeys.filter(key => uniqueKeys.includes(key)),
+      ...uniqueKeys.filter(key => 
+        !priorityKeys.includes(key) && 
+        typeof data[0][key] !== 'object' &&
+        !Array.isArray(data[0][key]) &&
+        key !== 'insights' && 
+        key !== 'strategicEssence' &&
+        key !== 'planTitle' &&
+        key !== 'totalBudget'
+      )
+    ];
+    
+    // Calculate totals for numeric columns
+    const totals: { [key: string]: number } = {};
+    
+    if (showTotals) {
+      sortedHeaders.forEach(header => {
+        const values = data.map(item => {
+          const rawValue = item[header];
+          if (typeof rawValue === "number") return rawValue;
+          if (typeof rawValue === "string") {
+            // Remove any non-numeric characters except decimal point
+            const cleanValue = rawValue.replace(/[^0-9.]/g, "");
+            return parseFloat(cleanValue);
+          }
+          return NaN;
+        });
+        
+        const validValues = values.filter(v => !isNaN(v));
+        if (validValues.length > 0) {
+          totals[header] = validValues.reduce((sum, val) => sum + val, 0);
+        }
+      });
     }
-  });
 
+    return (
+      <div className="mb-8">
+        {title && <h3 className="text-xl font-bold mb-3">{title}</h3>}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {sortedHeaders.map((header) => (
+                <TableHead key={header} className="font-semibold capitalize">
+                  {typeof header === 'string' 
+                    ? header.replace(/([A-Z])/g, " $1").charAt(0).toUpperCase() + header.replace(/([A-Z])/g, " $1").slice(1) 
+                    : String(header)}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((row, rowIndex) => (
+              <TableRow key={rowIndex} className="group">
+                {sortedHeaders.map((key) => (
+                  <TableCell key={key} className="align-middle">
+                    {editingCell && 
+                     editingCell.rowIndex === rowIndex && 
+                     editingCell.columnKey === key ? (
+                      <div className="flex">
+                        <Input
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          className="w-full"
+                          autoFocus
+                        />
+                        <button 
+                          onClick={saveEditedValue} 
+                          className="ml-1 p-1 hover:bg-gray-100 rounded"
+                          aria-label="Save"
+                        >
+                          <Check size={16} />
+                        </button>
+                        <button 
+                          onClick={cancelEditing} 
+                          className="ml-1 p-1 hover:bg-gray-100 rounded"
+                          aria-label="Cancel"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <span>{formatValue(row[key], key)}</span>
+                        {isEditableColumn(key) && (
+                          <button 
+                            onClick={() => startEditing(rowIndex, key, row[key])} 
+                            className="ml-2 p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 focus:opacity-100"
+                            aria-label="Edit value"
+                          >
+                            <Edit size={16} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+            
+            {/* Totals row */}
+            {showTotals && Object.keys(totals).length > 0 && (
+              <TableRow className="border-t-2 font-semibold">
+                {sortedHeaders.map((header) => (
+                  <TableCell key={`total-${header}`}>
+                    {totals[header] !== undefined 
+                      ? formatValue(totals[header], header)
+                      : ""}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
+  // Render additional information like insights
+  const renderAssetInsights = (data: MediaPlanItem[]) => {
+    const assetsWithInsights = data.filter(asset => 
+      asset.insights && Array.isArray(asset.insights) && asset.insights.length > 0);
+    
+    if (assetsWithInsights.length === 0) return null;
+    
+    return (
+      <div className="mt-6 space-y-6">
+        <h3 className="text-xl font-bold">Platform Insights</h3>
+        {assetsWithInsights.map((asset, index) => (
+          <div key={index} className="p-4 bg-gray-50 rounded-lg">
+            <h4 className="font-bold text-lg mb-2">
+              {asset.platform || "Platform"} {asset.assetName ? `- ${asset.assetName}` : ""}
+            </h4>
+            <ul className="list-disc pl-5 space-y-1">
+              {asset.insights.map((insight: string, i: number) => (
+                <li key={i}>{insight}</li>
+              ))}
+            </ul>
+            {asset.strategicEssence && (
+              <p className="mt-3 font-medium text-primary">
+                Strategic Essence: {asset.strategicEssence}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Render recommendations
+  const renderRecommendations = (recommendations?: string, nextSteps?: string[]) => {
+    if (!recommendations && (!nextSteps || nextSteps.length === 0)) return null;
+    
+    return (
+      <div className="mt-8">
+        {recommendations && (
+          <div className="mb-4">
+            <h3 className="text-xl font-bold mb-2">Recommendation</h3>
+            <p className="text-gray-700">{recommendations}</p>
+          </div>
+        )}
+        
+        {nextSteps && nextSteps.length > 0 && (
+          <div>
+            <h3 className="text-xl font-bold mb-2">Next Steps</h3>
+            <ul className="list-disc pl-5 space-y-1">
+              {nextSteps.map((step, i) => (
+                <li key={i} className="text-gray-700">{step}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Main render
   return (
     <NeuCard className="prose max-w-none overflow-x-auto">
       <div className="mb-4">
@@ -199,79 +430,32 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         </p>
       </div>
       
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {sortedHeaders.map((header) => (
-              <TableHead key={String(header)} className="font-semibold capitalize">
-                {typeof header === 'string' ? header.replace(/([A-Z])/g, " $1").trim() : String(header)}
-              </TableHead>
+      {tableData.hasNestedPlans && tableData.plansData ? (
+        <Tabs defaultValue={Object.keys(tableData.plansData)[0]} className="w-full">
+          <TabsList className="mb-4">
+            {Object.keys(tableData.plansData).map(planKey => (
+              <TabsTrigger key={planKey} value={planKey} className="capitalize">
+                {planKey.replace(/([A-Z])/g, " $1")}
+              </TabsTrigger>
             ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tableData.map((row, rowIndex) => (
-            <TableRow key={rowIndex} className="group">
-              {sortedHeaders.map((key) => (
-                <TableCell key={String(key)} className="align-middle">
-                  {editingCell && 
-                   editingCell.rowIndex === rowIndex && 
-                   editingCell.columnKey === key ? (
-                    <div className="flex">
-                      <Input
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        className="w-full"
-                        autoFocus
-                      />
-                      <button 
-                        onClick={saveEditedValue} 
-                        className="ml-1 p-1 hover:bg-gray-100 rounded"
-                        aria-label="Save"
-                      >
-                        <Check size={16} />
-                      </button>
-                      <button 
-                        onClick={cancelEditing} 
-                        className="ml-1 p-1 hover:bg-gray-100 rounded"
-                        aria-label="Cancel"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center">
-                      <span>{formatValue(row[String(key)], String(key))}</span>
-                      {isEditableColumn(String(key)) && (
-                        <button 
-                          onClick={() => startEditing(rowIndex, String(key), row[String(key)])} 
-                          className="ml-2 p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 focus:opacity-100"
-                          aria-label="Edit value"
-                        >
-                          <Edit size={16} />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </TableCell>
-              ))}
-            </TableRow>
+          </TabsList>
+          
+          {Object.entries(tableData.plansData).map(([planKey, planData]) => (
+            <TabsContent key={planKey} value={planKey}>
+              {renderTable(planData, planData[0]?.planTitle || planKey)}
+              {renderAssetInsights(planData)}
+            </TabsContent>
           ))}
           
-          {/* Totals row */}
-          {Object.keys(totals).length > 0 && (
-            <TableRow className="border-t-2 font-semibold">
-              {sortedHeaders.map((header) => (
-                <TableCell key={`total-${String(header)}`}>
-                  {totals[String(header)] !== undefined 
-                    ? formatValue(totals[String(header)], String(header))
-                    : ""}
-                </TableCell>
-              ))}
-            </TableRow>
+          {tableData.recommendations && (
+            <div className="mt-6 border-t pt-4">
+              {renderRecommendations(tableData.recommendations, tableData.nextSteps)}
+            </div>
           )}
-        </TableBody>
-      </Table>
+        </Tabs>
+      ) : (
+        renderTable(tableData.flatData)
+      )}
     </NeuCard>
   );
 };
