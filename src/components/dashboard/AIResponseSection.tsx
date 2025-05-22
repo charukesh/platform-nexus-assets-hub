@@ -4,6 +4,7 @@ import { Loader2, Search, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 
 interface AIResponseSectionProps {
   searchBrief: string;
@@ -26,6 +27,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 }) => {
   const [loaderMessageIdx, setLoaderMessageIdx] = useState(0);
   const loaderIntervalRef = useRef<number | null>(null);
+  const [displayMode, setDisplayMode] = useState<'formatted' | 'raw'>('formatted');
   
   useEffect(() => {
     if (searchLoading) {
@@ -54,6 +56,97 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       console.error("Error formatting JSON:", error);
       return JSON.stringify({ error: "Failed to format JSON response" });
     }
+  };
+
+  const renderFormattedResponse = (data: any) => {
+    if (!data || !data.choices || !data.choices[0]?.message?.content) {
+      return <p>No valid data available to format.</p>;
+    }
+
+    const content = data.choices[0].message.content;
+    
+    return (
+      <div className="space-y-8">
+        {/* Brief Summary */}
+        <div>
+          <h2 className="text-xl font-semibold mb-2">Brief Summary</h2>
+          <p>{content.briefSummary}</p>
+        </div>
+
+        {/* Plans */}
+        {content.options && Object.entries(content.options).map(([key, option]: [string, any], index) => (
+          <div key={key} className="pb-6">
+            <h2 className="text-xl font-bold mb-4">{index + 1}. {option.planName}</h2>
+            <div className="mb-4">
+              <p><strong>Total Budget:</strong> {option.totalBudget}</p>
+              <p><strong>Budget Percentage:</strong> {option.budgetPercentage}</p>
+            </div>
+            
+            {option.assets && option.assets.length > 0 && (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="font-bold">Asset Name</TableHead>
+                      <TableHead className="font-bold">Platform</TableHead>
+                      <TableHead className="font-bold">Industry</TableHead>
+                      <TableHead className="font-bold">Buy Type</TableHead>
+                      <TableHead className="font-bold">Base Cost</TableHead>
+                      <TableHead className="font-bold">Estimated Clicks</TableHead>
+                      <TableHead className="font-bold">Estimated Impressions</TableHead>
+                      <TableHead className="font-bold">Budget Percent</TableHead>
+                      <TableHead className="font-bold">Budget Amount</TableHead>
+                      <TableHead className="font-bold">Targeting</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {option.assets.map((asset: any) => (
+                      <TableRow key={asset.assetId}>
+                        <TableCell className="font-medium">{asset.assetName}</TableCell>
+                        <TableCell>{asset.platform}</TableCell>
+                        <TableCell>{asset.industry}</TableCell>
+                        <TableCell>{asset.buyType}</TableCell>
+                        <TableCell>{asset.baseCost}</TableCell>
+                        <TableCell>{asset.estimatedClicks}</TableCell>
+                        <TableCell>{asset.estimatedImpressions}</TableCell>
+                        <TableCell>{asset.budgetPercent}</TableCell>
+                        <TableCell>{asset.budgetAmount}</TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="text-xs">
+                            <p><strong>Geographic:</strong> {asset.targeting.geographic}</p>
+                            <p><strong>Device:</strong> {asset.targeting.deviceSplit}</p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Recommendation */}
+        {content.recommendation && (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Recommendation</h2>
+            <p>{content.recommendation}</p>
+          </div>
+        )}
+
+        {/* Next Steps */}
+        {content.nextSteps && content.nextSteps.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-2">Next Steps</h2>
+            <ul className="list-disc pl-5">
+              {content.nextSteps.map((step: string, index: number) => (
+                <li key={index}>{step}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -95,11 +188,44 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         </div>
       ) : searchResults ? (
         <NeuCard>
-          <div className="p-2">
-            <h2 className="text-xl font-semibold mb-4">Raw Response Data</h2>
-            <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm">
-              <code>{formatJsonDisplay(searchResults)}</code>
-            </pre>
+          <div className="p-4">
+            <div className="flex justify-end mb-4">
+              <div className="inline-flex rounded-md shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setDisplayMode('formatted')}
+                  className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
+                    displayMode === 'formatted' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-background text-foreground hover:bg-muted'
+                  }`}
+                >
+                  Formatted
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDisplayMode('raw')}
+                  className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
+                    displayMode === 'raw' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-background text-foreground hover:bg-muted'
+                  }`}
+                >
+                  Raw JSON
+                </button>
+              </div>
+            </div>
+
+            {displayMode === 'formatted' ? (
+              renderFormattedResponse(searchResults)
+            ) : (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">Raw Response Data</h2>
+                <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm">
+                  <code>{formatJsonDisplay(searchResults)}</code>
+                </pre>
+              </div>
+            )}
           </div>
         </NeuCard>
       ) : null}
