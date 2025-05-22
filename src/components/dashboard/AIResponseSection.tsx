@@ -58,6 +58,40 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     }
   };
 
+  // Calculate the correct estimated clicks or impressions based on buyType and budget
+  const calculateEstimates = (asset: any) => {
+    const budgetAmount = parseFloat(asset.budgetAmount);
+    const baseCost = parseFloat(asset.baseCost);
+    
+    if (isNaN(budgetAmount) || isNaN(baseCost) || baseCost === 0) {
+      return { estimatedClicks: "N/A", estimatedImpressions: "N/A" };
+    }
+    
+    const buyType = asset.buyType?.toLowerCase() || "";
+    
+    if (buyType.includes("click")) {
+      // Cost Per Click (CPC) - calculate clicks directly
+      const clicks = Math.round(budgetAmount / baseCost);
+      return { 
+        estimatedClicks: clicks.toLocaleString(), 
+        estimatedImpressions: "N/A" 
+      };
+    } else if (buyType.includes("mille")) {
+      // Cost Per Mille (CPM) - calculate impressions then derive clicks
+      const impressions = Math.round((budgetAmount / baseCost) * 1000);
+      return { 
+        estimatedClicks: "N/A", 
+        estimatedImpressions: impressions.toLocaleString() 
+      };
+    }
+    
+    // Default if buyType is not recognized
+    return { 
+      estimatedClicks: asset.estimatedClicks || "N/A", 
+      estimatedImpressions: asset.estimatedImpressions || "N/A" 
+    };
+  };
+
   const renderFormattedResponse = (data: any) => {
     if (!data || !data.choices || !data.choices[0]?.message?.content) {
       return <p>No valid data available to format.</p>;
@@ -74,57 +108,69 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         </div>
 
         {/* Plans */}
-        {content.options && Object.entries(content.options).map(([key, option]: [string, any], index) => (
-          <div key={key} className="pb-6">
-            <h2 className="text-xl font-bold mb-4">{index + 1}. {option.planName}</h2>
-            <div className="mb-4">
-              <p><strong>Total Budget:</strong> {option.totalBudget}</p>
-              <p><strong>Budget Percentage:</strong> {option.budgetPercentage}</p>
-            </div>
-            
-            {option.assets && option.assets.length > 0 && (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="font-bold">Asset Name</TableHead>
-                      <TableHead className="font-bold">Platform</TableHead>
-                      <TableHead className="font-bold">Industry</TableHead>
-                      <TableHead className="font-bold">Buy Type</TableHead>
-                      <TableHead className="font-bold">Base Cost</TableHead>
-                      <TableHead className="font-bold">Estimated Clicks</TableHead>
-                      <TableHead className="font-bold">Estimated Impressions</TableHead>
-                      <TableHead className="font-bold">Budget Percent</TableHead>
-                      <TableHead className="font-bold">Budget Amount</TableHead>
-                      <TableHead className="font-bold">Targeting</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {option.assets.map((asset: any) => (
-                      <TableRow key={asset.assetId}>
-                        <TableCell className="font-medium">{asset.assetName}</TableCell>
-                        <TableCell>{asset.platform}</TableCell>
-                        <TableCell>{asset.industry}</TableCell>
-                        <TableCell>{asset.buyType}</TableCell>
-                        <TableCell>{asset.baseCost}</TableCell>
-                        <TableCell>{asset.estimatedClicks}</TableCell>
-                        <TableCell>{asset.estimatedImpressions}</TableCell>
-                        <TableCell>{asset.budgetPercent}</TableCell>
-                        <TableCell>{asset.budgetAmount}</TableCell>
-                        <TableCell className="max-w-xs">
-                          <div className="text-xs">
-                            <p><strong>Geographic:</strong> {asset.targeting.geographic}</p>
-                            <p><strong>Device:</strong> {asset.targeting.deviceSplit}</p>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+        {content.options && Object.entries(content.options).map(([key, option]: [string, any], index) => {
+          // Process assets and update estimations
+          const processedAssets = option.assets?.map((asset: any) => {
+            const estimates = calculateEstimates(asset);
+            return {
+              ...asset,
+              estimatedClicks: estimates.estimatedClicks,
+              estimatedImpressions: estimates.estimatedImpressions
+            };
+          }) || [];
+
+          return (
+            <div key={key} className="pb-6">
+              <h2 className="text-xl font-bold mb-4">{index + 1}. {option.planName}</h2>
+              <div className="mb-4">
+                <p><strong>Total Budget:</strong> {option.totalBudget}</p>
+                <p><strong>Budget Percentage:</strong> {option.budgetPercentage}</p>
               </div>
-            )}
-          </div>
-        ))}
+              
+              {processedAssets.length > 0 && (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-bold">Asset Name</TableHead>
+                        <TableHead className="font-bold">Platform</TableHead>
+                        <TableHead className="font-bold">Industry</TableHead>
+                        <TableHead className="font-bold">Buy Type</TableHead>
+                        <TableHead className="font-bold">Base Cost</TableHead>
+                        <TableHead className="font-bold">Estimated Clicks</TableHead>
+                        <TableHead className="font-bold">Estimated Impressions</TableHead>
+                        <TableHead className="font-bold">Budget Percent</TableHead>
+                        <TableHead className="font-bold">Budget Amount</TableHead>
+                        <TableHead className="font-bold">Targeting</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {processedAssets.map((asset: any) => (
+                        <TableRow key={asset.assetId}>
+                          <TableCell className="font-medium">{asset.assetName}</TableCell>
+                          <TableCell>{asset.platform}</TableCell>
+                          <TableCell>{asset.industry}</TableCell>
+                          <TableCell>{asset.buyType}</TableCell>
+                          <TableCell>{asset.baseCost}</TableCell>
+                          <TableCell>{asset.estimatedClicks}</TableCell>
+                          <TableCell>{asset.estimatedImpressions}</TableCell>
+                          <TableCell>{asset.budgetPercent}</TableCell>
+                          <TableCell>{asset.budgetAmount}</TableCell>
+                          <TableCell className="max-w-xs">
+                            <div className="text-xs">
+                              <p><strong>Geographic:</strong> {asset.targeting.geographic}</p>
+                              <p><strong>Device:</strong> {asset.targeting.deviceSplit}</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {/* Recommendation */}
         {content.recommendation && (
