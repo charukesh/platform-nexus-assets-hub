@@ -5,6 +5,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@
 import { Edit, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { formatIndianNumber } from "@/lib/utils";
 
 interface MediaPlanItem {
   [key: string]: any;
@@ -173,12 +174,14 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
     // Handle different types of values based on key
     if (key === "budget" || key === "budgetAmount" || key.toLowerCase().includes("budget")) {
       if (typeof value === "number") {
-        return `$${value.toLocaleString()}`;
+        return `₹${formatIndianNumber(value)}`;
       }
       if (typeof value === "string") {
-        return value.toString().startsWith("$") ? value.toString() : `$${value}`;
+        return value.toString().startsWith("$") || value.toString().startsWith("₹") 
+          ? value.toString().replace("$", "₹") 
+          : `₹${formatIndianNumber(value)}`;
       }
-      return `$${value}`;
+      return `₹${formatIndianNumber(value)}`;
     }
     
     if (key === "ctr" || key === "conversionRate" || key === "ctrPercentage" || 
@@ -202,7 +205,7 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
       if (value === null) return "-";
       const numValue = typeof value === "number" ? value : parseFloat(String(value));
       if (!isNaN(numValue)) {
-        return numValue.toLocaleString();
+        return formatIndianNumber(numValue);
       }
       return String(value);
     }
@@ -211,9 +214,11 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
       if (value === null) return "-";
       const numValue = typeof value === "number" ? value : parseFloat(String(value));
       if (!isNaN(numValue)) {
-        return `$${numValue.toFixed(2)}`;
+        return `₹${numValue.toFixed(2)}`;
       }
-      return typeof value === "string" && value.startsWith("$") ? value : `$${value}`;
+      return typeof value === "string" && (value.startsWith("$") || value.startsWith("₹")) 
+        ? value.toString().replace("$", "₹") 
+        : `₹${value}`;
     }
     
     // Default string conversion

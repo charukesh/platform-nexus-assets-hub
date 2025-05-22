@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { formatIndianNumber } from '@/lib/utils';
 
 interface AIResponseSectionProps {
   searchBrief: string;
@@ -73,7 +74,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       // Cost Per Click (CPC) - calculate clicks directly
       const clicks = Math.round(budgetAmount / baseCost);
       return { 
-        estimatedClicks: clicks.toLocaleString(), 
+        estimatedClicks: formatIndianNumber(clicks), 
         estimatedImpressions: "N/A" 
       };
     } else if (buyType.includes("mille")) {
@@ -81,7 +82,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       const impressions = Math.round((budgetAmount / baseCost) * 1000);
       return { 
         estimatedClicks: "N/A", 
-        estimatedImpressions: impressions.toLocaleString() 
+        estimatedImpressions: formatIndianNumber(impressions) 
       };
     }
     
@@ -123,7 +124,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             <div key={key} className="pb-6">
               <h2 className="text-xl font-bold mb-4">{index + 1}. {option.planName}</h2>
               <div className="mb-4">
-                <p><strong>Total Budget:</strong> {option.totalBudget}</p>
+                <p><strong>Total Budget:</strong> ₹{formatIndianNumber(option.totalBudget)}</p>
                 <p><strong>Budget Percentage:</strong> {option.budgetPercentage}</p>
               </div>
               
@@ -151,11 +152,11 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                           <TableCell>{asset.platform}</TableCell>
                           <TableCell>{asset.industry}</TableCell>
                           <TableCell>{asset.buyType}</TableCell>
-                          <TableCell>{asset.baseCost}</TableCell>
+                          <TableCell>₹{asset.baseCost}</TableCell>
                           <TableCell>{asset.estimatedClicks}</TableCell>
                           <TableCell>{asset.estimatedImpressions}</TableCell>
-                          <TableCell>{asset.budgetPercent}</TableCell>
-                          <TableCell>{asset.budgetAmount}</TableCell>
+                          <TableCell>{asset.budgetPercent}%</TableCell>
+                          <TableCell>₹{formatIndianNumber(asset.budgetAmount)}</TableCell>
                           <TableCell className="max-w-xs">
                             <div className="text-xs">
                               <p><strong>Geographic:</strong> {asset.targeting.geographic}</p>
