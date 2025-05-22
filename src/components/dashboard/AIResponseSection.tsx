@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { Loader2, Search, Edit, Check, X } from 'lucide-react';
+import { Loader2, Search, Edit, Check, X, Wrench } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import NeuButton from '@/components/NeuButton';
@@ -51,6 +51,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const [editValue, setEditValue] = useState<string>("");
   const [tableData, setTableData] = useState<MediaPlanItem[]>([]);
   const [markdownContent, setMarkdownContent] = useState<string>("");
+  const [fixedMarkdownContent, setFixedMarkdownContent] = useState<string>("");
   
   // Function to determine if a row has CPC buy type
   const isCpcBuyType = (item: MediaPlanItem): boolean => {
@@ -107,6 +108,86 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   });
 };
 
+  // Function to fix clicks calculation in markdown content
+  const fixMarkdownTables = (content: string): string => {
+    // Regular expression to match markdown tables
+    const tableRegex = /(\|[^|\n]*\|[^|\n]*\n)(\|[-:|]+\|[-:\s|]*\n)((\|[^|\n]*\|[^|\n]*\n)*)/g;
+    
+    return content.replace(tableRegex, (match, header, separator, rows) => {
+      const headerRow = header.trim().split('|').map(cell => cell.trim()).filter(cell => cell);
+      const dataRows = rows.trim().split('\n').map(row => 
+        row.trim().split('|').map(cell => cell.trim()).filter(cell => cell)
+      );
+      
+      // Find column indices
+      const buyTypeIndex = headerRow.findIndex(h => 
+        h.toLowerCase().includes('buy type') || h.toLowerCase().includes('buytype')
+      );
+      const baseCostIndex = headerRow.findIndex(h => 
+        h.toLowerCase().includes('base cost') || h.toLowerCase().includes('basecost')
+      );
+      const budgetIndex = headerRow.findIndex(h => 
+        h.toLowerCase().includes('budget amount') || 
+        h.toLowerCase().includes('budget') && !h.toLowerCase().includes('%')
+      );
+      const clicksIndex = headerRow.findIndex(h => 
+        h.toLowerCase().includes('est clicks') || h.toLowerCase().includes('clicks')
+      );
+      
+      if (buyTypeIndex === -1 || baseCostIndex === -1 || budgetIndex === -1 || clicksIndex === -1) {
+        return match; // Return original if we can't find required columns
+      }
+      
+      // Fix clicks for CPC rows
+      const fixedRows = dataRows.map(row => {
+        if (row.length <= Math.max(buyTypeIndex, baseCostIndex, budgetIndex, clicksIndex)) {
+          return row;
+        }
+        
+        const buyType = row[buyTypeIndex]?.toLowerCase();
+        if (buyType === 'cpc') {
+          const baseCostStr = row[baseCostIndex];
+          const budgetStr = row[budgetIndex];
+          
+          // Extract numeric values
+          const baseCost = parseFloat(baseCostStr.replace(/[^0-9.-]+/g, ""));
+          const budget = parseFloat(budgetStr.replace(/[^0-9.-]+/g, ""));
+          
+          if (!isNaN(baseCost) && !isNaN(budget) && baseCost > 0) {
+            const fixedClicks = Math.round(budget / baseCost);
+            row[clicksIndex] = fixedClicks.toLocaleString();
+          }
+        }
+        
+        return row;
+      });
+      
+      // Reconstruct the table
+      const fixedTable = [
+        header,
+        separator,
+        ...fixedRows.map(row => '| ' + row.join(' | ') + ' |\n')
+      ].join('');
+      
+      return fixedTable;
+    });
+  };
+
+  // Function to handle fixing all tables
+  const handleFixTables = () => {
+    // Fix table data
+    if (tableData.length > 0) {
+      const fixedData = forceRecalculateAllClicks(tableData);
+      setTableData(fixedData);
+    }
+    
+    // Fix markdown content
+    if (markdownContent) {
+      const fixedContent = fixMarkdownTables(markdownContent);
+      setFixedMarkdownContent(fixedContent);
+    }
+  };
+
   useEffect(() => {
     // Process search results for both table data and markdown content
     if (searchResults) {
@@ -127,6 +208,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         const cleanContent = contentText.replace(/```json\s*[\s\S]*?\s*```/g, '');
         const emojifiedContent = emoji.emojify(cleanContent);
         setMarkdownContent(emojifiedContent);
+        setFixedMarkdownContent(""); // Reset fixed content
         
         // Now try to extract table data
         let foundTableData = false;
@@ -184,6 +266,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     } else {
       // Clear states when no results
       setMarkdownContent("");
+      setFixedMarkdownContent("");
       setTableData([]);
     }
   }, [searchResults]);
@@ -525,7 +608,8 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   };
 
   const renderMarkdownContent = () => {
-    if (!markdownContent) return null;
+    const contentToRender = fixedMarkdownContent || markdownContent;
+    if (!contentToRender) return null;
     
     return (
       <div className="mt-4">
@@ -534,7 +618,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           rehypePlugins={[rehypeRaw]} 
           className="prose prose-sm max-w-full dark:prose-invert"
         >
-          {markdownContent || "No content received"}
+          {contentToRender || "No content received"}
         </ReactMarkdown>
       </div>
     );
@@ -545,6 +629,19 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     
     return (
       <div className="space-y-6">
+        {/* Fix button at the top */}
+        <div className="flex justify-end">
+          <NeuButton 
+            onClick={handleFixTables}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <Wrench size={16} />
+            Fix Est Clicks
+          </NeuButton>
+        </div>
+        
         {/* Always render query analysis if available */}
         {renderQueryAnalysis()}
         
