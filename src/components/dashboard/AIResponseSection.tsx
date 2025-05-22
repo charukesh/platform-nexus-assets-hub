@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
-import { Loader2, Search, Edit, Check, X, Wrench } from 'lucide-react';
+import { Loader2, Search, Edit, Check, X } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import NeuButton from '@/components/NeuButton';
@@ -22,13 +22,19 @@ interface AIResponseSectionProps {
 interface MediaPlanItem {
   platform?: string;
   format?: string;
-  buyType?: string;
-  baseCost?: number | string;
   budget?: number | string;
   impressions?: number | string;
   clicks?: number | string;
   ctr?: number | string;
   cpc?: number | string;
+  assetName?: string;
+  platformIndustry?: string;
+  buyType?: string;
+  baseCost?: number | string;
+  estClicks?: number | string;
+  estImpressions?: number | string;
+  budgetPercent?: number | string;
+  budgetAmount?: number | string;
   [key: string]: any;
 }
 
@@ -51,143 +57,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const [editValue, setEditValue] = useState<string>("");
   const [tableData, setTableData] = useState<MediaPlanItem[]>([]);
   const [markdownContent, setMarkdownContent] = useState<string>("");
-  const [fixedMarkdownContent, setFixedMarkdownContent] = useState<string>("");
   
-  // Function to determine if a row has CPC buy type
-  const isCpcBuyType = (item: MediaPlanItem): boolean => {
-    const buyType = item.buyType?.toString().toLowerCase() || '';
-    const format = item.format?.toString().toLowerCase() || '';
-    
-    return buyType === 'cpc' || 
-           format.includes('cpc') || 
-           format.includes('cost per click') ||
-           format.includes('paid search') ||
-           format.includes('search ads');
-  };
-  
- const recalculateClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
-  return data.map(item => {
-    const updatedItem = { ...item };
-    
-    if (isCpcBuyType(item)) {
-      // Extract budget value - ensure we get a clean number
-      const budget = typeof item.budget === 'number' ? 
-        item.budget : 
-        parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
-      
-      // Extract base cost value (CPC) - ensure we get a clean number
-      const baseCost = typeof item.baseCost === 'number' ? 
-        item.baseCost : 
-        typeof item.cpc === 'number' ?
-          item.cpc :
-          parseFloat(String(item.baseCost || item.cpc || '0').replace(/[^0-9.-]+/g, ""));
-      
-      // Calculate clicks if we have valid budget and baseCost
-      if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
-        // Calculate estimated clicks as budget / baseCost with precise rounding
-        updatedItem.clicks = Math.round(budget / baseCost);
-        
-        // Also update CPC to ensure consistency
-        updatedItem.cpc = baseCost;
-        
-        // For debugging
-        console.log(`Calculating clicks for item: Budget=${budget}, BaseCost=${baseCost}, Clicks=${updatedItem.clicks}`);
-        
-        // If we have impressions, update CTR
-        const impressions = typeof item.impressions === 'number' ? 
-          item.impressions : 
-          parseFloat(String(item.impressions || '0').replace(/[^0-9.-]+/g, ""));
-          
-        if (!isNaN(impressions) && impressions > 0) {
-          updatedItem.ctr = updatedItem.clicks / impressions;
-        }
-      }
-    }
-    
-    return updatedItem;
-  });
-};
-
-  // Function to fix clicks calculation in markdown content
-  const fixMarkdownTables = (content: string): string => {
-    // Regular expression to match markdown tables
-    const tableRegex = /(\|[^|\n]*\|[^|\n]*\n)(\|[-:|]+\|[-:\s|]*\n)((\|[^|\n]*\|[^|\n]*\n)*)/g;
-    
-    return content.replace(tableRegex, (match, header, separator, rows) => {
-      const headerRow = header.trim().split('|').map(cell => cell.trim()).filter(cell => cell);
-      const dataRows = rows.trim().split('\n').map(row => 
-        row.trim().split('|').map(cell => cell.trim()).filter(cell => cell)
-      );
-      
-      // Find column indices
-      const buyTypeIndex = headerRow.findIndex(h => 
-        h.toLowerCase().includes('buy type') || h.toLowerCase().includes('buytype')
-      );
-      const baseCostIndex = headerRow.findIndex(h => 
-        h.toLowerCase().includes('base cost') || h.toLowerCase().includes('basecost')
-      );
-      const budgetIndex = headerRow.findIndex(h => 
-        h.toLowerCase().includes('budget amount') || 
-        h.toLowerCase().includes('budget') && !h.toLowerCase().includes('%')
-      );
-      const clicksIndex = headerRow.findIndex(h => 
-        h.toLowerCase().includes('est clicks') || h.toLowerCase().includes('clicks')
-      );
-      
-      if (buyTypeIndex === -1 || baseCostIndex === -1 || budgetIndex === -1 || clicksIndex === -1) {
-        return match; // Return original if we can't find required columns
-      }
-      
-      // Fix clicks for CPC rows
-      const fixedRows = dataRows.map(row => {
-        if (row.length <= Math.max(buyTypeIndex, baseCostIndex, budgetIndex, clicksIndex)) {
-          return row;
-        }
-        
-        const buyType = row[buyTypeIndex]?.toLowerCase();
-        if (buyType === 'cpc') {
-          const baseCostStr = row[baseCostIndex];
-          const budgetStr = row[budgetIndex];
-          
-          // Extract numeric values
-          const baseCost = parseFloat(baseCostStr.replace(/[^0-9.-]+/g, ""));
-          const budget = parseFloat(budgetStr.replace(/[^0-9.-]+/g, ""));
-          
-          if (!isNaN(baseCost) && !isNaN(budget) && baseCost > 0) {
-            const fixedClicks = Math.round(budget / baseCost);
-            row[clicksIndex] = fixedClicks.toLocaleString();
-          }
-        }
-        
-        return row;
-      });
-      
-      // Reconstruct the table
-      const fixedTable = [
-        header,
-        separator,
-        ...fixedRows.map(row => '| ' + row.join(' | ') + ' |\n')
-      ].join('');
-      
-      return fixedTable;
-    });
-  };
-
-  // Function to handle fixing all tables
-  const handleFixTables = () => {
-    // Fix table data
-    if (tableData.length > 0) {
-      const fixedData = forceRecalculateAllClicks(tableData);
-      setTableData(fixedData);
-    }
-    
-    // Fix markdown content
-    if (markdownContent) {
-      const fixedContent = fixMarkdownTables(markdownContent);
-      setFixedMarkdownContent(fixedContent);
-    }
-  };
-
   useEffect(() => {
     // Process search results for both table data and markdown content
     if (searchResults) {
@@ -208,16 +78,14 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         const cleanContent = contentText.replace(/```json\s*[\s\S]*?\s*```/g, '');
         const emojifiedContent = emoji.emojify(cleanContent);
         setMarkdownContent(emojifiedContent);
-        setFixedMarkdownContent(""); // Reset fixed content
         
         // Now try to extract table data
         let foundTableData = false;
-        let parsedTableData: MediaPlanItem[] = [];
         
         // First check if it's our expected format from Supabase
         if (searchResults.mediaPlan && Array.isArray(searchResults.mediaPlan)) {
           console.log("Setting table data from mediaPlan array:", searchResults.mediaPlan);
-          parsedTableData = searchResults.mediaPlan;
+          setTableData(processMediaPlanData(searchResults.mediaPlan));
           foundTableData = true;
         } 
         // Check if it's from the raw OpenAI response
@@ -226,21 +94,31 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             // Try to find and parse JSON in the content
             const jsonMatch = contentText.match(/```json\s*([\s\S]*?)\s*```/);
             if (jsonMatch && jsonMatch[1]) {
-              parsedTableData = JSON.parse(jsonMatch[1]);
-              if (Array.isArray(parsedTableData)) {
-                console.log("Setting table data from JSON match:", parsedTableData);
+              const parsedData = JSON.parse(jsonMatch[1]);
+              if (Array.isArray(parsedData)) {
+                console.log("Setting table data from JSON match:", parsedData);
+                setTableData(processMediaPlanData(parsedData));
                 foundTableData = true;
               }
             } else {
               // Try parsing the entire content as JSON
               try {
-                parsedTableData = JSON.parse(contentText);
-                if (Array.isArray(parsedTableData)) {
-                  console.log("Setting table data from direct JSON parse:", parsedTableData);
+                const parsedData = JSON.parse(contentText);
+                if (Array.isArray(parsedData)) {
+                  console.log("Setting table data from direct JSON parse:", parsedData);
+                  setTableData(processMediaPlanData(parsedData));
                   foundTableData = true;
                 }
               } catch (e) {
                 // Not valid JSON, that's fine
+              }
+              
+              // Extract data from Markdown tables if present
+              const extractedData = extractTableDataFromMarkdown(contentText);
+              if (extractedData.length > 0) {
+                console.log("Setting table data from Markdown tables:", extractedData);
+                setTableData(processMediaPlanData(extractedData));
+                foundTableData = true;
               }
             }
           } catch (error) {
@@ -248,28 +126,183 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           }
         }
         
-        if (foundTableData && Array.isArray(parsedTableData)) {
-        // First apply standard recalculation
-        let processedData = recalculateClicks(parsedTableData);
-        
-        // Then force recalculation to ensure all clicks are accurately calculated
-        processedData = forceRecalculateAllClicks(processedData);
-        
-        setTableData(processedData);
-      } else {
-        // Clear any previous table data
-        setTableData([]);
-      }
+        if (!foundTableData) {
+          // Clear any previous table data
+          setTableData([]);
+        }
       } catch (error) {
         console.error("Error processing search results:", error);
       }
     } else {
       // Clear states when no results
       setMarkdownContent("");
-      setFixedMarkdownContent("");
       setTableData([]);
     }
   }, [searchResults]);
+
+  // Function to extract table data from markdown
+  const extractTableDataFromMarkdown = (markdown: string): MediaPlanItem[] => {
+    const tableRegex = /\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|/g;
+    const headerRegex = /\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|/;
+    
+    const tables = markdown.split(/##\s*OPTION/);
+    
+    let result: MediaPlanItem[] = [];
+    
+    tables.forEach(tableSection => {
+      // Skip sections without tables
+      if (!tableSection.includes("|")) return;
+      
+      const lines = tableSection.split("\n").filter(line => line.trim().length > 0 && line.includes("|"));
+      
+      // Skip if not enough lines for a table (header, separator, and at least one row)
+      if (lines.length < 3) return;
+      
+      // Extract header
+      const headerMatch = lines[0].match(headerRegex);
+      if (!headerMatch) return;
+      
+      // Create header mapping, removing leading/trailing spaces and normalizing
+      const headers = headerMatch.slice(1).map(header => {
+        const clean = header.trim().toLowerCase()
+          .replace(/\s+/g, " ")
+          .replace(/\s([a-z])/g, (_, letter) => letter.toUpperCase())
+          .replace(/^([a-z])/, (_, letter) => letter.toLowerCase());
+        
+        // Normalize common header variations
+        if (clean.includes("platform")) return "platform";
+        if (clean.includes("asset") && clean.includes("name")) return "assetName";
+        if (clean.includes("industry")) return "platformIndustry";
+        if (clean.includes("buy") && clean.includes("type")) return "buyType";
+        if (clean.includes("base") && clean.includes("cost")) return "baseCost";
+        if (clean.includes("ctr")) return "ctr";
+        if (clean.includes("click") && !clean.includes("est")) return "clicks";
+        if (clean.includes("click") && clean.includes("est")) return "estClicks";
+        if (clean.includes("impression") && clean.includes("est")) return "estImpressions";
+        if (clean.includes("budget") && clean.includes("%")) return "budgetPercent";
+        if (clean.includes("budget") && clean.includes("amount")) return "budgetAmount";
+        
+        return clean;
+      });
+      
+      // Skip separator line
+      const dataLines = lines.slice(2);
+      
+      // Process each data row
+      dataLines.forEach(line => {
+        // Skip separator lines
+        if (line.includes("---") || !line.includes("|")) return;
+        
+        const rowMatch = line.match(tableRegex);
+        if (!rowMatch) return;
+        
+        const values = line.split("|")
+          .map(cell => cell.trim())
+          .filter(cell => cell.length > 0);
+        
+        if (values.length < headers.length) return;
+        
+        const row: MediaPlanItem = {};
+        
+        // Map values to headers
+        headers.forEach((header, index) => {
+          if (header && values[index]) {
+            // Convert numeric values
+            let value = values[index];
+            if (value === "N/A") {
+              row[header] = "N/A";
+            } else if (
+              ["baseCost", "budgetAmount", "estClicks", "estImpressions", "budgetPercent"].includes(header)
+            ) {
+              // Remove non-numeric characters except decimal points
+              const numericValue = value.replace(/[^\d.]/g, "");
+              row[header] = numericValue ? parseFloat(numericValue) : value;
+            } else {
+              row[header] = value;
+            }
+          }
+        });
+        
+        result.push(row);
+      });
+    });
+    
+    return result;
+  };
+
+  // Process and calculate missing values in media plan data
+  const processMediaPlanData = (data: MediaPlanItem[]): MediaPlanItem[] => {
+    return data.map(item => {
+      const processedItem = { ...item };
+      
+      // Normalize key names
+      Object.keys(processedItem).forEach(key => {
+        const lowerKey = key.toLowerCase();
+        
+        // Map common key variations to standardized keys
+        if (lowerKey.includes("asset") && lowerKey.includes("name")) {
+          processedItem.assetName = processedItem[key];
+          if (key !== "assetName") delete processedItem[key];
+        }
+        if (lowerKey.includes("platform") && lowerKey.includes("industry")) {
+          processedItem.platformIndustry = processedItem[key];
+          if (key !== "platformIndustry") delete processedItem[key];
+        }
+        if (lowerKey.includes("buy") && lowerKey.includes("type")) {
+          processedItem.buyType = processedItem[key];
+          if (key !== "buyType") delete processedItem[key];
+        }
+        if (lowerKey.includes("base") && lowerKey.includes("cost")) {
+          processedItem.baseCost = processedItem[key];
+          if (key !== "baseCost") delete processedItem[key];
+        }
+        if (lowerKey === "ctr %") {
+          processedItem.ctr = processedItem[key];
+          if (key !== "ctr") delete processedItem[key];
+        }
+        if (lowerKey.includes("est") && lowerKey.includes("click")) {
+          processedItem.estClicks = processedItem[key];
+          if (key !== "estClicks") delete processedItem[key];
+        }
+        if (lowerKey.includes("est") && lowerKey.includes("impression")) {
+          processedItem.estImpressions = processedItem[key];
+          if (key !== "estImpressions") delete processedItem[key];
+        }
+        if (lowerKey.includes("budget") && lowerKey.includes("%")) {
+          processedItem.budgetPercent = processedItem[key];
+          if (key !== "budgetPercent") delete processedItem[key];
+        }
+        if (lowerKey.includes("budget") && lowerKey.includes("amount")) {
+          processedItem.budgetAmount = processedItem[key];
+          if (key !== "budgetAmount") delete processedItem[key];
+        }
+      });
+      
+      // Convert string values to numbers where appropriate
+      if (typeof processedItem.baseCost === "string") {
+        processedItem.baseCost = parseFloat(processedItem.baseCost.replace(/[^\d.]/g, ""));
+      }
+      
+      if (typeof processedItem.budgetAmount === "string") {
+        processedItem.budgetAmount = parseFloat(processedItem.budgetAmount.replace(/[^\d.]/g, ""));
+      }
+      
+      // Calculate estClicks for CPC items
+      if (
+        processedItem.buyType && 
+        processedItem.buyType.toUpperCase() === "CPC" && 
+        processedItem.budgetAmount && 
+        processedItem.baseCost && 
+        typeof processedItem.budgetAmount === "number" && 
+        typeof processedItem.baseCost === "number" && 
+        processedItem.baseCost > 0
+      ) {
+        processedItem.estClicks = Math.round(processedItem.budgetAmount / processedItem.baseCost);
+      }
+      
+      return processedItem;
+    });
+  };
 
   useEffect(() => {
     if (searchLoading) {
@@ -297,187 +330,136 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   };
 
   const saveEditedValue = () => {
-  if (editingCell) {
-    const { rowIndex, columnKey } = editingCell;
-    const updatedData = [...tableData];
-    
-    // Convert to numeric values for calculations
-    const rawOriginalValue = updatedData[rowIndex][columnKey];
-    const originalValue = typeof rawOriginalValue === 'number' ? 
-      rawOriginalValue : 
-      parseFloat(String(rawOriginalValue).replace(/[^0-9.-]+/g, ""));
-    
-    const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
-    
-    if (columnKey === "budget" && !isNaN(newValue) && !isNaN(originalValue)) {
-      // Update budget
-      updatedData[rowIndex][columnKey] = newValue;
+    if (editingCell) {
+      const { rowIndex, columnKey } = editingCell;
+      const updatedData = [...tableData];
       
-      // For CPC buy types, recalculate clicks directly based on CPC
-      if (isCpcBuyType(updatedData[rowIndex])) {
-        const baseCost = typeof updatedData[rowIndex].baseCost === 'number' ? 
-          updatedData[rowIndex].baseCost : 
-          typeof updatedData[rowIndex].cpc === 'number' ?
-            updatedData[rowIndex].cpc :
-            parseFloat(String(updatedData[rowIndex].baseCost || updatedData[rowIndex].cpc || '0').replace(/[^0-9.-]+/g, ""));
+      // Get the current row data
+      const row = updatedData[rowIndex];
+      
+      // Convert input value to a clean number
+      const newValue = parseFloat(editValue.replace(/[^0-9.-]+/g, ""));
+      
+      if (columnKey === "budgetAmount" && !isNaN(newValue)) {
+        // Update budget amount
+        updatedData[rowIndex][columnKey] = newValue;
         
-        if (!isNaN(baseCost) && baseCost > 0) {
-          // For CPC campaigns, clicks = budget / cpc with explicit rounding
-          const calculatedClicks = Math.round(newValue / baseCost);
-          updatedData[rowIndex].clicks = calculatedClicks;
-          
-          // For debugging
-          console.log(`Updated clicks: Budget=${newValue}, BaseCost=${baseCost}, Clicks=${calculatedClicks}`);
+        // Recalculate estClicks for CPC items
+        if (
+          row.buyType && 
+          row.buyType.toString().toUpperCase() === "CPC" && 
+          row.baseCost && 
+          typeof row.baseCost === "number" && 
+          row.baseCost > 0
+        ) {
+          updatedData[rowIndex].estClicks = Math.round(newValue / row.baseCost);
+        }
+        
+        // Recalculate estImpressions for CPM items
+        if (
+          row.buyType && 
+          row.buyType.toString().toUpperCase() === "CPM" && 
+          row.baseCost && 
+          typeof row.baseCost === "number" && 
+          row.baseCost > 0
+        ) {
+          updatedData[rowIndex].estImpressions = Math.round((newValue * 1000) / row.baseCost);
+        }
+      } else if (columnKey === "baseCost" && !isNaN(newValue) && newValue > 0) {
+        // Update base cost
+        updatedData[rowIndex][columnKey] = newValue;
+        
+        // Recalculate estClicks for CPC items
+        if (
+          row.buyType && 
+          row.buyType.toString().toUpperCase() === "CPC" && 
+          row.budgetAmount && 
+          typeof row.budgetAmount === "number"
+        ) {
+          updatedData[rowIndex].estClicks = Math.round(row.budgetAmount / newValue);
+        }
+        
+        // Recalculate estImpressions for CPM items
+        if (
+          row.buyType && 
+          row.buyType.toString().toUpperCase() === "CPM" && 
+          row.budgetAmount && 
+          typeof row.budgetAmount === "number"
+        ) {
+          updatedData[rowIndex].estImpressions = Math.round((row.budgetAmount * 1000) / newValue);
         }
       } else {
-        // For non-CPC campaigns, scale impressions and clicks proportionally
-        if (updatedData[rowIndex].impressions !== undefined) {
-          const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
-            updatedData[rowIndex].impressions : 
-            parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
-            
-          if (!isNaN(impressionsValue)) {
-            updatedData[rowIndex].impressions = Math.round(impressionsValue * (newValue / originalValue));
-          }
-        }
-        
-        if (updatedData[rowIndex].clicks !== undefined) {
-          const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
-            updatedData[rowIndex].clicks : 
-            parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
-            
-          if (!isNaN(clicksValue)) {
-            updatedData[rowIndex].clicks = Math.round(clicksValue * (newValue / originalValue));
-          }
-        }
+        // For other fields, just update the value
+        updatedData[rowIndex][columnKey] = isNaN(newValue) ? editValue : newValue;
       }
       
-      // Recalculate CPC and CTR based on new values
-      const clicksValue = typeof updatedData[rowIndex].clicks === 'number' ? 
-        updatedData[rowIndex].clicks : 
-        parseFloat(String(updatedData[rowIndex].clicks).replace(/[^0-9.-]+/g, ""));
-      
-      const impressionsValue = typeof updatedData[rowIndex].impressions === 'number' ? 
-        updatedData[rowIndex].impressions : 
-        parseFloat(String(updatedData[rowIndex].impressions).replace(/[^0-9.-]+/g, ""));
-      
-      if (!isNaN(clicksValue) && clicksValue > 0) {
-        updatedData[rowIndex].cpc = newValue / clicksValue;
-      }
-      
-      if (!isNaN(clicksValue) && !isNaN(impressionsValue) && impressionsValue > 0) {
-        updatedData[rowIndex].ctr = clicksValue / impressionsValue;
-      }
-    } else {
-      updatedData[rowIndex][columnKey] = editValue;
+      console.log("Updated data:", updatedData);
+      setTableData(updatedData);
+      setEditingCell(null);
     }
-    
-    console.log("Updated data:", updatedData);
-    setTableData(updatedData);
-    setEditingCell(null);
-  }
-};
-
-  const forceRecalculateAllClicks = (data: MediaPlanItem[]): MediaPlanItem[] => {
-  if (!data || data.length === 0) return [];
-  
-  return data.map(item => {
-    // Only process CPC items
-    if (!isCpcBuyType(item)) return item;
-    
-    const updatedItem = { ...item };
-    
-    // Get clean budget value
-    const budget = typeof item.budget === 'number' ? 
-      item.budget : 
-      parseFloat(String(item.budget || '0').replace(/[^0-9.-]+/g, ""));
-    
-    // Get clean base cost
-    const baseCost = typeof item.baseCost === 'number' ? 
-      item.baseCost : 
-      typeof item.cpc === 'number' ?
-        item.cpc :
-        parseFloat(String(item.baseCost || item.cpc || '0').replace(/[^0-9.-]+/g, ""));
-    
-    // Recalculate clicks if we have valid data
-    if (!isNaN(budget) && !isNaN(baseCost) && baseCost > 0) {
-      // Calculate clicks with explicit rounding
-      const calculatedClicks = Math.round(budget / baseCost);
-      updatedItem.clicks = calculatedClicks;
-      
-      console.log(`Force recalculated: Platform=${item.platform}, Budget=${budget}, BaseCost=${baseCost}, Clicks=${calculatedClicks}`);
-    }
-    
-    return updatedItem;
-  });
-};
+  };
 
   const formatValue = (value: any, key: string): string => {
-    if (value === undefined || value === null) return "-";
+    if (value === undefined || value === null || value === "") return "-";
     
-    if (key === "budget") {
+    if (key === "budgetAmount") {
       return typeof value === "number" 
-        ? `$${value.toLocaleString()}` 
-        : value.toString().startsWith("$") 
+        ? `₹${value.toLocaleString()}` 
+        : value.toString().startsWith("₹") || value.toString().startsWith("$")
           ? value.toString() 
-          : `$${value}`;
+          : `₹${value}`;
     }
     
-    if (key === "ctr" || key === "conversionRate") {
+    if (key === "baseCost") {
+      return typeof value === "number" 
+        ? `₹${value}` 
+        : value.toString().startsWith("₹") || value.toString().startsWith("$")
+          ? value.toString() 
+          : `₹${value}`;
+    }
+    
+    if (key === "budgetPercent" || key === "ctr") {
       const numValue = typeof value === "number" ? value : parseFloat(value);
       if (!isNaN(numValue)) {
-        // Convert from decimal to percentage (e.g., 0.05 to 5%)
-        return `${(numValue * 100).toFixed(2)}%`;
+        // Convert from decimal to percentage if needed
+        return numValue > 1 ? `${numValue}%` : `${(numValue * 100).toFixed(2)}%`;
       }
       return value.toString().endsWith("%") ? value.toString() : `${value}%`;
     }
     
-    if (key === "impressions" || key === "clicks" || key === "conversions") {
+    if (key === "estImpressions" || key === "estClicks") {
       return typeof value === "number" 
         ? value.toLocaleString() 
         : value.toString();
     }
     
-    if (key === "cpc" || key === "cpa" || key === "baseCost") {
-      const numValue = typeof value === "number" ? value : parseFloat(value);
-      if (!isNaN(numValue)) {
-        return `$${numValue.toFixed(2)}`;
-      }
-      return value.toString().startsWith("$") ? value.toString() : `$${value}`;
-    }
-    
     return value.toString();
   };
 
-  const isBudgetColumn = (key: string): boolean => {
-    return key === "budget" || 
-           key.toLowerCase().includes("budget") || 
-           key.toLowerCase().includes("spend") || 
-           key.toLowerCase().includes("cost");
+  const isEditableColumn = (key: string): boolean => {
+    return key === "budgetAmount" || key === "baseCost";
   };
 
   const renderQueryAnalysis = () => {
     if (!searchBrief || !searchResults) return null;
     
-    // Extract budget from search brief (this is simplified - could be improved)
+    // Extract location from search brief
+    const locationMatch = searchBrief.match(/\b(bangalore|banglore|bengaluru|karnataka)\b/i);
+    const location = locationMatch ? locationMatch[0].charAt(0).toUpperCase() + locationMatch[0].slice(1) : "Not specified";
+    
+    // Extract budget from search brief
     const budgetMatch = searchBrief.match(/(\d+)[Ll]\s*budget/);
-    const budget = budgetMatch ? budgetMatch[1] : "Not specified";
-
-    const mainKeywordMatch = searchBrief.match(/for\s+(\w+)/);
-    const mainKeyword = mainKeywordMatch ? mainKeywordMatch[1] : "Not specified";
+    const budget = budgetMatch ? budgetMatch[1] + "L" : "Not specified";
     
     return (
       <div className="mb-6 space-y-3">
-        <h2 className="text-xl font-semibold">1. Query Analysis</h2>
+        <h2 className="text-xl font-semibold">Query Analysis</h2>
         <ul className="list-disc pl-5 space-y-2">
-          <li><span className="font-medium">Budget requirements:</span> {budget}L</li>
-          <li><span className="font-medium">Number of assets requested:</span> Not specified; default to max 3 per plan as per instructions</li>
-          <li><span className="font-medium">Number of platforms requested:</span> Not specified; default to diversity for reach</li>
-          <li><span className="font-medium">Industry filtering:</span> None specified; all industries allowed</li>
-          <li><span className="font-medium">Budget allocation preferences:</span> None specified; use standard splits per plan type</li>
-          <li><span className="font-medium">Platform prioritization:</span> None specified</li>
-          <li><span className="font-medium">Targeting requirements:</span> No specific geographic, demographic, interest, or behavioral targeting mentioned in the query</li>
-          <li><span className="font-medium">Other notes:</span> {mainKeyword} is a mass-market consumer electronics brand. Plans should balance reach, engagement, and relevance across high-traffic and contextually relevant digital platforms.</li>
+          <li><span className="font-medium">Geographic targeting:</span> {location}</li>
+          <li><span className="font-medium">Budget requirements:</span> {budget}</li>
+          <li><span className="font-medium">Number of assets requested:</span> Not specified; default to max 3 per plan</li>
+          <li><span className="font-medium">Platforms/Industries requested:</span> Not specified; all industries allowed</li>
+          <li><span className="font-medium">Targeting requirements:</span> No specific demographic, interest, or behavioral targeting mentioned</li>
         </ul>
       </div>
     );
@@ -486,21 +468,53 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const renderMediaPlanTable = () => {
     if (tableData.length === 0) return null;
     
-    // Extract headers from the data
-    const headers = Object.keys(tableData[0]).filter(key => key !== 'id' && key !== 'key');
+    // Extract headers from the data, normalizing key names
+    const priorityHeaders = [
+      "platform", "assetName", "platformIndustry", "buyType", "baseCost", 
+      "ctr", "estClicks", "estImpressions", "budgetPercent", "budgetAmount"
+    ];
+    
+    // Get all available keys from the data
+    const allKeys = new Set<string>();
+    tableData.forEach(item => {
+      Object.keys(item).forEach(key => allKeys.add(key));
+    });
+    
+    // Order headers with priority headers first, then any others
+    const headers = [
+      ...priorityHeaders.filter(key => Array.from(allKeys).some(k => k === key)),
+      ...Array.from(allKeys).filter(key => !priorityHeaders.includes(key))
+    ];
     
     // Calculate totals for numeric columns
     const totals: { [key: string]: number } = {};
     headers.forEach(header => {
-      if (tableData.every(item => typeof item[header] === "number" || !isNaN(Number(item[header])))) {
+      // Only calculate totals for these specific columns
+      if (["budgetAmount", "estClicks", "estImpressions"].includes(header)) {
         totals[header] = tableData.reduce((sum, item) => {
           const value = typeof item[header] === "number" 
             ? item[header] as number 
-            : Number(item[header]);
+            : typeof item[header] === "string" 
+              ? parseFloat(item[header].replace(/[^\d.]/g, ""))
+              : 0;
           return sum + (isNaN(value) ? 0 : value);
         }, 0);
       }
     });
+    
+    // Clean up header display names
+    const headerDisplayNames: { [key: string]: string } = {
+      platform: "Platform",
+      assetName: "Asset Name",
+      platformIndustry: "Platform Industry",
+      buyType: "Buy Type",
+      baseCost: "Base Cost (₹)",
+      ctr: "CTR %",
+      estClicks: "Est. Clicks",
+      estImpressions: "Est. Impressions",
+      budgetPercent: "Budget %",
+      budgetAmount: "Budget Amount (₹)"
+    };
     
     return (
       <div>
@@ -515,8 +529,9 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           <TableHeader>
             <TableRow>
               {headers.map(header => (
-                <TableHead key={header} className="font-semibold capitalize">
-                  {header.replace(/([A-Z])/g, " $1").trim()}
+                <TableHead key={header} className="font-semibold">
+                  {headerDisplayNames[header] || 
+                   header.replace(/([A-Z])/g, " $1").trim().replace(/^./, str => str.toUpperCase())}
                 </TableHead>
               ))}
             </TableRow>
@@ -546,11 +561,11 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                     ) : (
                       <div className="flex justify-between items-center">
                         <span>{formatValue(row[key], key)}</span>
-                        {isBudgetColumn(key) && (
+                        {isEditableColumn(key) && (
                           <button 
                             onClick={() => startEditing(rowIndex, key, row[key])} 
                             className="ml-2 p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 focus:opacity-100"
-                            aria-label="Edit budget"
+                            aria-label={`Edit ${key}`}
                           >
                             <Edit size={16} />
                           </button>
@@ -569,7 +584,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                   <TableCell key={`total-${header}`}>
                     {totals[header] !== undefined 
                       ? formatValue(totals[header], header)
-                      : ""}
+                      : header === "platform" ? "TOTAL" : ""}
                   </TableCell>
                 ))}
               </TableRow>
@@ -585,14 +600,16 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     
     return (
       <div className="mt-6">
-        <p className="text-base leading-relaxed">
-          {searchBrief && searchBrief.toLowerCase().includes('samsung') ? (
+        <h2 className="text-xl font-semibold">Marketing Strategy</h2>
+        <p className="text-base leading-relaxed mt-2">
+          {searchBrief && searchBrief.toLowerCase().includes('bangalore') ? (
             <>
-              Samsung is a global leader in electronics, and for a {searchBrief.match(/(\d+)[Ll]/)?.[1]}L budget, 
-              the goal is to maximize reach and engagement across platforms where tech-savvy, urban, and aspirational 
-              consumers spend their digital time. The plans above leverage assets with strong digital presence and targeting 
-              options, mixing high-impact placements and contextual relevance to drive both awareness and action. Each plan 
-              offers a unique mix for different marketing priorities.
+              This media plan focuses on digital assets with precise city-level targeting for Bangalore, 
+              ensuring your message reaches the right audience in this tech-savvy urban market. 
+              The selected platforms represent key touchpoints in the daily digital journey of Bangalore consumers,
+              from food delivery apps to entertainment discovery and music streaming services.
+              Budget allocation is optimized to balance awareness and conversion opportunities across these
+              high-engagement platforms.
             </>
           ) : (
             <>
@@ -608,18 +625,44 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   };
 
   const renderMarkdownContent = () => {
-    const contentToRender = fixedMarkdownContent || markdownContent;
-    if (!contentToRender) return null;
+    if (!markdownContent) return null;
+    
+    // Extract only the recommendation and next steps sections if they exist
+    const recommendationMatch = markdownContent.match(/##\s*Recommendation([\s\S]*?)(?=##|$)/i);
+    const nextStepsMatch = markdownContent.match(/##\s*Next Steps([\s\S]*?)(?=##|$)/i);
+    
+    const recommendation = recommendationMatch ? recommendationMatch[1].trim() : "";
+    const nextSteps = nextStepsMatch ? nextStepsMatch[1].trim() : "";
+    
+    if (!recommendation && !nextSteps) return null;
     
     return (
-      <div className="mt-4">
-        <ReactMarkdown 
-          remarkPlugins={[remarkGfm]} 
-          rehypePlugins={[rehypeRaw]} 
-          className="prose prose-sm max-w-full dark:prose-invert"
-        >
-          {contentToRender || "No content received"}
-        </ReactMarkdown>
+      <div className="mt-6 space-y-4">
+        {recommendation && (
+          <div>
+            <h2 className="text-xl font-semibold">Recommendation</h2>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeRaw]} 
+              className="prose prose-sm max-w-full dark:prose-invert mt-2"
+            >
+              {recommendation}
+            </ReactMarkdown>
+          </div>
+        )}
+        
+        {nextSteps && (
+          <div>
+            <h2 className="text-xl font-semibold">Next Steps</h2>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]} 
+              rehypePlugins={[rehypeRaw]} 
+              className="prose prose-sm max-w-full dark:prose-invert mt-2"
+            >
+              {nextSteps}
+            </ReactMarkdown>
+          </div>
+        )}
       </div>
     );
   };
@@ -629,19 +672,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     
     return (
       <div className="space-y-6">
-        {/* Fix button at the top */}
-        <div className="flex justify-end">
-          <NeuButton 
-            onClick={handleFixTables}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Wrench size={16} />
-            Fix Est Clicks
-          </NeuButton>
-        </div>
-        
         {/* Always render query analysis if available */}
         {renderQueryAnalysis()}
         
@@ -651,7 +681,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         {/* Render strategy text if table data is available */}
         {tableData.length > 0 && renderStrategyText()}
         
-        {/* Always render markdown content if available */}
+        {/* Render markdown content (recommendation and next steps) if available */}
         {renderMarkdownContent()}
       </div>
     );
