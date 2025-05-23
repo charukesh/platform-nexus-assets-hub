@@ -15,6 +15,7 @@ import AssetStatsCard from "@/components/dashboard/AssetStatsCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import AIResponseSection from "@/components/dashboard/AIResponseSection";
 import PlatformList from "@/components/dashboard/PlatformList";
+import { formatSearchResultsToCsv, downloadCsv } from "@/lib/utils";
 
 const Dashboard: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);

@@ -1,12 +1,11 @@
-
 import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
-import { Loader2, Search, X, Edit, Check } from 'lucide-react';
+import { Loader2, Search, X, Edit, Check, FileText } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { formatIndianNumber } from '@/lib/utils';
+import { formatIndianNumber, formatSearchResultsToCsv, downloadCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface AIResponseSectionProps {
@@ -175,6 +174,35 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 
   const handleCancelEdit = () => {
     setEditingCell(null);
+  };
+
+  const handleExportCsv = () => {
+    if (!processedResults) return;
+    
+    try {
+      // Format the results to CSV
+      const csvContent = formatSearchResultsToCsv(processedResults);
+      
+      // Generate a timestamp for the filename
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      // Download the CSV file
+      downloadCsv(csvContent, `media_plan_${timestamp}.csv`);
+      
+      toast({
+        title: "Export successful",
+        description: "Media plan has been exported to CSV",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Error exporting to CSV:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export media plan to CSV",
+        variant: "destructive"
+      });
+    }
   };
 
   const renderFormattedResponse = (data: any) => {
@@ -406,6 +434,16 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                   Raw JSON
                 </button>
               </div>
+              
+              <NeuButton 
+                variant="outline" 
+                onClick={handleExportCsv}
+                disabled={!processedResults}
+                className="flex items-center gap-2"
+              >
+                <FileText size={16} />
+                Export CSV
+              </NeuButton>
             </div>
 
             {displayMode === 'formatted' ? (
