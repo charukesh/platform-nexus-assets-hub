@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -76,28 +75,92 @@ export function escapeCsvValue(value: any): string {
 }
 
 /**
- * Converts an object to a CSV row
- * @param obj - The object to convert
- * @param headers - Array of header keys in the desired order
- * @returns CSV row string
+ * Formats and converts AI search results to CSV format
+ * @param searchResults - The AI search response data
+ * @returns CSV string of the formatted data
  */
-export function objectToCsvRow(obj: any, headers: string[]): string {
-  return headers.map(header => escapeCsvValue(obj[header])).join(',');
-}
+export function formatSearchResultsToCsv(searchResults: any): string {
+  if (!searchResults || !searchResults.choices || !searchResults.choices[0]?.message?.content) {
+    return 'No valid data available for export';
+  }
 
-/**
- * Creates a CSV string from an array of objects
- * @param data - Array of objects to convert
- * @param headers - Object mapping header keys to display names
- * @returns Full CSV string with headers
- */
-export function createCsv(data: any[], headers: {[key: string]: string}): string {
-  const headerKeys = Object.keys(headers);
-  const headerRow = headerKeys.map(key => escapeCsvValue(headers[key])).join(',');
+  const content = searchResults.choices[0].message.content;
+  const rows = [];
   
-  const rows = data.map(item => objectToCsvRow(item, headerKeys));
+  // Add brief summary as header
+  rows.push(['Brief Summary']);
+  rows.push([content.briefSummary || '']);
+  rows.push([]); // Empty row for separation
   
-  return [headerRow, ...rows].join('\n');
+  // Process each plan option
+  if (content.options) {
+    Object.entries(content.options).forEach(([key, option]: [string, any]) => {
+      // Add plan header and total budget
+      rows.push([`Plan: ${option.planName}`]);
+      rows.push([`Total Budget: ₹${option.totalBudget}`]);
+      rows.push([]);
+      
+      // Add table headers for assets
+      const headers = [
+        'Asset Name', 
+        'Platform', 
+        'Industry', 
+        'Buy Type', 
+        'Base Cost', 
+        'Estimated Clicks', 
+        'Estimated Impressions',
+        'CTR (%)', 
+        'Budget Percent', 
+        'Budget Amount', 
+        'Geographic Targeting', 
+        'Device Targeting'
+      ];
+      
+      rows.push(headers);
+      
+      // Add asset rows
+      if (option.assets && option.assets.length > 0) {
+        option.assets.forEach((asset: any) => {
+          rows.push([
+            asset.assetName || '',
+            asset.platform || '',
+            asset.industry || '',
+            asset.buyType || '',
+            asset.baseCost || '',
+            asset.estimatedClicks || '',
+            asset.estimatedImpressions || '',
+            asset.ctr || '16%',
+            `${asset.budgetPercent || ''}%`,
+            asset.budgetAmount || '',
+            asset.targeting?.geographic || '',
+            asset.targeting?.deviceSplit || ''
+          ]);
+        });
+      }
+      
+      rows.push([]); // Empty row for separation between plans
+    });
+  }
+  
+  // Add recommendation if exists
+  if (content.recommendation) {
+    rows.push(['Recommendation']);
+    rows.push([content.recommendation]);
+    rows.push([]);
+  }
+  
+  // Add next steps if exists
+  if (content.nextSteps && content.nextSteps.length > 0) {
+    rows.push(['Next Steps']);
+    content.nextSteps.forEach((step: string, index: number) => {
+      rows.push([`${index + 1}. ${step}`]);
+    });
+  }
+  
+  // Convert 2D array to CSV
+  return rows.map(row => 
+    row.map(cell => escapeCsvValue(cell)).join(',')
+  ).join('\n');
 }
 
 /**
@@ -106,10 +169,14 @@ export function createCsv(data: any[], headers: {[key: string]: string}): string
  * @param fileName - Name for the downloaded file
  */
 export function downloadCsv(csvContent: string, fileName: string = 'export.csv'): void {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  // Create a blob with UTF-8 BOM to ensure Excel recognizes the encoding correctly
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  
+  // Create a temporary link element
   const link = document.createElement('a');
   
-  // Create a URL for the blob
+  // Use URL.createObjectURL to create a temporary URL for the blob
   const url = URL.createObjectURL(blob);
   
   // Set link properties
@@ -122,95 +189,10 @@ export function downloadCsv(csvContent: string, fileName: string = 'export.csv')
   link.click();
   document.body.removeChild(link);
   
-  // Release the URL object
+  // Release the URL object after a short delay to ensure download starts
   setTimeout(() => {
     URL.revokeObjectURL(url);
   }, 100);
-}
-
-/**
- * Formats and converts AI search results to CSV format
- * @param searchResults - The AI search response data
- * @returns CSV string of the formatted data
- */
-export function formatSearchResultsToCsv(searchResults: any): string {
-  if (!searchResults || !searchResults.choices || !searchResults.choices[0]?.message?.content) {
-    return 'No valid data available for export';
-  }
-
-  const content = searchResults.choices[0].message.content;
-  let csvData = [];
-  
-  // Add brief summary
-  csvData.push(['Brief Summary']);
-  csvData.push([content.briefSummary || '']);
-  csvData.push([]);  // Empty line for separation
-  
-  // Process each plan option
-  if (content.options) {
-    Object.entries(content.options).forEach(([key, option]: [string, any], index) => {
-      // Add plan header
-      csvData.push([`Plan ${index + 1}: ${option.planName}`]);
-      csvData.push([`Total Budget: ₹${option.totalBudget}`, `Budget Percentage: ${option.budgetPercentage}`]);
-      csvData.push([]);
-      
-      // Add assets table headers
-      if (option.assets && option.assets.length > 0) {
-        csvData.push([
-          'Asset Name',
-          'Platform',
-          'Industry',
-          'Buy Type',
-          'Base Cost',
-          'Estimated Clicks',
-          'Estimated Impressions',
-          'Budget Percent',
-          'Budget Amount',
-          'Geographic Targeting',
-          'Device Targeting'
-        ]);
-        
-        // Add asset rows
-        option.assets.forEach((asset: any) => {
-          const estimates = calculateEstimates(asset);
-          
-          csvData.push([
-            asset.assetName || '',
-            asset.platform || '',
-            asset.industry || '',
-            asset.buyType || '',
-            asset.baseCost || '',
-            estimates.estimatedClicks || '',
-            estimates.estimatedImpressions || '',
-            `${asset.budgetPercent || ''}%`,
-            `₹${asset.budgetAmount || ''}`,
-            asset.targeting?.geographic || '',
-            asset.targeting?.deviceSplit || ''
-          ]);
-        });
-        
-        csvData.push([]);  // Empty line for separation
-      }
-    });
-  }
-  
-  // Add recommendation
-  if (content.recommendation) {
-    csvData.push(['Recommendation']);
-    csvData.push([content.recommendation]);
-    csvData.push([]);
-  }
-  
-  // Add next steps
-  if (content.nextSteps && content.nextSteps.length > 0) {
-    csvData.push(['Next Steps']);
-    content.nextSteps.forEach((step: string, index: number) => {
-      csvData.push([`${index + 1}. ${step}`]);
-    });
-  }
-  
-  // Convert to CSV string
-  return csvData.map(row => row.map(cell => escapeCsvValue(cell)).join(',')).join('\n');
 }
 
 // Helper function to calculate estimates
@@ -246,4 +228,3 @@ function calculateEstimates(asset: any) {
     estimatedImpressions: asset.estimatedImpressions || "N/A" 
   };
 }
-
