@@ -22,7 +22,14 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing Supabase environment variables");
+      console.error("Missing Supabase environment variables");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
     }
     
     // Create a Supabase client with the service role key (admin privileges)
@@ -46,6 +53,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
     
     if (authError || !user) {
+      console.error("Auth error:", authError);
       return new Response(
         JSON.stringify({ error: "Invalid authorization token", details: authError }),
         {
@@ -67,6 +75,7 @@ serve(async (req) => {
         .single();
         
       if (roleError || roleData?.role !== 'admin') {
+        console.error("Role verification error:", roleError);
         return new Response(
           JSON.stringify({ error: "Unauthorized: Admin privileges required" }),
           {
@@ -78,7 +87,20 @@ serve(async (req) => {
     }
     
     // Parse the request body for the operation
-    const requestData = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      console.error("JSON parsing error:", e);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON payload" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
+    
     const { action, email, role } = requestData;
     
     console.log("Received request:", { action, email, role });
@@ -96,7 +118,7 @@ serve(async (req) => {
     const normalizedEmail = email.toLowerCase().trim();
     
     // Perform the requested action
-    let result;
+    let result: any = { success: false };
     
     switch (action) {
       case 'add':
@@ -158,6 +180,32 @@ serve(async (req) => {
         }
         
         console.log(`Updating user with email: ${normalizedEmail} to role: ${role}`);
+        
+        // First check if the user exists
+        const { data: userToUpdate, error: userCheckError } = await supabaseAdmin
+          .from('authorized_users')
+          .select('id')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
+        
+        if (userCheckError) {
+          console.error("Error checking if user exists for update:", userCheckError);
+          throw userCheckError;
+        }
+        
+        if (!userToUpdate) {
+          return new Response(
+            JSON.stringify({ 
+              error: "User not found", 
+              message: "Cannot update a user that doesn't exist"
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 404,
+            }
+          );
+        }
+        
         const { data: updateData, error: updateError } = await supabaseAdmin
           .from('authorized_users')
           .update({ role })

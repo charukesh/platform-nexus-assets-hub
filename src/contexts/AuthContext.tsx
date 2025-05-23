@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -302,8 +303,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log(`Updating role for ${normalizedEmail} to ${role}`);
       
       // Use the edge function to bypass RLS
-      const appUrl = window.location.origin;
-      const response = await fetch(`${appUrl}/functions/v1/manage-authorized-users`, {
+      const appUrl = import.meta.env.DEV ? 'http://localhost:54321' : window.location.origin;
+      const functionUrl = `${appUrl}/functions/v1/manage-authorized-users`;
+      
+      console.log("Calling function URL:", functionUrl);
+      
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -316,19 +321,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }),
       });
 
-      const result = await response.json();
+      // Add more detailed logging
+      console.log("Response status:", response.status);
+      console.log("Response status text:", response.statusText);
       
+      // Check for non-OK response before trying to parse JSON
       if (!response.ok) {
-        console.error('Error from manage-authorized-users function:', result);
-        toast({
-          title: "Error",
-          description: result.message || "Failed to update role. Please try again.",
-          variant: "destructive"
-        });
-        throw new Error(result.message || "Failed to update role");
+        const errorText = await response.text();
+        console.error('Error response from manage-authorized-users function:', errorText);
+        throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 100)}...`);
       }
-      
-      console.log(`Role successfully updated for ${normalizedEmail} to ${role}`);
+
+      const result = await response.json();
+      console.log("Update result:", result);
       
       // Reload the list
       await loadAuthorizedEmails();

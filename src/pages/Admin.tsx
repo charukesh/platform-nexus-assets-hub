@@ -124,6 +124,11 @@ const Admin = () => {
       fetchUsersFromDb();
     } catch (error) {
       console.error("Error adding email:", error);
+      toast({
+        title: "Error Adding User",
+        description: error.message || "Failed to add user. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setAddingUser(false);
     }
@@ -141,14 +146,20 @@ const Admin = () => {
           title: "User Removed",
           description: `${email} has been removed successfully.`
         });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to remove user. Please try again.",
+          variant: "destructive"
+        });
       }
-      // Always fetch from DB to ensure list is accurate, regardless of success value
+      // Always fetch from DB to ensure list is accurate
       fetchUsersFromDb();
     } catch (error) {
       console.error("Error removing email:", error);
       toast({
         title: "Error",
-        description: "Failed to remove user. Please try again.",
+        description: error.message || "Failed to remove user. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -178,11 +189,14 @@ const Admin = () => {
         title: "Role Updated",
         description: `Role for ${editingUser} has been updated to ${editRole}.`
       });
+      
+      // Refresh the list to ensure data is in sync
+      fetchUsersFromDb();
     } catch (error) {
       console.error("Error updating role:", error);
       toast({
         title: "Error",
-        description: "Failed to update role. Please try again.",
+        description: error.message || "Failed to update role. Please try again.",
         variant: "destructive"
       });
     }
