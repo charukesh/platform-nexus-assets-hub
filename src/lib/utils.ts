@@ -129,9 +129,12 @@ export function formatSearchResultsToCsv(searchResults: any): string {
       
       rows.push(headers);
       
-      // Add asset rows
+      // Add asset rows with actual CTR values
       if (option.assets && option.assets.length > 0) {
         option.assets.forEach((asset: any) => {
+          // Use the asset's CTR value directly
+          const ctr = asset.ctr !== undefined ? asset.ctr : 0.5;
+          
           rows.push([
             asset.assetName || '',
             asset.platform || '',
@@ -140,7 +143,7 @@ export function formatSearchResultsToCsv(searchResults: any): string {
             asset.baseCost || '',
             asset.estimatedClicks || '',
             asset.estimatedImpressions || '',
-            asset.ctr || '16%',
+            `${ctr}%` || '',
             asset.budgetAmount || '',
             asset.targeting?.geographic || '',
             asset.targeting?.deviceSplit || ''
@@ -288,7 +291,7 @@ export function exportToGoogleSheets(searchResults: any): void {
 function calculateEstimates(asset: any) {
   const budgetAmount = parseFloat(asset.budgetAmount);
   const baseCost = parseFloat(asset.baseCost);
-  const ctr = 16; // Adding default CTR of 16
+  const ctr = asset.ctr !== undefined ? parseFloat(asset.ctr) : 0.5; // Use asset's CTR or default to 0.5%
   
   if (isNaN(budgetAmount) || isNaN(baseCost) || baseCost === 0) {
     return { estimatedClicks: "N/A", estimatedImpressions: "N/A", ctr };

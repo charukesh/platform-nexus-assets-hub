@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import NeuCard from "@/components/NeuCard";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -45,13 +46,16 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
             planTypes.forEach(planType => {
               const plan = data.plans[planType];
               if (plan && plan.assets && Array.isArray(plan.assets)) {
-                // Add CTR value of 16% to each asset if not present
+                // Use asset's CTR if available, otherwise default to 0.5% (0.5)
                 plansData[planType] = plan.assets.map(asset => {
+                  // Get CTR value from asset or use default
+                  const ctrValue = asset.ctr !== undefined ? asset.ctr : 0.5;
+                  
                   const processedAsset = {
                     ...asset,
                     totalBudget: plan.totalBudget,
                     planTitle: plan.title,
-                    ctr: asset.ctr || 16
+                    ctr: ctrValue
                   };
                   
                   // Fill in missing values based on CTR
@@ -89,11 +93,11 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         
         // Handle array response
         if (Array.isArray(data)) {
-          // Add CTR to each item in the array
+          // Use item's CTR if available or default to 0.5%
           return { 
             flatData: data.map(item => ({
               ...item,
-              ctr: item.ctr || 16
+              ctr: item.ctr !== undefined ? item.ctr : 0.5
             })), 
             hasNestedPlans: false 
           };
@@ -101,12 +105,15 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         
         // Handle case where response is mediaPlan array
         if (data.mediaPlan && Array.isArray(data.mediaPlan)) {
-          // Add CTR to each item in the mediaPlan array
+          // Use item's CTR if available or default to 0.5%
           return { 
             flatData: data.mediaPlan.map(item => {
+              // Get CTR value or use default
+              const ctrValue = item.ctr !== undefined ? item.ctr : 0.5;
+              
               const processedItem = {
                 ...item,
-                ctr: item.ctr || 16
+                ctr: ctrValue
               };
               
               // Fill in missing values based on CTR

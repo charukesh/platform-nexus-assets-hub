@@ -55,7 +55,7 @@ serve(async (req) => {
                   "budget": 1000,
                   "impressions": 500000,
                   "clicks": 5000,
-                  "ctr": 0.01,
+                  "ctr": 1.0,
                   "cpc": 0.2
                 },
                 {
@@ -64,7 +64,7 @@ serve(async (req) => {
                   "budget": 2000,
                   "impressions": 1000000,
                   "clicks": 10000,
-                  "ctr": 0.01,
+                  "ctr": 1.0,
                   "cpc": 0.2
                 }
               ]
@@ -72,12 +72,13 @@ serve(async (req) => {
               IMPORTANT GUIDELINES:
               1. Make sure all fields are included with appropriate numeric values.
               2. Return budget values as plain numbers (no currency symbols).
-              3. Return CTR as a decimal (e.g., 0.02 for 2%).
-              4. Ensure all calculations are consistent (budget/clicks = CPC, clicks/impressions = CTR).
-              5. DO NOT include any explanatory text or markdown formatting - ONLY return the JSON array directly.
-              6. ALWAYS return at least 3-5 platforms for diversification.
-              7. Use realistic industry CPM/CPC values based on the platforms mentioned.
-              8. Prioritize JSON formatting correctness above all else - this must be parseable JSON.`
+              3. Return CTR as a value representing percentage points (e.g., 2.5 for 2.5%).
+              4. Provide realistic CTR values that vary by platform (e.g., Google Search: 4-8%, Facebook: 0.5-1.5%, Instagram: 0.8-2%, etc.)
+              5. Ensure all calculations are consistent (budget/clicks = CPC, clicks/impressions * 100 = CTR).
+              6. DO NOT include any explanatory text or markdown formatting - ONLY return the JSON array directly.
+              7. ALWAYS return at least 3-5 platforms for diversification.
+              8. Use realistic industry CPM/CPC values based on the platforms mentioned.
+              9. Prioritize JSON formatting correctness above all else - this must be parseable JSON.`
             },
             {
               role: 'user',

@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
 import { Loader2, Search, X, Edit, Check, Download } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -78,11 +77,11 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     }
   };
 
-  // Calculate the correct estimated clicks or impressions based on buyType and budget
-  const calculateEstimates = (asset: any) => {
+  // Helper function to calculate estimates - using actual CTR values
+  function calculateEstimates(asset: any) {
     const budgetAmount = parseFloat(asset.budgetAmount);
     const baseCost = parseFloat(asset.baseCost);
-    const ctr = 16; // Adding default CTR of 16
+    const ctr = asset.ctr !== undefined ? parseFloat(asset.ctr) : 0.5; // Use asset's CTR or default to 0.5%
     
     if (isNaN(budgetAmount) || isNaN(baseCost) || baseCost === 0) {
       return { estimatedClicks: "N/A", estimatedImpressions: "N/A", ctr };
@@ -229,7 +228,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                 asset.baseCost || '',
                 estimates.estimatedClicks || '',
                 estimates.estimatedImpressions || '',
-                `${estimates.ctr}%` || '16%',
+                `${estimates.ctr}%` || '',
                 asset.budgetAmount || '',
                 asset.targeting?.geographic || '',
                 asset.targeting?.deviceSplit || ''
@@ -399,19 +398,20 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
         {content.options && Object.entries(content.options).map(([key, option]: [string, any], index) => {
           // Process assets and update estimations including filling N/A values
           const processedAssets = option.assets?.map((asset: any) => {
+            // Use the asset's own CTR value if available
             const estimates = calculateEstimates(asset);
             
             // Check if we need to fill in any N/A values using the CTR formula
             if (estimates.estimatedClicks === "N/A" && estimates.estimatedImpressions !== "N/A") {
               // Calculate clicks from impressions and CTR
-              const impressions = parseInt(estimates.estimatedImpressions.replace(/,/g, ''));
+              const impressions = parseInt(String(estimates.estimatedImpressions).replace(/,/g, ''));
               if (!isNaN(impressions)) {
                 const calculatedClicks = Math.round(impressions * estimates.ctr / 100);
                 estimates.estimatedClicks = formatIndianNumber(calculatedClicks);
               }
             } else if (estimates.estimatedClicks !== "N/A" && estimates.estimatedImpressions === "N/A") {
               // Calculate impressions from clicks and CTR
-              const clicks = parseInt(estimates.estimatedClicks.replace(/,/g, ''));
+              const clicks = parseInt(String(estimates.estimatedClicks).replace(/,/g, ''));
               if (!isNaN(clicks)) {
                 const calculatedImpressions = Math.round(clicks * 100 / estimates.ctr);
                 estimates.estimatedImpressions = formatIndianNumber(calculatedImpressions);
@@ -452,7 +452,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                     </TableHeader>
                     <TableBody>
                       {processedAssets.map((asset: any, rowIndex: number) => (
-                        <TableRow key={asset.assetId}>
+                        <TableRow key={asset.assetId || rowIndex}>
                           <TableCell className="font-medium">{asset.assetName}</TableCell>
                           <TableCell>{asset.platform}</TableCell>
                           <TableCell>{asset.industry}</TableCell>
