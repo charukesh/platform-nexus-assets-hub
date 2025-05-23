@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import NeuCard from "@/components/NeuCard";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -176,6 +175,15 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
           if (updatedData[rowIndex].estimatedClicks !== undefined) {
             updatedData[rowIndex].estimatedClicks = Math.round(Number(updatedData[rowIndex].estimatedClicks) * ratio);
           }
+          
+          // Update the total budget for this plan
+          if (tableData.plansData[planType][0].totalBudget) {
+            const oldTotal = Number(tableData.plansData[planType][0].totalBudget);
+            const budgetDiff = newValue - originalValue;
+            tableData.plansData[planType].forEach(item => {
+              item.totalBudget = oldTotal + budgetDiff;
+            });
+          }
         } else {
           // For non-budget fields, just update the value
           updatedData[rowIndex][columnKey] = editValue;
@@ -210,7 +218,7 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
             if (updatedData[rowIndex].impressions !== undefined && updatedData[rowIndex].ctr !== undefined) {
               const impressions = Number(updatedData[rowIndex].impressions);
               if (impressions > 0) {
-                updatedData[rowIndex].ctr = Number(updatedData[rowIndex].clicks) / impressions;
+                updatedData[rowIndex].ctr = Number(updatedData[rowIndex].clicks) / impressions * 100;
               }
             }
           }
@@ -374,6 +382,10 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
                           onChange={(e) => setEditValue(e.target.value)}
                           className="w-full"
                           autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveEditedValue();
+                            if (e.key === 'Escape') cancelEditing();
+                          }}
                         />
                         <button 
                           onClick={saveEditedValue} 
@@ -395,7 +407,7 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
                         <span>{formatValue(row[key], key)}</span>
                         {isEditableColumn(key) && (
                           <button 
-                            onClick={() => startEditing(rowIndex, key, row[key])} 
+                            onClick={() => startEditing(rowIndex, key, row[key], title)} 
                             className="ml-2 p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 focus:opacity-100"
                             aria-label="Edit value"
                           >

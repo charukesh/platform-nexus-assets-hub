@@ -1,10 +1,11 @@
 
 import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search, X, Edit, Check } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import { formatIndianNumber } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,6 +32,13 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const loaderIntervalRef = useRef<number | null>(null);
   const [displayMode, setDisplayMode] = useState<'formatted' | 'raw'>('formatted');
   const { toast } = useToast();
+  const [editingCell, setEditingCell] = useState<{
+    optionKey: string;
+    rowIndex: number;
+    originalValue: number;
+  } | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+  const [processedResults, setProcessedResults] = useState<any>(null);
   
   useEffect(() => {
     if (searchLoading) {
@@ -51,6 +59,15 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       }
     };
   }, [searchLoading]);
+
+  useEffect(() => {
+    if (searchResults) {
+      // Create a deep copy of the results to avoid modifying the original data
+      setProcessedResults(JSON.parse(JSON.stringify(searchResults)));
+    } else {
+      setProcessedResults(null);
+    }
+  }, [searchResults]);
 
   const formatJsonDisplay = (data: any): string => {
     try {
@@ -101,6 +118,63 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       estimatedImpressions: asset.estimatedImpressions || "N/A",
       ctr 
     };
+  };
+
+  const handleEditBudget = (optionKey: string, rowIndex: number, currentValue: number) => {
+    setEditingCell({ optionKey, rowIndex, originalValue: currentValue });
+    setEditValue(currentValue.toString());
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingCell || !processedResults) return;
+    
+    try {
+      const { optionKey, rowIndex } = editingCell;
+      const newBudget = parseFloat(editValue);
+      
+      if (isNaN(newBudget) || newBudget <= 0) {
+        toast({
+          title: "Invalid amount",
+          description: "Please enter a valid budget amount",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const content = processedResults.choices[0].message.content;
+      const asset = content.options[optionKey].assets[rowIndex];
+      const oldBudget = parseFloat(asset.budgetAmount);
+      const budgetDiff = newBudget - oldBudget;
+      
+      // Update the budget amount for this asset
+      asset.budgetAmount = newBudget;
+      
+      // Recalculate estimations based on the new budget
+      const estimates = calculateEstimates(asset);
+      asset.estimatedClicks = estimates.estimatedClicks;
+      asset.estimatedImpressions = estimates.estimatedImpressions;
+      
+      // Update the total budget for the option
+      content.options[optionKey].totalBudget = parseFloat(content.options[optionKey].totalBudget) + budgetDiff;
+      
+      // Reset editing state
+      setEditingCell(null);
+      
+      // Force a refresh of the UI
+      setProcessedResults({...processedResults});
+      
+    } catch (error) {
+      console.error("Error updating budget:", error);
+      toast({
+        title: "Update failed",
+        description: "An error occurred while updating the budget",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCell(null);
   };
 
   const renderFormattedResponse = (data: any) => {
@@ -154,7 +228,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
               <h2 className="text-xl font-bold mb-4">{index + 1}. {option.planName}</h2>
               <div className="mb-4">
                 <p><strong>Total Budget:</strong> ₹{formatIndianNumber(option.totalBudget)}</p>
-                <p><strong>Budget Percentage:</strong> {option.budgetPercentage}</p>
               </div>
               
               {processedAssets.length > 0 && (
@@ -176,7 +249,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {processedAssets.map((asset: any) => (
+                      {processedAssets.map((asset: any, rowIndex: number) => (
                         <TableRow key={asset.assetId}>
                           <TableCell className="font-medium">{asset.assetName}</TableCell>
                           <TableCell>{asset.platform}</TableCell>
@@ -187,7 +260,48 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                           <TableCell>{asset.estimatedImpressions}</TableCell>
                           <TableCell>{asset.ctr}%</TableCell>
                           <TableCell>{asset.budgetPercent}%</TableCell>
-                          <TableCell>₹{formatIndianNumber(asset.budgetAmount)}</TableCell>
+                          <TableCell>
+                            {editingCell && 
+                             editingCell.optionKey === key && 
+                             editingCell.rowIndex === rowIndex ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-sm">₹</span>
+                                <Input 
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  className="w-24 h-8 py-1 px-2"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveEdit();
+                                    if (e.key === 'Escape') handleCancelEdit();
+                                  }}
+                                />
+                                <button 
+                                  onClick={handleSaveEdit}
+                                  className="p-1 hover:bg-gray-100 rounded"
+                                >
+                                  <Check size={16} className="text-green-600" />
+                                </button>
+                                <button 
+                                  onClick={handleCancelEdit}
+                                  className="p-1 hover:bg-gray-100 rounded"
+                                >
+                                  <X size={16} className="text-red-600" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 group">
+                                <span>₹{formatIndianNumber(asset.budgetAmount)}</span>
+                                <button 
+                                  onClick={() => handleEditBudget(key, rowIndex, parseFloat(asset.budgetAmount))}
+                                  className="ml-2 p-1 hover:bg-gray-100 rounded opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                  aria-label="Edit budget"
+                                >
+                                  <Edit size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </TableCell>
                           <TableCell className="max-w-xs">
                             <div className="text-xs">
                               <p><strong>Geographic:</strong> {asset.targeting.geographic}</p>
@@ -264,7 +378,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             {loaderMessages[loaderMessageIdx]}
           </span>
         </div>
-      ) : searchResults ? (
+      ) : processedResults ? (
         <NeuCard>
           <div className="p-4">
             <div className="flex justify-between mb-4">
@@ -295,12 +409,12 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             </div>
 
             {displayMode === 'formatted' ? (
-              renderFormattedResponse(searchResults)
+              renderFormattedResponse(processedResults)
             ) : (
               <div>
                 <h2 className="text-xl font-semibold mb-4">Raw Response Data</h2>
                 <pre className="bg-gray-100 dark:bg-gray-800 p-4 rounded-md overflow-x-auto text-sm">
-                  <code>{formatJsonDisplay(searchResults)}</code>
+                  <code>{formatJsonDisplay(processedResults)}</code>
                 </pre>
               </div>
             )}
