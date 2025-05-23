@@ -5,7 +5,7 @@ import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { formatIndianNumber, formatSearchResultsToCsv, downloadCsv, exportToGoogleSheets } from '@/lib/utils';
+import { formatIndianNumber, formatSearchResultsToCsv, downloadCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface AIResponseSectionProps {
@@ -209,8 +209,86 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     if (!processedResults) return;
     
     try {
-      // Export the results to Google Sheets
-      exportToGoogleSheets(processedResults);
+      // Get the data from the processed results
+      const content = processedResults.choices[0].message.content;
+      if (!content) {
+        throw new Error("No content found in results");
+      }
+      
+      // Create a clean CSV structure
+      let csvContent = 'data:text/csv;charset=utf-8,';
+      
+      // Add brief summary
+      csvContent += 'Brief Summary\n';
+      csvContent += `${content.briefSummary || ''}\n\n`;
+      
+      // Process each plan option
+      if (content.options) {
+        Object.entries(content.options).forEach(([key, option]: [string, any]) => {
+          csvContent += `Plan: ${option.planName}\n`;
+          csvContent += `Total Budget: ₹${option.totalBudget}\n\n`;
+          
+          // Add table headers for assets
+          csvContent += 'Asset Name,Platform,Industry,Buy Type,Base Cost,Estimated Clicks,Estimated Impressions,CTR (%),Budget Percent,Budget Amount,Geographic Targeting,Device Targeting\n';
+          
+          // Add asset rows
+          if (option.assets && option.assets.length > 0) {
+            option.assets.forEach((asset: any) => {
+              const row = [
+                asset.assetName || '',
+                asset.platform || '',
+                asset.industry || '',
+                asset.buyType || '',
+                asset.baseCost || '',
+                asset.estimatedClicks || '',
+                asset.estimatedImpressions || '',
+                asset.ctr || '16%',
+                `${asset.budgetPercent || ''}%`,
+                asset.budgetAmount || '',
+                asset.targeting?.geographic || '',
+                asset.targeting?.deviceSplit || ''
+              ].map(cell => {
+                // Escape quotes and wrap in quotes if cell contains commas or newlines
+                let value = String(cell);
+                if (value.includes('"')) {
+                  value = value.replace(/"/g, '""');
+                }
+                if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+                  value = `"${value}"`;
+                }
+                return value;
+              }).join(',');
+              
+              csvContent += row + '\n';
+            });
+          }
+          
+          csvContent += '\n';
+        });
+      }
+      
+      // Add recommendation if exists
+      if (content.recommendation) {
+        csvContent += 'Recommendation\n';
+        csvContent += `${content.recommendation}\n\n`;
+      }
+      
+      // Add next steps if exists
+      if (content.nextSteps && content.nextSteps.length > 0) {
+        csvContent += 'Next Steps\n';
+        content.nextSteps.forEach((step: string, index: number) => {
+          csvContent += `${index + 1}. ${step}\n`;
+        });
+      }
+      
+      // Encode the CSV content
+      const encodedUri = encodeURI(csvContent);
+      
+      // Create a link to the Google Sheets new document URL with CSV data
+      const googleSheetsUrl = `https://docs.google.com/spreadsheets/create?usp=sheets_api&import=csv&data=${encodeURIComponent(csvContent)}`;
+      
+      // Open the URL in a new tab
+      window.open(googleSheetsUrl, '_blank');
       
       toast({
         title: "Google Sheets opened",

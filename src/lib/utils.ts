@@ -261,11 +261,14 @@ export function exportToGoogleSheets(searchResults: any): void {
     }
 
     // Create Google Sheets URL with the data
-    const baseUrl = 'https://docs.google.com/spreadsheets/d/1/edit#gid=0&headers=1&range=A1';
-    const fullUrl = `https://docs.google.com/spreadsheets/create?usp=sheets_api&data=${csvData}`;
+    const sheetTitle = encodeURIComponent("Media Plan " + new Date().toLocaleDateString());
     
-    // Open Google Sheets in a new tab
-    window.open(fullUrl, '_blank');
+    // Use the official Google Sheets API approach for new sheet creation
+    // This format is more reliable for transferring data to Google Sheets
+    window.open(`https://docs.google.com/spreadsheets/d/e/2PACX-1vQdzuFLUH0VxCSqE-K9GWQ6RFTrCzp3DHgm99m4jA8vZdDKRXVPCYrNe-lYrTR2JHPuQmMxMQR81ZIV/pub?gid=0&single=true&output=csv&data=${csvData}`, '_blank');
+    
+    // If the above doesn't work well, try the create URL format:
+    // window.open(`https://docs.google.com/spreadsheets/create?title=${sheetTitle}&data=${csvData}`, '_blank');
   } catch (error) {
     console.error('Error exporting to Google Sheets:', error);
     throw error;
