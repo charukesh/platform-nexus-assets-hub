@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -216,26 +215,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedEmail = email.toLowerCase().trim();
       console.log(`Adding authorized email: ${normalizedEmail} with role: ${role}`);
       
-      // Use the edge function to bypass RLS
-      const appUrl = window.location.origin;
-      const response = await fetch(`${appUrl}/functions/v1/manage-authorized-users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({
+      // Use the Supabase Edge Functions API directly
+      const { data, error } = await supabase.functions.invoke('manage-authorized-users', {
+        body: {
           action: 'add',
           email: normalizedEmail,
           role: role
-        }),
+        }
       });
 
-      const result = await response.json();
-      
-      if (!response.ok) {
-        console.error('Error from manage-authorized-users function:', result);
-        if (response.status === 409) {
+      if (error) {
+        console.error('Error from manage-authorized-users function:', error);
+        if (error.message?.includes('already authorized')) {
           toast({
             title: "Email Already Authorized",
             description: `${normalizedEmail} already has access.`
@@ -245,10 +236,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         toast({
           title: "Error",
-          description: result.message || "Failed to add user. Please try again.",
+          description: error.message || "Failed to add user. Please try again.",
           variant: "destructive"
         });
-        throw new Error(result.message || "Failed to add user");
+        throw error;
       }
       
       console.log(`Email successfully added to database: ${normalizedEmail} with role: ${role}`);
@@ -258,21 +249,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Send welcome email
       try {
-        const welcomeResponse = await fetch(`${appUrl}/functions/v1/send-welcome-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        const appUrl = window.location.origin;
+        const { error: welcomeError } = await supabase.functions.invoke('send-welcome-email', {
+          body: {
             email: normalizedEmail,
             role: role,
             appUrl: appUrl
-          }),
+          }
         });
 
-        if (!welcomeResponse.ok) {
-          const errorData = await welcomeResponse.json();
-          console.error('Error sending welcome email:', errorData);
+        if (welcomeError) {
+          console.error('Error sending welcome email:', welcomeError);
           // We don't throw here since adding the user succeeded
         } else {
           console.log('Welcome email sent successfully');
@@ -302,38 +289,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedEmail = email.toLowerCase().trim();
       console.log(`Updating role for ${normalizedEmail} to ${role}`);
       
-      // Use the edge function to bypass RLS
-      const appUrl = import.meta.env.DEV ? 'http://localhost:54321' : window.location.origin;
-      const functionUrl = `${appUrl}/supabase/functions/manage-authorized-users`;
-      
-      console.log("Calling function URL:", functionUrl);
-      
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({
+      // Use the Supabase Edge Functions API directly
+      const { data, error } = await supabase.functions.invoke('manage-authorized-users', {
+        body: {
           action: 'update',
           email: normalizedEmail,
           role: role
-        }),
+        }
       });
 
-      // Add more detailed logging
-      console.log("Response status:", response.status);
-      console.log("Response status text:", response.statusText);
-      
-      // Check for non-OK response before trying to parse JSON
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response from manage-authorized-users function:', errorText);
-        throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 100)}...`);
+      if (error) {
+        console.error('Error from manage-authorized-users function:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update role. Please try again.",
+          variant: "destructive"
+        });
+        throw error;
       }
-
-      const result = await response.json();
-      console.log("Update result:", result);
+      
+      console.log("Update result:", data);
       
       // Reload the list
       await loadAuthorizedEmails();
@@ -363,38 +338,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const normalizedEmail = email.toLowerCase().trim();
       console.log("Removing authorized email:", normalizedEmail);
       
-      // Use the edge function to bypass RLS
-      const appUrl = window.location.origin;
-      const response = await fetch(`${appUrl}/functions/v1/manage-authorized-users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({
+      // Use the Supabase Edge Functions API directly
+      const { data, error } = await supabase.functions.invoke('manage-authorized-users', {
+        body: {
           action: 'remove',
           email: normalizedEmail
-        }),
+        }
       });
 
-      if (!response.ok) {
-        const result = await response.json();
-        console.error('Error from manage-authorized-users function:', result);
+      if (error) {
+        console.error('Error from manage-authorized-users function:', error);
         toast({
           title: "Error",
-          description: result.message || "Failed to remove user. Please try again.",
+          description: error.message || "Failed to remove user. Please try again.",
           variant: "destructive"
         });
         return false;
       }
       
-      const result = await response.json();
-      console.log("Remove result:", result);
+      console.log("Remove result:", data);
       
-      if (!result.success) {
+      if (!data?.success) {
         toast({
           title: "Error",
-          description: result.message || "Failed to remove user. Please try again.",
+          description: data?.message || "Failed to remove user. Please try again.",
           variant: "destructive"
         });
         return false;
