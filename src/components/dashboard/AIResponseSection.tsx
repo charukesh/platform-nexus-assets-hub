@@ -5,7 +5,7 @@ import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { formatIndianNumber, formatSearchResultsToCsv, downloadCsv } from '@/lib/utils';
+import { formatIndianNumber, formatTableDataToCsv, downloadCsv } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface AIResponseSectionProps {
@@ -180,10 +180,87 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     if (!processedResults) return;
     
     try {
-      // Format the results to CSV
-      const csvContent = formatSearchResultsToCsv(processedResults);
+      // Get the formatted data instead of raw JSON
+      const content = processedResults.choices[0].message.content;
+      const csvRows = [];
       
-      // Generate a timestamp for the filename
+      // Add brief summary as header
+      csvRows.push(['Brief Summary']);
+      csvRows.push([content.briefSummary || '']);
+      csvRows.push([]); // Empty row for separation
+      
+      // Process each plan option
+      if (content.options) {
+        Object.entries(content.options).forEach(([key, option]: [string, any]) => {
+          // Add plan header and total budget
+          csvRows.push([`Plan: ${option.planName}`]);
+          csvRows.push([`Total Budget: ₹${option.totalBudget}`]);
+          csvRows.push([]);
+          
+          // Add table headers for assets
+          const headers = [
+            'Asset Name', 
+            'Platform', 
+            'Industry', 
+            'Buy Type', 
+            'Base Cost', 
+            'Estimated Clicks', 
+            'Estimated Impressions',
+            'CTR (%)', 
+            'Budget Percent', 
+            'Budget Amount', 
+            'Targeting (Geographic)', 
+            'Targeting (Device)'
+          ];
+          
+          csvRows.push(headers);
+          
+          // Add processed asset rows with corrected estimates
+          if (option.assets && option.assets.length > 0) {
+            option.assets.forEach((asset: any) => {
+              // Get the updated estimates that were displayed in the table
+              const estimates = calculateEstimates(asset);
+              
+              csvRows.push([
+                asset.assetName || '',
+                asset.platform || '',
+                asset.industry || '',
+                asset.buyType || '',
+                asset.baseCost || '',
+                estimates.estimatedClicks || '',
+                estimates.estimatedImpressions || '',
+                `${estimates.ctr}%` || '16%',
+                `${asset.budgetPercent}%` || '',
+                asset.budgetAmount || '',
+                asset.targeting?.geographic || '',
+                asset.targeting?.deviceSplit || ''
+              ]);
+            });
+          }
+          
+          csvRows.push([]); // Empty row for separation between plans
+        });
+      }
+      
+      // Add recommendation if exists
+      if (content.recommendation) {
+        csvRows.push(['Recommendation']);
+        csvRows.push([content.recommendation]);
+        csvRows.push([]);
+      }
+      
+      // Add next steps if exists
+      if (content.nextSteps && content.nextSteps.length > 0) {
+        csvRows.push(['Next Steps']);
+        content.nextSteps.forEach((step: string, index: number) => {
+          csvRows.push([`${index + 1}. ${step}`]);
+        });
+      }
+      
+      // Convert to CSV and download
+      const csvContent = formatTableDataToCsv(csvRows);
+      
+      // Generate timestamp for the filename
       const now = new Date();
       const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}`;
       

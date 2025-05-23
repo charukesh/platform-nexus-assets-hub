@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -72,6 +73,17 @@ export function escapeCsvValue(value: any): string {
   }
   
   return stringValue;
+}
+
+/**
+ * Formats table data (2D array) to CSV format
+ * @param rows - 2D array of data to convert to CSV
+ * @returns CSV string of the formatted data
+ */
+export function formatTableDataToCsv(rows: any[][]): string {
+  return rows.map(row => 
+    row.map(cell => escapeCsvValue(cell)).join(',')
+  ).join('\n');
 }
 
 /**
@@ -279,9 +291,10 @@ export function exportToGoogleSheets(searchResults: any): void {
 function calculateEstimates(asset: any) {
   const budgetAmount = parseFloat(asset.budgetAmount);
   const baseCost = parseFloat(asset.baseCost);
+  const ctr = 16; // Adding default CTR of 16
   
   if (isNaN(budgetAmount) || isNaN(baseCost) || baseCost === 0) {
-    return { estimatedClicks: "N/A", estimatedImpressions: "N/A" };
+    return { estimatedClicks: "N/A", estimatedImpressions: "N/A", ctr };
   }
   
   const buyType = asset.buyType?.toLowerCase() || "";
@@ -289,22 +302,29 @@ function calculateEstimates(asset: any) {
   if (buyType.includes("click")) {
     // Cost Per Click (CPC) - calculate clicks directly
     const clicks = Math.round(budgetAmount / baseCost);
+    // Use CTR to calculate impressions if possible
+    const impressions = Math.round(clicks * 100 / ctr);
     return { 
       estimatedClicks: formatIndianNumber(clicks), 
-      estimatedImpressions: "N/A" 
+      estimatedImpressions: formatIndianNumber(impressions),
+      ctr 
     };
   } else if (buyType.includes("mille")) {
     // Cost Per Mille (CPM) - calculate impressions then derive clicks
     const impressions = Math.round((budgetAmount / baseCost) * 1000);
+    // Use CTR to calculate clicks
+    const clicks = Math.round(impressions * ctr / 100);
     return { 
-      estimatedClicks: "N/A", 
-      estimatedImpressions: formatIndianNumber(impressions) 
+      estimatedClicks: formatIndianNumber(clicks), 
+      estimatedImpressions: formatIndianNumber(impressions),
+      ctr
     };
   }
   
   // Default if buyType is not recognized
   return { 
     estimatedClicks: asset.estimatedClicks || "N/A", 
-    estimatedImpressions: asset.estimatedImpressions || "N/A" 
+    estimatedImpressions: asset.estimatedImpressions || "N/A",
+    ctr 
   };
 }
