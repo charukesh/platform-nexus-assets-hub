@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
-import { Loader2, Search, X, Edit, Check, FileText } from 'lucide-react';
+import { Loader2, Search, X, Edit, Check, Download } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
@@ -537,12 +537,12 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
               
               <NeuButton 
                 variant="outline" 
-                onClick={handleExportToGoogleSheets}
+                onClick={handleExportCsv}
                 disabled={!processedResults}
                 className="flex items-center gap-2"
               >
-                <FileText size={16} />
-                Open in Google Sheets
+                <Download size={16} />
+                Download CSV
               </NeuButton>
             </div>
 
