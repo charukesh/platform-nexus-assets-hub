@@ -78,7 +78,10 @@ serve(async (req) => {
     }
     
     // Parse the request body for the operation
-    const { action, email, role } = await req.json();
+    const requestData = await req.json();
+    const { action, email, role } = requestData;
+    
+    console.log("Received request:", { action, email, role });
     
     if (!email) {
       return new Response(
@@ -114,6 +117,7 @@ serve(async (req) => {
           .eq('email', normalizedEmail);
           
         if (checkError) {
+          console.error("Error checking existing user:", checkError);
           throw checkError;
         }
         
@@ -128,9 +132,18 @@ serve(async (req) => {
         }
         
         // Add the user
-        result = await supabaseAdmin
+        console.log(`Adding user with email: ${normalizedEmail} and role: ${role}`);
+        const { data: insertData, error: insertError } = await supabaseAdmin
           .from('authorized_users')
-          .insert({ email: normalizedEmail, role });
+          .insert({ email: normalizedEmail, role })
+          .select();
+          
+        if (insertError) {
+          console.error("Error adding user:", insertError);
+          throw insertError;
+        }
+        
+        result = { success: true, data: insertData };
         break;
         
       case 'update':
@@ -144,34 +157,71 @@ serve(async (req) => {
           );
         }
         
-        result = await supabaseAdmin
+        console.log(`Updating user with email: ${normalizedEmail} to role: ${role}`);
+        const { data: updateData, error: updateError } = await supabaseAdmin
           .from('authorized_users')
           .update({ role })
-          .eq('email', normalizedEmail);
+          .eq('email', normalizedEmail)
+          .select();
+          
+        if (updateError) {
+          console.error("Error updating user role:", updateError);
+          throw updateError;
+        }
+        
+        result = { success: true, data: updateData };
         break;
         
       case 'remove':
-        // Add debug logging to track the delete operation
-        console.log(`Attempting to delete user with email: ${normalizedEmail}`);
+        console.log(`Removing user with email: ${normalizedEmail}`);
         
-        result = await supabaseAdmin
+        // Explicitly use maybeSingle() to avoid errors when the row doesn't exist
+        const { data: existingUser, error: existingError } = await supabaseAdmin
+          .from('authorized_users')
+          .select('id')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
+          
+        if (existingError) {
+          console.error("Error checking if user exists:", existingError);
+          throw existingError;
+        }
+        
+        if (!existingUser) {
+          return new Response(
+            JSON.stringify({ 
+              error: "User not found", 
+              message: "Cannot delete a user that doesn't exist"
+            }),
+            {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 404,
+            }
+          );
+        }
+        
+        const { error: deleteError } = await supabaseAdmin
           .from('authorized_users')
           .delete()
           .eq('email', normalizedEmail);
           
-        // Log the result of the delete operation
-        console.log("Delete result:", result);
+        if (deleteError) {
+          console.error("Error deleting user:", deleteError);
+          throw deleteError;
+        }
         
-        // Verify if the user was actually deleted
-        const { data: checkData } = await supabaseAdmin
+        // Verify deletion was successful
+        const { data: checkAfterDelete, error: checkDeleteError } = await supabaseAdmin
           .from('authorized_users')
           .select('email')
-          .eq('email', normalizedEmail);
+          .eq('email', normalizedEmail)
+          .maybeSingle();
           
-        console.log("After delete check:", checkData);
+        if (checkDeleteError) {
+          console.error("Error verifying deletion:", checkDeleteError);
+        }
         
-        // If user still exists, return an error
-        if (checkData && checkData.length > 0) {
+        if (checkAfterDelete) {
           return new Response(
             JSON.stringify({ 
               error: "Failed to delete user", 
@@ -183,6 +233,8 @@ serve(async (req) => {
             }
           );
         }
+        
+        result = { success: true };
         break;
         
       default:
@@ -195,15 +247,11 @@ serve(async (req) => {
         );
     }
     
-    if (result.error) {
-      console.error("Operation error:", result.error);
-      throw result.error;
-    }
-    
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `User ${normalizedEmail} ${action === 'add' ? 'added' : action === 'update' ? 'updated' : 'removed'} successfully`
+        message: `User ${normalizedEmail} ${action === 'add' ? 'added' : action === 'update' ? 'updated' : 'removed'} successfully`,
+        data: result.data
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
