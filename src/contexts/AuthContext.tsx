@@ -304,7 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Use the edge function to bypass RLS
       const appUrl = import.meta.env.DEV ? 'http://localhost:54321' : window.location.origin;
-      const functionUrl = `${appUrl}/functions/v1/manage-authorized-users`;
+      const functionUrl = `${appUrl}/functions/manage-authorized-users`;
       
       console.log("Calling function URL:", functionUrl);
       
