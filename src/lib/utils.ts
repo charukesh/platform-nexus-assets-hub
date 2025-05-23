@@ -122,7 +122,6 @@ export function formatSearchResultsToCsv(searchResults: any): string {
         'Estimated Clicks', 
         'Estimated Impressions',
         'CTR (%)', 
-        'Budget Percent', 
         'Budget Amount', 
         'Geographic Targeting', 
         'Device Targeting'
@@ -142,7 +141,6 @@ export function formatSearchResultsToCsv(searchResults: any): string {
             asset.estimatedClicks || '',
             asset.estimatedImpressions || '',
             asset.ctr || '16%',
-            `${asset.budgetPercent || ''}%`,
             asset.budgetAmount || '',
             asset.targeting?.geographic || '',
             asset.targeting?.deviceSplit || ''
@@ -232,7 +230,7 @@ export function exportToGoogleSheets(searchResults: any): void {
         csvData += encodeURIComponent(`Total Budget: ₹${option.totalBudget}\n\n`);
         
         // Add table headers for assets
-        csvData += encodeURIComponent('Asset Name,Platform,Industry,Buy Type,Base Cost,Estimated Clicks,Estimated Impressions,CTR (%),Budget Percent,Budget Amount,Geographic Targeting,Device Targeting\n');
+        csvData += encodeURIComponent('Asset Name,Platform,Industry,Buy Type,Base Cost,Estimated Clicks,Estimated Impressions,CTR (%),Budget Amount,Geographic Targeting,Device Targeting\n');
         
         // Add asset rows
         if (option.assets && option.assets.length > 0) {
@@ -246,7 +244,6 @@ export function exportToGoogleSheets(searchResults: any): void {
               asset.estimatedClicks || '',
               asset.estimatedImpressions || '',
               asset.ctr || '16%',
-              `${asset.budgetPercent || ''}%`,
               asset.budgetAmount || '',
               asset.targeting?.geographic || '',
               asset.targeting?.deviceSplit || ''

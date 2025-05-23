@@ -326,7 +326,8 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         key !== 'insights' && 
         key !== 'strategicEssence' &&
         key !== 'planTitle' &&
-        key !== 'totalBudget'
+        key !== 'totalBudget' &&
+        key !== 'budgetPercent' // Remove the budget percent column
       )
     ];
     

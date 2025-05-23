@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
 import { Loader2, Search, X, Edit, Check, Download } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -207,7 +208,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
             'Estimated Clicks', 
             'Estimated Impressions',
             'CTR (%)', 
-            'Budget Percent', 
             'Budget Amount', 
             'Targeting (Geographic)', 
             'Targeting (Device)'
@@ -230,7 +230,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                 estimates.estimatedClicks || '',
                 estimates.estimatedImpressions || '',
                 `${estimates.ctr}%` || '16%',
-                `${asset.budgetPercent}%` || '',
                 asset.budgetAmount || '',
                 asset.targeting?.geographic || '',
                 asset.targeting?.deviceSplit || ''
@@ -305,8 +304,8 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
           csvContent += `Plan: ${option.planName}\n`;
           csvContent += `Total Budget: ₹${option.totalBudget}\n\n`;
           
-          // Add table headers for assets
-          csvContent += 'Asset Name,Platform,Industry,Buy Type,Base Cost,Estimated Clicks,Estimated Impressions,CTR (%),Budget Percent,Budget Amount,Geographic Targeting,Device Targeting\n';
+          // Add table headers for assets (removed budget percent)
+          csvContent += 'Asset Name,Platform,Industry,Buy Type,Base Cost,Estimated Clicks,Estimated Impressions,CTR (%),Budget Amount,Geographic Targeting,Device Targeting\n';
           
           // Add asset rows
           if (option.assets && option.assets.length > 0) {
@@ -320,7 +319,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                 asset.estimatedClicks || '',
                 asset.estimatedImpressions || '',
                 asset.ctr || '16%',
-                `${asset.budgetPercent || ''}%`,
                 asset.budgetAmount || '',
                 asset.targeting?.geographic || '',
                 asset.targeting?.deviceSplit || ''
@@ -448,7 +446,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                         <TableHead className="font-bold">Estimated Clicks</TableHead>
                         <TableHead className="font-bold">Estimated Impressions</TableHead>
                         <TableHead className="font-bold">CTR (%)</TableHead>
-                        <TableHead className="font-bold">Budget Percent</TableHead>
                         <TableHead className="font-bold">Budget Amount</TableHead>
                         <TableHead className="font-bold">Targeting</TableHead>
                       </TableRow>
@@ -464,7 +461,6 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                           <TableCell>{asset.estimatedClicks}</TableCell>
                           <TableCell>{asset.estimatedImpressions}</TableCell>
                           <TableCell>{asset.ctr}%</TableCell>
-                          <TableCell>{asset.budgetPercent}%</TableCell>
                           <TableCell>
                             {editingCell && 
                              editingCell.optionKey === key && 
