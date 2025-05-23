@@ -15,6 +15,7 @@ import AssetStatsCard from "@/components/dashboard/AssetStatsCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import AIResponseSection from "@/components/dashboard/AIResponseSection";
 import PlatformList from "@/components/dashboard/PlatformList";
+
 const Dashboard: React.FC = () => {
   const [platforms, setPlatforms] = useState<any[]>([]);
   const [assets, setAssets] = useState<any[]>([]);
@@ -168,13 +169,19 @@ const Dashboard: React.FC = () => {
         </header>
 
         <Tabs defaultValue="ai" value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          
-
           <TabsContent value="ai" className="mt-6">
-            <AIResponseSection searchBrief={searchBrief} searchResults={searchResults} searchLoading={searchLoading} onSearchSubmit={handleSearchSubmit} onSearchBriefChange={e => setSearchBrief(e.target.value)} onClear={() => setSearchBrief('')} />
+            <AIResponseSection 
+              searchBrief={searchBrief} 
+              searchResults={searchResults} 
+              searchLoading={searchLoading} 
+              onSearchSubmit={handleSearchSubmit} 
+              onSearchBriefChange={e => setSearchBrief(e.target.value)} 
+              onClear={() => setSearchBrief('')} 
+            />
           </TabsContent>
         </Tabs>
       </div>
     </Layout>;
 };
+
 export default Dashboard;
