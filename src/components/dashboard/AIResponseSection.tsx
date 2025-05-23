@@ -1,11 +1,12 @@
 
 import React, { useRef, useEffect, useState, ChangeEvent } from 'react';
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search, X, FileDown } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { formatIndianNumber } from '@/lib/utils';
+import { formatIndianNumber, formatSearchResultsToCsv, downloadCsv } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface AIResponseSectionProps {
   searchBrief: string;
@@ -29,6 +30,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const [loaderMessageIdx, setLoaderMessageIdx] = useState(0);
   const loaderIntervalRef = useRef<number | null>(null);
   const [displayMode, setDisplayMode] = useState<'formatted' | 'raw'>('formatted');
+  const { toast } = useToast();
   
   useEffect(() => {
     if (searchLoading) {
@@ -91,6 +93,36 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       estimatedClicks: asset.estimatedClicks || "N/A", 
       estimatedImpressions: asset.estimatedImpressions || "N/A" 
     };
+  };
+
+  const handleExport = () => {
+    if (!searchResults) {
+      toast({
+        title: "Nothing to export",
+        description: "Generate a media plan first before exporting",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      const csvContent = formatSearchResultsToCsv(searchResults);
+      const fileName = `media-plan-${new Date().toISOString().slice(0, 10)}.csv`;
+      downloadCsv(csvContent, fileName);
+      
+      toast({
+        title: "Export successful",
+        description: `Media plan exported as ${fileName}`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast({
+        title: "Export failed",
+        description: "Could not export the media plan",
+        variant: "destructive"
+      });
+    }
   };
 
   const renderFormattedResponse = (data: any) => {
@@ -236,7 +268,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       ) : searchResults ? (
         <NeuCard>
           <div className="p-4">
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between mb-4">
               <div className="inline-flex rounded-md shadow-sm">
                 <button
                   type="button"
@@ -261,6 +293,16 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                   Raw JSON
                 </button>
               </div>
+              
+              <NeuButton 
+                onClick={handleExport} 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1"
+              >
+                <FileDown className="h-4 w-4" />
+                Export CSV
+              </NeuButton>
             </div>
 
             {displayMode === 'formatted' ? (
@@ -281,3 +323,4 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 };
 
 export default AIResponseSection;
+

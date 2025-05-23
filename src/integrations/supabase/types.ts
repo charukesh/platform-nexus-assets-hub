@@ -276,6 +276,15 @@ export type Database = {
           platform_premium_users: number
           platform_restrictions: Json
           placement: string
+          ctr: number
+          vtr: number
+          minimum_cost: number
+          rate_inr: number
+          gtm_rate: number
+          cta: string
+          ad_format: string
+          ad_type: string
+          moq: string
           similarity: number
         }[]
       }
