@@ -5,7 +5,7 @@ import NeuButton from '@/components/NeuButton';
 import NeuCard from '@/components/NeuCard';
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { formatIndianNumber, formatSearchResultsToCsv, downloadCsv } from '@/lib/utils';
+import { formatIndianNumber, formatSearchResultsToCsv, downloadCsv, exportToGoogleSheets } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface AIResponseSectionProps {
@@ -200,6 +200,28 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
       toast({
         title: "Export failed",
         description: "Failed to export media plan to CSV",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExportToGoogleSheets = () => {
+    if (!processedResults) return;
+    
+    try {
+      // Export the results to Google Sheets
+      exportToGoogleSheets(processedResults);
+      
+      toast({
+        title: "Google Sheets opened",
+        description: "Media plan has been exported to Google Sheets",
+        variant: "default"
+      });
+    } catch (error) {
+      console.error("Error exporting to Google Sheets:", error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export media plan to Google Sheets",
         variant: "destructive"
       });
     }
@@ -437,12 +459,12 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
               
               <NeuButton 
                 variant="outline" 
-                onClick={handleExportCsv}
+                onClick={handleExportToGoogleSheets}
                 disabled={!processedResults}
                 className="flex items-center gap-2"
               >
                 <FileText size={16} />
-                Export CSV
+                Open in Google Sheets
               </NeuButton>
             </div>
 

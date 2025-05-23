@@ -195,6 +195,83 @@ export function downloadCsv(csvContent: string, fileName: string = 'export.csv')
   }, 100);
 }
 
+/**
+ * Open the search results in Google Sheets
+ * @param searchResults - The AI search response data
+ */
+export function exportToGoogleSheets(searchResults: any): void {
+  if (!searchResults || !searchResults.choices || !searchResults.choices[0]?.message?.content) {
+    console.error('No valid data available for export to Google Sheets');
+    return;
+  }
+
+  try {
+    const content = searchResults.choices[0].message.content;
+    let csvData = '';
+    
+    // Add brief summary
+    csvData += encodeURIComponent('Brief Summary\n');
+    csvData += encodeURIComponent(content.briefSummary || '') + encodeURIComponent('\n\n');
+    
+    // Process each plan option
+    if (content.options) {
+      Object.entries(content.options).forEach(([key, option]: [string, any]) => {
+        csvData += encodeURIComponent(`Plan: ${option.planName}\n`);
+        csvData += encodeURIComponent(`Total Budget: ₹${option.totalBudget}\n\n`);
+        
+        // Add table headers for assets
+        csvData += encodeURIComponent('Asset Name,Platform,Industry,Buy Type,Base Cost,Estimated Clicks,Estimated Impressions,CTR (%),Budget Percent,Budget Amount,Geographic Targeting,Device Targeting\n');
+        
+        // Add asset rows
+        if (option.assets && option.assets.length > 0) {
+          option.assets.forEach((asset: any) => {
+            csvData += encodeURIComponent([
+              asset.assetName || '',
+              asset.platform || '',
+              asset.industry || '',
+              asset.buyType || '',
+              asset.baseCost || '',
+              asset.estimatedClicks || '',
+              asset.estimatedImpressions || '',
+              asset.ctr || '16%',
+              `${asset.budgetPercent || ''}%`,
+              asset.budgetAmount || '',
+              asset.targeting?.geographic || '',
+              asset.targeting?.deviceSplit || ''
+            ].join(',')) + encodeURIComponent('\n');
+          });
+        }
+        
+        csvData += encodeURIComponent('\n');
+      });
+    }
+    
+    // Add recommendation if exists
+    if (content.recommendation) {
+      csvData += encodeURIComponent('Recommendation\n');
+      csvData += encodeURIComponent(content.recommendation) + encodeURIComponent('\n\n');
+    }
+    
+    // Add next steps if exists
+    if (content.nextSteps && content.nextSteps.length > 0) {
+      csvData += encodeURIComponent('Next Steps\n');
+      content.nextSteps.forEach((step: string, index: number) => {
+        csvData += encodeURIComponent(`${index + 1}. ${step}\n`);
+      });
+    }
+
+    // Create Google Sheets URL with the data
+    const baseUrl = 'https://docs.google.com/spreadsheets/d/1/edit#gid=0&headers=1&range=A1';
+    const fullUrl = `https://docs.google.com/spreadsheets/create?usp=sheets_api&data=${csvData}`;
+    
+    // Open Google Sheets in a new tab
+    window.open(fullUrl, '_blank');
+  } catch (error) {
+    console.error('Error exporting to Google Sheets:', error);
+    throw error;
+  }
+}
+
 // Helper function to calculate estimates
 function calculateEstimates(asset: any) {
   const budgetAmount = parseFloat(asset.budgetAmount);
