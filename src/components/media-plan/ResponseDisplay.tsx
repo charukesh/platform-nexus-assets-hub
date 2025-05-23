@@ -46,11 +46,35 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
             planTypes.forEach(planType => {
               const plan = data.plans[planType];
               if (plan && plan.assets && Array.isArray(plan.assets)) {
-                plansData[planType] = plan.assets.map(asset => ({
-                  ...asset,
-                  totalBudget: plan.totalBudget,
-                  planTitle: plan.title
-                }));
+                // Add CTR value of 16% to each asset if not present
+                plansData[planType] = plan.assets.map(asset => {
+                  const processedAsset = {
+                    ...asset,
+                    totalBudget: plan.totalBudget,
+                    planTitle: plan.title,
+                    ctr: asset.ctr || 16
+                  };
+                  
+                  // Fill in missing values based on CTR
+                  if (processedAsset.estimatedClicks === undefined || processedAsset.estimatedClicks === "N/A") {
+                    if (processedAsset.estimatedImpressions && processedAsset.estimatedImpressions !== "N/A") {
+                      const impressions = parseInt(String(processedAsset.estimatedImpressions).replace(/,/g, ''));
+                      if (!isNaN(impressions)) {
+                        processedAsset.estimatedClicks = Math.round(impressions * processedAsset.ctr / 100);
+                      }
+                    }
+                  } 
+                  else if (processedAsset.estimatedImpressions === undefined || processedAsset.estimatedImpressions === "N/A") {
+                    if (processedAsset.estimatedClicks && processedAsset.estimatedClicks !== "N/A") {
+                      const clicks = parseInt(String(processedAsset.estimatedClicks).replace(/,/g, ''));
+                      if (!isNaN(clicks)) {
+                        processedAsset.estimatedImpressions = Math.round(clicks * 100 / processedAsset.ctr);
+                      }
+                    }
+                  }
+                  
+                  return processedAsset;
+                });
               }
             });
             
@@ -66,12 +90,48 @@ const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ response }) => {
         
         // Handle array response
         if (Array.isArray(data)) {
-          return { flatData: data as MediaPlanItem[], hasNestedPlans: false };
+          // Add CTR to each item in the array
+          return { 
+            flatData: data.map(item => ({
+              ...item,
+              ctr: item.ctr || 16
+            })), 
+            hasNestedPlans: false 
+          };
         }
         
         // Handle case where response is mediaPlan array
         if (data.mediaPlan && Array.isArray(data.mediaPlan)) {
-          return { flatData: data.mediaPlan as MediaPlanItem[], hasNestedPlans: false };
+          // Add CTR to each item in the mediaPlan array
+          return { 
+            flatData: data.mediaPlan.map(item => {
+              const processedItem = {
+                ...item,
+                ctr: item.ctr || 16
+              };
+              
+              // Fill in missing values based on CTR
+              if (processedItem.clicks === undefined || processedItem.clicks === "N/A") {
+                if (processedItem.impressions && processedItem.impressions !== "N/A") {
+                  const impressions = parseInt(String(processedItem.impressions).replace(/,/g, ''));
+                  if (!isNaN(impressions)) {
+                    processedItem.clicks = Math.round(impressions * processedItem.ctr / 100);
+                  }
+                }
+              } 
+              else if (processedItem.impressions === undefined || processedItem.impressions === "N/A") {
+                if (processedItem.clicks && processedItem.clicks !== "N/A") {
+                  const clicks = parseInt(String(processedItem.clicks).replace(/,/g, ''));
+                  if (!isNaN(clicks)) {
+                    processedItem.impressions = Math.round(clicks * 100 / processedItem.ctr);
+                  }
+                }
+              }
+              
+              return processedItem;
+            }), 
+            hasNestedPlans: false 
+          };
         }
       }
       

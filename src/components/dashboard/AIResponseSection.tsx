@@ -65,9 +65,10 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
   const calculateEstimates = (asset: any) => {
     const budgetAmount = parseFloat(asset.budgetAmount);
     const baseCost = parseFloat(asset.baseCost);
+    const ctr = 16; // Adding default CTR of 16
     
     if (isNaN(budgetAmount) || isNaN(baseCost) || baseCost === 0) {
-      return { estimatedClicks: "N/A", estimatedImpressions: "N/A" };
+      return { estimatedClicks: "N/A", estimatedImpressions: "N/A", ctr };
     }
     
     const buyType = asset.buyType?.toLowerCase() || "";
@@ -75,23 +76,30 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
     if (buyType.includes("click")) {
       // Cost Per Click (CPC) - calculate clicks directly
       const clicks = Math.round(budgetAmount / baseCost);
+      // Use CTR to calculate impressions if possible
+      const impressions = Math.round(clicks * 100 / ctr);
       return { 
         estimatedClicks: formatIndianNumber(clicks), 
-        estimatedImpressions: "N/A" 
+        estimatedImpressions: formatIndianNumber(impressions),
+        ctr 
       };
     } else if (buyType.includes("mille")) {
       // Cost Per Mille (CPM) - calculate impressions then derive clicks
       const impressions = Math.round((budgetAmount / baseCost) * 1000);
+      // Use CTR to calculate clicks
+      const clicks = Math.round(impressions * ctr / 100);
       return { 
-        estimatedClicks: "N/A", 
-        estimatedImpressions: formatIndianNumber(impressions) 
+        estimatedClicks: formatIndianNumber(clicks), 
+        estimatedImpressions: formatIndianNumber(impressions),
+        ctr
       };
     }
     
     // Default if buyType is not recognized
     return { 
       estimatedClicks: asset.estimatedClicks || "N/A", 
-      estimatedImpressions: asset.estimatedImpressions || "N/A" 
+      estimatedImpressions: asset.estimatedImpressions || "N/A",
+      ctr 
     };
   };
 
@@ -112,13 +120,32 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
 
         {/* Plans */}
         {content.options && Object.entries(content.options).map(([key, option]: [string, any], index) => {
-          // Process assets and update estimations
+          // Process assets and update estimations including filling N/A values
           const processedAssets = option.assets?.map((asset: any) => {
             const estimates = calculateEstimates(asset);
+            
+            // Check if we need to fill in any N/A values using the CTR formula
+            if (estimates.estimatedClicks === "N/A" && estimates.estimatedImpressions !== "N/A") {
+              // Calculate clicks from impressions and CTR
+              const impressions = parseInt(estimates.estimatedImpressions.replace(/,/g, ''));
+              if (!isNaN(impressions)) {
+                const calculatedClicks = Math.round(impressions * estimates.ctr / 100);
+                estimates.estimatedClicks = formatIndianNumber(calculatedClicks);
+              }
+            } else if (estimates.estimatedClicks !== "N/A" && estimates.estimatedImpressions === "N/A") {
+              // Calculate impressions from clicks and CTR
+              const clicks = parseInt(estimates.estimatedClicks.replace(/,/g, ''));
+              if (!isNaN(clicks)) {
+                const calculatedImpressions = Math.round(clicks * 100 / estimates.ctr);
+                estimates.estimatedImpressions = formatIndianNumber(calculatedImpressions);
+              }
+            }
+            
             return {
               ...asset,
               estimatedClicks: estimates.estimatedClicks,
-              estimatedImpressions: estimates.estimatedImpressions
+              estimatedImpressions: estimates.estimatedImpressions,
+              ctr: estimates.ctr
             };
           }) || [];
 
@@ -142,6 +169,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                         <TableHead className="font-bold">Base Cost</TableHead>
                         <TableHead className="font-bold">Estimated Clicks</TableHead>
                         <TableHead className="font-bold">Estimated Impressions</TableHead>
+                        <TableHead className="font-bold">CTR (%)</TableHead>
                         <TableHead className="font-bold">Budget Percent</TableHead>
                         <TableHead className="font-bold">Budget Amount</TableHead>
                         <TableHead className="font-bold">Targeting</TableHead>
@@ -157,6 +185,7 @@ const AIResponseSection: React.FC<AIResponseSectionProps> = ({
                           <TableCell>₹{asset.baseCost}</TableCell>
                           <TableCell>{asset.estimatedClicks}</TableCell>
                           <TableCell>{asset.estimatedImpressions}</TableCell>
+                          <TableCell>{asset.ctr}%</TableCell>
                           <TableCell>{asset.budgetPercent}%</TableCell>
                           <TableCell>₹{formatIndianNumber(asset.budgetAmount)}</TableCell>
                           <TableCell className="max-w-xs">
